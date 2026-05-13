@@ -1,0 +1,71 @@
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Product {
+  id            Int       @id @default(autoincrement())
+
+  stockCode     String?   @unique
+
+  name          String
+  slug          String    @unique
+
+  description   String?
+
+  price         Float?
+
+  brand         String?
+
+  category      String?
+  subCategory   String?
+
+  unit          String?
+
+  stockStatus   String?
+
+  imageUrl      String?
+
+  features      String?
+
+  createdAt     DateTime  @default(now())
+}
+
+model Payment {
+  id             Int       @id @default(autoincrement())
+
+  customerName   String
+
+  companyName    String?
+
+  description    String?
+
+  amount         Float
+
+  status         String
+
+  transactionId  String?
+
+  providerName String?
+
+  createdAt      DateTime @default(now())
+}
+
+model PaymentProvider {
+  id          Int      @id @default(autoincrement())
+
+  name        String
+
+  apiUser     String?
+  apiPassword String?
+
+  merchantId  String?
+
+  isActive    Boolean @default(false)
+
+  createdAt   DateTime @default(now())
+}
