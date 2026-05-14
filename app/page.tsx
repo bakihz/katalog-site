@@ -1,19 +1,90 @@
+import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
-async function getProducts() {
-  const res = await fetch("http://localhost:3000/api/products", {
-    cache: "no-store",
+const PAGE_SIZE = 20;
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    page?: string;
+    q?: string;
+  }>;
+}) {
+  const params = await searchParams;
+
+  const q = params.q || "";
+
+  const page = Number(params.page || 1);
+
+  const skip = (page - 1) * PAGE_SIZE;
+
+  const products = await prisma.product.findMany({
+    where: q
+      ? {
+          OR: [
+            {
+              name: {
+                contains: q,
+              },
+            },
+
+            {
+              stockCode: {
+                contains: q,
+              },
+            },
+
+            {
+              brand: {
+                contains: q,
+              },
+            },
+          ],
+        }
+      : undefined,
+
+    take: PAGE_SIZE,
+
+    skip,
+
+    orderBy: {
+      id: "desc",
+    },
   });
 
-  return res.json();
-}
+  const total = await prisma.product.count({
+    where: q
+      ? {
+          OR: [
+            {
+              name: {
+                contains: q,
+              },
+            },
 
-export default async function Home() {
-  const products = await getProducts();
+            {
+              stockCode: {
+                contains: q,
+              },
+            },
+
+            {
+              brand: {
+                contains: q,
+              },
+            },
+          ],
+        }
+      : undefined,
+  });
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
-    <main className="p-10">
-      <h1 className="text-3xl font-bold mb-8">Ürünler</h1>
+    <main className="p-8">
+      <h1 className="text-5xl font-bold mb-8">Ürünler</h1>
+
       <Link
         href="/odeme"
         className="inline-block bg-white text-black px-6 py-3 rounded-xl font-bold mb-8"
@@ -21,23 +92,42 @@ export default async function Home() {
         Ödeme Yap
       </Link>
 
-      <div className="grid grid-cols-4 gap-6">
-        {products.map((product: any) => (
-          <div key={product.id} className="border rounded-xl p-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {products.map((product) => (
+          <Link
+            key={product.id}
+            href={`/urun/${product.slug}`}
+            className="border rounded-2xl p-4"
+          >
             <img
-              src={product.imageUrl}
-              alt={product.name}
-              className="rounded-lg mb-4"
+              src={
+                product.imageUrl && product.imageUrl.startsWith("http")
+                  ? product.imageUrl
+                  : "https://via.placeholder.com/800x600"
+              }
+              className="rounded-xl mb-4 w-full"
             />
 
-            <h2 className="font-bold text-lg">{product.name}</h2>
+            <h2 className="text-2xl font-bold">{product.name}</h2>
 
-            <p className="text-gray-500">{product.brand}</p>
+            <p className="text-zinc-400">{product.brand}</p>
+          </Link>
+        ))}
+      </div>
 
-            <Link href={`/urun/${product.slug}`} key={product.id}>
-              <div className="border rounded-xl p-4"></div>
-            </Link>
-          </div>
+      <div className="flex gap-2 mt-10">
+        {Array.from({
+          length: totalPages,
+        }).map((_, i) => (
+          <Link
+            key={i}
+            href={`/?page=${i + 1}`}
+            className={`px-4 py-2 rounded-lg border ${
+              page === i + 1 ? "bg-white text-black" : ""
+            }`}
+          >
+            {i + 1}
+          </Link>
         ))}
       </div>
     </main>

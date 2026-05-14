@@ -1,57 +1,66 @@
 import { prisma } from "@/lib/prisma";
+import { notFound } from "next/navigation";
 
-async function getProduct(slug: string) {
-  return prisma.product.findUnique({
+export default async function ProductDetailPage({
+  params,
+}: {
+  params: Promise<{
+    slug: string;
+  }>;
+}) {
+  const { slug } = await params;
+
+  const product = await prisma.product.findFirst({
     where: {
       slug,
     },
   });
-}
-
-export default async function ProductPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
-
-  const product = await getProduct(slug);
 
   if (!product) {
-    return <div>Ürün bulunamadı.</div>;
+    return notFound();
   }
 
-  let features = {};
-
-  try {
-    features = JSON.parse(product.features || "{}");
-  } catch {}
-
   return (
-    <main className="p-10">
-      <div className="grid grid-cols-2 gap-10">
+    <main className="max-w-6xl mx-auto p-10">
+      <div className="grid md:grid-cols-2 gap-10">
         <div>
           <img
-            src={product.imageUrl || ""}
-            alt={product.name}
-            className="rounded-xl"
+            src={product.imageUrl || "https://via.placeholder.com/800x600"}
+            className="rounded-2xl w-full"
           />
         </div>
 
         <div>
-          <h1 className="text-4xl font-bold mb-4">{product.name}</h1>
+          <h1 className="text-5xl font-bold mb-4">{product.name}</h1>
 
-          <p className="text-gray-400 mb-4">{product.brand}</p>
+          <p className="text-zinc-400 text-xl mb-8">{product.brand}</p>
 
-          <p className="mb-6">{product.description}</p>
+          <div className="space-y-4">
+            <div>
+              <strong>Stok Kodu:</strong> {product.stockCode}
+            </div>
 
-          <div className="space-y-2 mb-8">
-            {Object.entries(features).map(([key, value]) => (
-              <div key={key} className="flex gap-2">
-                <strong>{key}:</strong>
-                <span>{String(value)}</span>
-              </div>
-            ))}
+            <div>
+              <strong>Kategori:</strong> {product.category}
+            </div>
+
+            <div>
+              <strong>Alt Kategori:</strong> {product.subCategory}
+            </div>
+
+            <div>
+              <strong>Stok Durumu:</strong> {product.stockStatus}
+            </div>
+
+            <div>
+              <strong>Birim:</strong> {product.unit}
+            </div>
+          </div>
+
+          <div className="mt-10">
+            <h2 className="text-2xl font-bold mb-4">Açıklama</h2>
+
+            <p className="text-zinc-300 leading-8">{product.description}</p>
           </div>
         </div>
       </div>

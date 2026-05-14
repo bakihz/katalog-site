@@ -32,7 +32,27 @@ export default function PaymentPage() {
     setLoading(false);
 
     if (data.success) {
-      alert("Ödeme kaydı oluşturuldu");
+      const form = document.createElement("form");
+
+      form.method = "POST";
+
+      form.action = data.gatewayUrl;
+
+      Object.entries(data.formData).forEach(([key, value]) => {
+        const input = document.createElement("input");
+
+        input.type = "hidden";
+
+        input.name = key;
+
+        input.value = value as string;
+
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+
+      form.submit();
     }
   }
 

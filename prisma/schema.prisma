@@ -52,6 +52,8 @@ model Payment {
 
   providerName String?
 
+  orderId String?
+
   createdAt      DateTime @default(now())
 }
 
