@@ -92,6 +92,16 @@ export default async function Home({
         Ödeme Yap
       </Link>
 
+      <form className="mb-8">
+        <input
+          type="text"
+          name="q"
+          placeholder="Ürün ara..."
+          defaultValue={q}
+          className="w-full max-w-xl border p-4 rounded-xl bg-black"
+        />
+      </form>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {products.map((product) => (
           <Link
