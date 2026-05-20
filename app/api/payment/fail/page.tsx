@@ -1,7 +1,11 @@
-export default function FailPage() {
+export default async function FailPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string>>;
+}) {
+  const params = await searchParams;
+
   return (
-    <main className="p-10">
-      <h1 className="text-4xl font-bold text-red-500">Ödeme Başarısız</h1>
-    </main>
+    <pre style={{ color: "white" }}>{JSON.stringify(params, null, 2)}</pre>
   );
 }

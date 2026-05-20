@@ -24,11 +24,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const orderId = generateOrderId();
+    const orderId = Date.now().toString();
 
     const amount = Number(body.amount).toFixed(2);
 
-    const rnd = Date.now().toString();
+    const rnd = new Date().toLocaleString("tr-TR");
 
     const okUrl = `${process.env.APP_URL}/payment/success`;
 
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
     });
 
     const hash = generateNestpayHash({
-      clientId: process.env.HALKBANK_CLIENT_ID!,
+      clientId: process.env.ZIRAAT_CLIENT_ID!,
 
       orderId,
 
@@ -65,28 +65,32 @@ export async function POST(req: Request) {
 
       failUrl,
 
-      callbackUrl,
-
       transactionType: "Auth",
 
       instalment: "",
 
       rnd,
 
-      storeKey: process.env.HALKBANK_STORE_KEY!,
+      currency: "949",
+
+      storeKey: process.env.ZIRAAT_STORE_KEY!,
     });
 
     return Response.json({
       success: true,
 
-      gatewayUrl: process.env.HALKBANK_GATEWAY_URL,
+      gatewayUrl: process.env.ZIRAAT_GATEWAY_URL,
 
       formData: {
-        clientid: process.env.HALKBANK_CLIENT_ID,
+        clientid: process.env.ZIRAAT_CLIENT_ID,
 
-        storetype: "3d_pay_hosting",
+        storetype: "3d_pay",
 
-        hash,
+        hash: encodeURIComponent(hash),
+
+        hashAlgorithm: "ver3",
+
+        trantype: "Auth",
 
         islemtipi: "Auth",
 
@@ -94,13 +98,13 @@ export async function POST(req: Request) {
 
         currency: "949",
 
+        installment: "",
+
         oid: orderId,
 
         okUrl,
 
         failUrl,
-
-        callbackUrl,
 
         lang: "tr",
 
