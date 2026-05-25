@@ -1,33 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getExpectedSessionToken } from "@/lib/adminAuth";
+import { verifyAgentCookie } from "@/lib/agentAuth";
 
-export function middleware(request: NextRequest) {
-  if (request.nextUrl.pathname.startsWith("/admin")) {
-    const auth = request.headers.get("authorization");
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
-    if (!auth) {
-      return new NextResponse("Authentication required", {
-        status: 401,
-        headers: {
-          "WWW-Authenticate": 'Basic realm="Secure Area"',
-        },
-      });
+  // Forward the current pathname as a header so server layouts can read it
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", pathname);
+
+  // --- Admin protection ---
+  if (
+    (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) &&
+    pathname !== "/admin/login" &&
+    pathname !== "/api/admin/login"
+  ) {
+    const sessionCookie = request.cookies.get("admin_session")?.value;
+
+    if (!sessionCookie) {
+      return NextResponse.redirect(new URL("/admin/login", request.url));
     }
 
-    const base64Credentials = auth.split(" ")[1];
+    const expectedToken = await getExpectedSessionToken();
 
-    const credentials = atob(base64Credentials);
-
-    const [username, password] = credentials.split(":");
-
-    if (
-      username !== process.env.ADMIN_USERNAME ||
-      password !== process.env.ADMIN_PASSWORD
-    ) {
-      return new NextResponse("Access denied", {
-        status: 401,
-      });
+    if (sessionCookie !== expectedToken) {
+      const res = NextResponse.redirect(new URL("/admin/login", request.url));
+      res.cookies.delete("admin_session");
+      return res;
     }
   }
 
-  return NextResponse.next();
+  // --- Agent panel protection ---
+  if (pathname.startsWith("/panel")) {
+    const agentId = await verifyAgentCookie(
+      request.cookies.get("agent_session")?.value,
+    );
+
+    if (!agentId) {
+      return NextResponse.redirect(new URL("/giris", request.url));
+    }
+  }
+
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }

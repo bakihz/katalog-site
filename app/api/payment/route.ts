@@ -1,10 +1,17 @@
 import { prisma } from "@/lib/prisma";
-import { generateOrderId } from "@/lib/generateOrderId";
 import { generateNestpayHash } from "@/lib/nestpay";
+import { cookies } from "next/headers";
+import { verifyAgentCookie } from "@/lib/agentAuth";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+
+    // Identify the agent making the request (if any)
+    const cookieStore = await cookies();
+    const agentId = await verifyAgentCookie(
+      cookieStore.get("agent_session")?.value,
+    );
 
     const provider = await prisma.paymentProvider.findFirst({
       where: {
@@ -30,11 +37,14 @@ export async function POST(req: Request) {
 
     const rnd = new Date().toLocaleString("tr-TR");
 
-    const okUrl = `${process.env.APP_URL}/payment/success`;
-
-    const failUrl = `${process.env.APP_URL}/payment/fail`;
-
-    const callbackUrl = `${process.env.APP_URL}/api/payment/callback`;
+    // Agent flow uses dedicated success/fail API routes so the bank POST is handled
+    const isAgentFlow = agentId !== null;
+    const okUrl = isAgentFlow
+      ? `${process.env.APP_URL}/api/payment/agent-success`
+      : `${process.env.APP_URL}/payment/success`;
+    const failUrl = isAgentFlow
+      ? `${process.env.APP_URL}/api/payment/agent-fail`
+      : `${process.env.APP_URL}/payment/fail`;
 
     await prisma.payment.create({
       data: {
@@ -51,6 +61,8 @@ export async function POST(req: Request) {
         providerName: provider.name,
 
         orderId,
+
+        agentId: agentId ?? undefined,
       },
     });
 

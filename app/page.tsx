@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { verifyAgentCookie } from "@/lib/agentAuth";
 
 const PAGE_SIZE = 20;
 
@@ -12,6 +14,12 @@ export default async function Home({
   }>;
 }) {
   const params = await searchParams;
+
+  const cookieStore = await cookies();
+  const agentId = await verifyAgentCookie(
+    cookieStore.get("agent_session")?.value,
+  );
+  const odemeUrl = agentId ? "/panel/odeme" : "/giris";
 
   const q = params.q || "";
 
@@ -86,10 +94,24 @@ export default async function Home({
       <h1 className="text-5xl font-bold mb-8">Ürünler</h1>
 
       <Link
-        href="/odeme"
+        href={odemeUrl}
         className="inline-block bg-white text-black px-6 py-3 rounded-xl font-bold mb-8"
       >
         Ödeme Yap
+      </Link>
+
+      <Link
+        href="/giris"
+        className="inline-block bg-blue-600 text-white px-6 py-3 rounded-xl font-bold mb-8 ml-4 hover:bg-blue-500 transition-colors"
+      >
+        Temsilci Girişi
+      </Link>
+
+      <Link
+        href="/admin"
+        className="inline-block bg-neutral-800 text-white px-6 py-3 rounded-xl font-bold mb-8 ml-4 border border-neutral-600 hover:bg-neutral-700 transition-colors"
+      >
+        Yönetim Paneli
       </Link>
 
       <form className="mb-8">
