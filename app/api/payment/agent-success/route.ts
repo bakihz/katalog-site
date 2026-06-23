@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+function getBaseUrl(req: NextRequest): string {
+  const host =
+    req.headers.get("x-forwarded-host") ||
+    req.headers.get("host") ||
+    "localhost:3000";
+  const protocol = req.headers.get("x-forwarded-proto") || "http";
+  return `${protocol}://${host}`;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -9,6 +18,7 @@ export async function POST(req: NextRequest) {
     const procReturnCode = formData.get("ProcReturnCode") as string;
     const transId = formData.get("TransId") as string;
     const mdStatus = formData.get("mdStatus") as string;
+    const baseUrl = getBaseUrl(req);
 
     const isSuccess =
       response === "Approved" && procReturnCode === "00" && mdStatus === "1";
@@ -24,13 +34,14 @@ export async function POST(req: NextRequest) {
     if (isSuccess) {
       const payment = await prisma.payment.findFirst({ where: { orderId } });
       if (payment) {
-        return NextResponse.redirect(`/panel/dekont/${payment.id}`);
+        return NextResponse.redirect(`${baseUrl}/panel/dekont/${payment.id}`);
       }
     }
 
-    return NextResponse.redirect("/panel/odeme?error=1");
+    return NextResponse.redirect(`${baseUrl}/panel/odeme?error=1`);
   } catch (err) {
     console.error(err);
-    return NextResponse.redirect("/panel/odeme?error=1");
+    const baseUrl = getBaseUrl(req);
+    return NextResponse.redirect(`${baseUrl}/panel/odeme?error=1`);
   }
 }

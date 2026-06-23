@@ -1,7 +1,17 @@
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+function getBaseUrl(req: NextRequest): string {
+  const host =
+    req.headers.get("x-forwarded-host") ||
+    req.headers.get("host") ||
+    "localhost:3000";
+  const protocol = req.headers.get("x-forwarded-proto") || "http";
+  return `${protocol}://${host}`;
+}
+
 export async function POST(
-  _req: Request,
+  req: NextRequest,
   context: {
     params: Promise<{
       id: string;
@@ -9,6 +19,7 @@ export async function POST(
   },
 ) {
   const { id } = await context.params;
+  const baseUrl = getBaseUrl(req);
 
   await prisma.paymentProvider.updateMany({
     data: {
@@ -25,5 +36,5 @@ export async function POST(
     },
   });
 
-  return Response.redirect("/admin/providers");
+  return NextResponse.redirect(`${baseUrl}/admin/providers`);
 }

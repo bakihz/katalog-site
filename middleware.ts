@@ -18,13 +18,17 @@ export async function middleware(request: NextRequest) {
     const sessionCookie = request.cookies.get("admin_session")?.value;
 
     if (!sessionCookie) {
-      return NextResponse.redirect("/admin/login");
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/login";
+      return NextResponse.redirect(url);
     }
 
     const expectedToken = await getExpectedSessionToken();
 
     if (sessionCookie !== expectedToken) {
-      const res = NextResponse.redirect("/admin/login");
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/login";
+      const res = NextResponse.redirect(url);
       res.cookies.delete("admin_session");
       return res;
     }
@@ -37,7 +41,9 @@ export async function middleware(request: NextRequest) {
     );
 
     if (!agentId) {
-      return NextResponse.redirect("/giris");
+      const url = request.nextUrl.clone();
+      url.pathname = "/giris";
+      return NextResponse.redirect(url);
     }
   }
 

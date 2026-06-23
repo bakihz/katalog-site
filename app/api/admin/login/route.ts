@@ -1,22 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getExpectedSessionToken } from "@/lib/adminAuth";
 
+function getBaseUrl(req: NextRequest): string {
+  const host =
+    req.headers.get("x-forwarded-host") ||
+    req.headers.get("host") ||
+    "localhost:3000";
+  const protocol = req.headers.get("x-forwarded-proto") || "http";
+  return `${protocol}://${host}`;
+}
+
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const username = ((formData.get("username") as string) ?? "").trim();
   const password = ((formData.get("password") as string) ?? "").trim();
+  const baseUrl = getBaseUrl(req);
 
   if (
     username !== process.env.ADMIN_USERNAME ||
     password !== process.env.ADMIN_PASSWORD
   ) {
-    return NextResponse.redirect("/admin/login?error=1", {
+    return NextResponse.redirect(`${baseUrl}/admin/login?error=1`, {
       status: 303,
     });
   }
 
   const token = await getExpectedSessionToken();
-  const response = NextResponse.redirect("/admin", {
+  const response = NextResponse.redirect(`${baseUrl}/admin`, {
     status: 303,
   });
 
