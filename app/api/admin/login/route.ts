@@ -10,13 +10,13 @@ export async function POST(req: NextRequest) {
     username !== process.env.ADMIN_USERNAME ||
     password !== process.env.ADMIN_PASSWORD
   ) {
-    return NextResponse.redirect(new URL("/admin/login?error=1", req.url), {
+    return NextResponse.redirect("/admin/login?error=1", {
       status: 303,
     });
   }
 
   const token = await getExpectedSessionToken();
-  const response = NextResponse.redirect(new URL("/admin", req.url), {
+  const response = NextResponse.redirect("/admin", {
     status: 303,
   });
 

@@ -18,13 +18,13 @@ export async function middleware(request: NextRequest) {
     const sessionCookie = request.cookies.get("admin_session")?.value;
 
     if (!sessionCookie) {
-      return NextResponse.redirect(new URL("/admin/login", request.url));
+      return NextResponse.redirect("/admin/login");
     }
 
     const expectedToken = await getExpectedSessionToken();
 
     if (sessionCookie !== expectedToken) {
-      const res = NextResponse.redirect(new URL("/admin/login", request.url));
+      const res = NextResponse.redirect("/admin/login");
       res.cookies.delete("admin_session");
       return res;
     }
@@ -37,7 +37,7 @@ export async function middleware(request: NextRequest) {
     );
 
     if (!agentId) {
-      return NextResponse.redirect(new URL("/giris", request.url));
+      return NextResponse.redirect("/giris");
     }
   }
 

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function POST(req: NextRequest) {
-  const response = NextResponse.redirect(new URL("/admin/login", req.url), {
+export async function POST() {
+  const response = NextResponse.redirect("/admin/login", {
     status: 303,
   });
   response.cookies.delete("admin_session");

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 
 export async function POST(
-  req: Request,
+  _req: Request,
   context: {
     params: Promise<{
       id: string;
@@ -25,5 +25,5 @@ export async function POST(
     },
   });
 
-  return Response.redirect(new URL("/admin/providers", req.url));
+  return Response.redirect("/admin/providers");
 }

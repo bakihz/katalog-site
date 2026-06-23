@@ -14,5 +14,5 @@ export async function POST(req: NextRequest) {
     console.error(err);
   }
 
-  return NextResponse.redirect(new URL("/panel/odeme?error=1", req.url));
+  return NextResponse.redirect("/panel/odeme?error=1");
 }

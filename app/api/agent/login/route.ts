@@ -11,13 +11,13 @@ export async function POST(req: NextRequest) {
   const user = await prisma.user.findUnique({ where: { username } });
 
   if (!user || !user.isActive || !verifyPassword(password, user.password)) {
-    return NextResponse.redirect(new URL("/giris?error=1", req.url), {
+    return NextResponse.redirect("/giris?error=1", {
       status: 303,
     });
   }
 
   const token = await createAgentToken(user.id);
-  const response = NextResponse.redirect(new URL("/panel", req.url), {
+  const response = NextResponse.redirect("/panel", {
     status: 303,
   });
 

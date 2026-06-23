@@ -24,15 +24,13 @@ export async function POST(req: NextRequest) {
     if (isSuccess) {
       const payment = await prisma.payment.findFirst({ where: { orderId } });
       if (payment) {
-        return NextResponse.redirect(
-          new URL(`/panel/dekont/${payment.id}`, req.url),
-        );
+        return NextResponse.redirect(`/panel/dekont/${payment.id}`);
       }
     }
 
-    return NextResponse.redirect(new URL("/panel/odeme?error=1", req.url));
+    return NextResponse.redirect("/panel/odeme?error=1");
   } catch (err) {
     console.error(err);
-    return NextResponse.redirect(new URL("/panel/odeme?error=1", req.url));
+    return NextResponse.redirect("/panel/odeme?error=1");
   }
 }

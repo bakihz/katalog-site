@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   const password = (formData.get("password") as string) ?? "";
 
   if (!name || !username || !password) {
-    return NextResponse.redirect(new URL("/admin/agents?error=1", req.url));
+    return NextResponse.redirect("/admin/agents?error=1");
   }
 
   const hashed = hashPassword(password);
@@ -18,5 +18,5 @@ export async function POST(req: NextRequest) {
     data: { name, username, password: hashed },
   });
 
-  return NextResponse.redirect(new URL("/admin/agents", req.url));
+  return NextResponse.redirect("/admin/agents");
 }
