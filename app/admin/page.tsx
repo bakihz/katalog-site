@@ -1,27 +1,62 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
+const successfulStatuses = ["success", "Paid"];
+
 async function getStats() {
-  const [totalProducts, totalPayments, successPayments, activeProvider] =
-    await Promise.all([
-      prisma.product.count(),
-      prisma.payment.count(),
-      prisma.payment.count({ where: { status: "success" } }),
-      prisma.paymentProvider.findFirst({ where: { isActive: true } }),
-    ]);
+  const [
+    totalProducts,
+    totalPayments,
+    successPayments,
+    activeProvider,
+    agents,
+    recentPayments,
+  ] = await Promise.all([
+    prisma.product.count(),
+    prisma.payment.count(),
+    prisma.payment.count({ where: { status: { in: successfulStatuses } } }),
+    prisma.paymentProvider.findFirst({ where: { isActive: true } }),
+    prisma.user.count(),
+    prisma.payment.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      include: { agent: { select: { name: true } } },
+    }),
+  ]);
 
   const revenue = await prisma.payment.aggregate({
     _sum: { amount: true },
-    where: { status: "success" },
+    where: { status: { in: successfulStatuses } },
   });
 
   return {
     totalProducts,
     totalPayments,
     successPayments,
-    activeProvider: activeProvider?.name ?? "—",
+    activeProvider: activeProvider?.name ?? "Tanımlı değil",
+    agents,
+    recentPayments,
     revenue: revenue._sum.amount ?? 0,
   };
+}
+
+function formatMoney(amount: number) {
+  return amount.toLocaleString("tr-TR", {
+    style: "currency",
+    currency: "TRY",
+  });
+}
+
+function getStatusStyle(status: string) {
+  if (successfulStatuses.includes(status)) {
+    return "bg-emerald-100 text-emerald-700";
+  }
+
+  if (status === "Failed") {
+    return "bg-red-100 text-red-700";
+  }
+
+  return "bg-amber-100 text-amber-700";
 }
 
 export default async function AdminDashboardPage() {
@@ -31,61 +66,182 @@ export default async function AdminDashboardPage() {
     {
       label: "Toplam Ürün",
       value: stats.totalProducts.toLocaleString("tr-TR"),
+      helper: "Katalogdaki kayıt sayısı",
+      accent: "bg-[#173f32]",
     },
     {
       label: "Toplam Ödeme",
       value: stats.totalPayments.toLocaleString("tr-TR"),
+      helper: "Tüm işlem kayıtları",
+      accent: "bg-[#c2853e]",
     },
     {
       label: "Başarılı Ödeme",
       value: stats.successPayments.toLocaleString("tr-TR"),
+      helper: "Tahsil edilmiş görünen işlemler",
+      accent: "bg-emerald-600",
     },
     {
       label: "Toplam Ciro",
-      value: stats.revenue.toLocaleString("tr-TR", {
-        style: "currency",
-        currency: "TRY",
-      }),
+      value: formatMoney(stats.revenue),
+      helper: "Başarılı ödemeler toplamı",
+      accent: "bg-blue-600",
     },
-    { label: "Aktif POS", value: stats.activeProvider },
   ];
 
   const shortcuts = [
-    { href: "/admin/payments", label: "Ödemeleri Gör" },
-    { href: "/admin/providers", label: "POS Yönetimi" },
-    { href: "/admin/import", label: "Ürün İçe Aktar" },
+    {
+      href: "/admin/payments",
+      title: "Ödeme kayıtları",
+      text: "Tahsilatları ve işlem durumlarını incele.",
+    },
+    {
+      href: "/admin/agents",
+      title: "Temsilciler",
+      text: "Yeni temsilci ekle veya aktif/pasif yap.",
+    },
+    {
+      href: "/admin/import",
+      title: "Ürün aktarımı",
+      text: "CSV ile ürün kataloğunu güncelle.",
+    },
   ];
 
   return (
-    <div className="p-10 space-y-10">
-      <h1 className="text-3xl font-bold">Dashboard</h1>
+    <div className="space-y-8">
+      <section className="overflow-hidden rounded-[2rem] bg-[#10231d] p-6 text-white shadow-2xl shadow-[#10231d]/15 md:p-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="mb-3 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
+              Genel Bakış
+            </p>
+            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+              Lale EDT operasyonlarını tek ekrandan takip et.
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-white/65 md:text-base">
+              Ürün kataloğu, temsilciler, sanal POS ve ödeme kayıtları için hızlı
+              erişim alanı.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+              Aktif POS
+            </p>
+            <p className="mt-1 text-xl font-bold">{stats.activeProvider}</p>
+          </div>
+        </div>
+      </section>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
           <div
             key={card.label}
-            className="bg-white dark:bg-neutral-900 rounded-2xl p-6 shadow-sm border border-neutral-200 dark:border-neutral-800"
+            className="rounded-[1.5rem] border border-[#17201c]/10 bg-white p-6 shadow-sm"
           >
-            <p className="text-sm text-neutral-500 mb-1">{card.label}</p>
-            <p className="text-2xl font-bold">{card.value}</p>
+            <div className={`mb-5 h-1.5 w-14 rounded-full ${card.accent}`} />
+            <p className="text-sm font-medium text-[#68746e]">{card.label}</p>
+            <p className="mt-2 text-3xl font-bold tracking-tight">
+              {card.value}
+            </p>
+            <p className="mt-2 text-sm text-[#7a867f]">{card.helper}</p>
           </div>
         ))}
-      </div>
+      </section>
 
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Hızlı Erişim</h2>
-        <div className="flex flex-wrap gap-3">
-          {shortcuts.map((s) => (
+      <section className="grid gap-6 xl:grid-cols-[1fr_0.85fr]">
+        <div className="rounded-[1.5rem] border border-[#17201c]/10 bg-white p-6 shadow-sm">
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight">
+                Son ödeme kayıtları
+              </h2>
+              <p className="mt-1 text-sm text-[#7a867f]">
+                En yeni 5 işlem listelenir.
+              </p>
+            </div>
             <Link
-              key={s.href}
-              href={s.href}
-              className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 px-6 py-3 rounded-xl text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              href="/admin/payments"
+              className="rounded-full bg-[#10231d] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#173f32]"
             >
-              {s.label}
+              Tümü
+            </Link>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-left">
+              <thead>
+                <tr className="border-b border-[#17201c]/10 text-xs uppercase tracking-[0.14em] text-[#89938e]">
+                  <th className="py-3 pr-4">Müşteri</th>
+                  <th className="py-3 pr-4">Temsilci</th>
+                  <th className="py-3 pr-4">Tutar</th>
+                  <th className="py-3 pr-4">Durum</th>
+                  <th className="py-3">Tarih</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#17201c]/8">
+                {stats.recentPayments.length === 0 ? (
+                  <tr>
+                    <td className="py-6 text-sm text-[#7a867f]" colSpan={5}>
+                      Henüz ödeme kaydı bulunmuyor.
+                    </td>
+                  </tr>
+                ) : (
+                  stats.recentPayments.map((payment) => (
+                    <tr key={payment.id}>
+                      <td className="py-4 pr-4 font-semibold">
+                        {payment.customerName}
+                      </td>
+                      <td className="py-4 pr-4 text-sm text-[#68746e]">
+                        {payment.agent?.name ?? "Genel"}
+                      </td>
+                      <td className="py-4 pr-4 text-sm font-semibold">
+                        {formatMoney(payment.amount)}
+                      </td>
+                      <td className="py-4 pr-4">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusStyle(
+                            payment.status,
+                          )}`}
+                        >
+                          {payment.status}
+                        </span>
+                      </td>
+                      <td className="py-4 text-sm text-[#68746e]">
+                        {new Date(payment.createdAt).toLocaleString("tr-TR")}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="rounded-[1.5rem] border border-[#17201c]/10 bg-white p-6 shadow-sm">
+            <p className="text-sm font-medium text-[#68746e]">Temsilci Sayısı</p>
+            <p className="mt-2 text-3xl font-bold">
+              {stats.agents.toLocaleString("tr-TR")}
+            </p>
+            <p className="mt-2 text-sm text-[#7a867f]">
+              Aktif/pasif yönetimi temsilciler ekranında.
+            </p>
+          </div>
+
+          {shortcuts.map((shortcut) => (
+            <Link
+              key={shortcut.href}
+              href={shortcut.href}
+              className="block rounded-[1.5rem] border border-[#17201c]/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[#173f32]/25 hover:shadow-lg"
+            >
+              <p className="text-lg font-bold">{shortcut.title}</p>
+              <p className="mt-1 text-sm leading-6 text-[#68746e]">
+                {shortcut.text}
+              </p>
             </Link>
           ))}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

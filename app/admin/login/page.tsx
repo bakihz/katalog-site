@@ -1,3 +1,6 @@
+import Image from "next/image";
+import Link from "next/link";
+
 export default async function AdminLoginPage({
   searchParams,
 }: {
@@ -7,57 +10,86 @@ export default async function AdminLoginPage({
   const hasError = params.error === "1";
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-neutral-950">
-      <div className="w-full max-w-sm bg-neutral-900 rounded-2xl p-8 shadow-xl">
-        <div className="mb-6">
-          <a
-            href="/"
-            className="text-sm text-neutral-400 hover:text-white transition-colors"
-          >
-            ← Ana Sayfaya Dön
-          </a>
+    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#10231d] px-6 py-10 text-white">
+      <div className="absolute -left-24 top-[-8rem] h-96 w-96 rounded-full bg-[#315d4f] blur-3xl" />
+      <div className="absolute -bottom-32 right-[-7rem] h-[28rem] w-[28rem] rounded-full bg-[#c2853e]/35 blur-3xl" />
+
+      <section className="relative w-full max-w-md rounded-[2rem] border border-white/10 bg-white/10 p-8 shadow-2xl shadow-black/25 backdrop-blur-xl">
+        <Link
+          href="/"
+          className="mb-8 inline-flex text-sm font-semibold text-white/65 transition hover:text-white"
+        >
+          ← Ana sayfaya dön
+        </Link>
+
+        <div className="mb-8 flex items-center gap-4">
+          <div className="relative size-14 overflow-hidden rounded-2xl bg-white p-2">
+            <Image
+              src="/logo.svg"
+              alt="Lale EDT logo"
+              fill
+              priority
+              sizes="56px"
+              className="object-contain p-1"
+            />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/50">
+              Lale EDT
+            </p>
+            <h1 className="text-2xl font-bold tracking-tight">Admin Girişi</h1>
+          </div>
         </div>
-        <h1 className="text-2xl font-bold text-white mb-6">Admin Girişi</h1>
 
         {hasError && (
-          <p className="text-red-400 text-sm mb-4">
+          <p className="mb-5 rounded-2xl bg-red-500/15 px-4 py-3 text-sm font-medium text-red-100">
             Kullanıcı adı veya şifre hatalı.
           </p>
         )}
 
         <form action="/api/admin/login" method="POST" className="space-y-4">
           <div>
-            <label className="text-sm text-neutral-400 block mb-1">
+            <label
+              htmlFor="username"
+              className="mb-1.5 block text-sm font-medium text-white/70"
+            >
               Kullanıcı Adı
             </label>
             <input
+              id="username"
               type="text"
               name="username"
               required
               autoComplete="username"
-              className="w-full bg-neutral-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-white"
+              className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-white outline-none transition placeholder:text-white/30 focus:border-white/40 focus:bg-white/15"
             />
           </div>
 
           <div>
-            <label className="text-sm text-neutral-400 block mb-1">Şifre</label>
+            <label
+              htmlFor="password"
+              className="mb-1.5 block text-sm font-medium text-white/70"
+            >
+              Şifre
+            </label>
             <input
+              id="password"
               type="password"
               name="password"
               required
               autoComplete="current-password"
-              className="w-full bg-neutral-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-white"
+              className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-white outline-none transition placeholder:text-white/30 focus:border-white/40 focus:bg-white/15"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full bg-white text-black font-bold py-2 rounded-lg hover:bg-neutral-200 transition-colors"
+            className="w-full rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#10231d] transition hover:bg-[#f5f3ee]"
           >
             Giriş Yap
           </button>
         </form>
-      </div>
+      </section>
     </main>
   );
 }

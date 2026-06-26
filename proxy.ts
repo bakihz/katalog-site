@@ -2,19 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { getExpectedSessionToken } from "@/lib/adminAuth";
 import { verifyAgentCookie } from "@/lib/agentAuth";
 
-export async function middleware(request: NextRequest) {
+function isAdminRoute(pathname: string) {
+  return (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/api/admin") ||
+    pathname === "/api/products/import" ||
+    pathname.startsWith("/api/providers/")
+  );
+}
+
+function isPublicAdminRoute(pathname: string) {
+  return pathname === "/admin/login" || pathname === "/api/admin/login";
+}
+
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Forward the current pathname as a header so server layouts can read it
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", pathname);
 
-  // --- Admin protection ---
-  if (
-    (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) &&
-    pathname !== "/admin/login" &&
-    pathname !== "/api/admin/login"
-  ) {
+  if (isAdminRoute(pathname) && !isPublicAdminRoute(pathname)) {
     const sessionCookie = request.cookies.get("admin_session")?.value;
 
     if (!sessionCookie) {
@@ -34,7 +41,6 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // --- Agent panel protection ---
   if (pathname.startsWith("/panel")) {
     const agentId = await verifyAgentCookie(
       request.cookies.get("agent_session")?.value,
