@@ -26,6 +26,18 @@ export default async function ProvidersPage() {
           değiştirebilirsin. Mail order / ödeme entegrasyonu şu an ana çalışma
           kapsamımızın dışında, bu yüzden bu ekranda sadece görünüm toparlandı.
         </p>
+        <form
+          action="/api/admin/providers/seed-ziraat"
+          method="POST"
+          className="mt-5"
+        >
+          <button
+            type="submit"
+            className="rounded-2xl bg-[#10231d] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#173f32]"
+          >
+            Ziraat Test POS Ekle / Aktif Yap
+          </button>
+        </form>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
