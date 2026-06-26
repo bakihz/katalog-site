@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Firma Adı | Çok Yakında",
+  title: "Lale EDT Gıda A.Ş. | Çok Yakında",
   description:
     "Yeni web sitemiz hazırlanıyor. İletişim bilgilerimize bu sayfadan ulaşabilirsiniz.",
   icons: {
