@@ -6,10 +6,7 @@ export function generateNestpayHash({
   amount,
   okUrl,
   failUrl,
-  transactionType,
-  instalment,
   rnd,
-  currency,
   storeKey,
 }: {
   clientId: string;
@@ -17,25 +14,32 @@ export function generateNestpayHash({
   amount: string;
   okUrl: string;
   failUrl: string;
-  transactionType: string;
-  instalment: string;
   rnd: string;
-  currency: string;
   storeKey: string;
 }) {
+  // Formula: clientid + oid + amount + okUrl + failUrl + rnd + storekey
   const plainText =
     clientId +
     orderId +
     amount +
     okUrl +
     failUrl +
-    transactionType +
-    instalment +
     rnd +
     storeKey;
 
-  return crypto
-    .createHash("sha512")
-    .update(plainText, "ascii")
-    .digest("base64");
+  console.log("[HASH DEBUG] plainText:", plainText);
+
+  const variants = {
+    "7f-b64": crypto.createHash("sha512").update(plainText, "utf8").digest("base64"),
+    "9f-b64": crypto.createHash("sha512").update(
+      clientId + orderId + amount + okUrl + failUrl + "Auth" + "" + rnd + storeKey, "utf8"
+    ).digest("base64"),
+  };
+  console.log("[HASH VARIANTS]", JSON.stringify(variants));
+
+  const hash = variants["9f-b64"];
+
+  console.log("[HASH DEBUG] hash:", hash);
+
+  return hash;
 }

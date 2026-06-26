@@ -35,7 +35,7 @@ export async function POST(req: Request) {
 
     const amount = Number(body.amount).toFixed(2);
 
-    const rnd = new Date().toLocaleString("tr-TR");
+    const rnd = Math.random().toString(36).substring(2, 22).padEnd(20, "0");
 
     // Agent flow uses dedicated success/fail API routes so the bank POST is handled
     const isAgentFlow = agentId !== null;
@@ -66,6 +66,12 @@ export async function POST(req: Request) {
       },
     });
 
+    console.log("[ENV DEBUG] CLIENT_ID:", JSON.stringify(process.env.ZIRAAT_CLIENT_ID));
+    console.log("[ENV DEBUG] STORE_KEY:", JSON.stringify(process.env.ZIRAAT_STORE_KEY));
+    console.log("[ENV DEBUG] APP_URL:", JSON.stringify(process.env.APP_URL));
+    console.log("[ENV DEBUG] okUrl:", okUrl, "| failUrl:", failUrl);
+    console.log("[ENV DEBUG] rnd:", rnd, "| amount:", amount, "| orderId:", orderId);
+
     const hash = generateNestpayHash({
       clientId: process.env.ZIRAAT_CLIENT_ID!,
 
@@ -77,13 +83,7 @@ export async function POST(req: Request) {
 
       failUrl,
 
-      transactionType: "Auth",
-
-      instalment: "",
-
       rnd,
-
-      currency: "949",
 
       storeKey: process.env.ZIRAAT_STORE_KEY!,
     });
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
 
         storetype: "3d_pay",
 
-        hash: encodeURIComponent(hash),
+        hash,
 
         hashAlgorithm: "ver3",
 
