@@ -1,43 +1,40 @@
 import crypto from "crypto";
 
-export function generateNestpayHash({
-  clientId,
-  orderId,
-  amount,
-  okUrl,
-  failUrl,
-  rnd,
-  storeKey,
-}: {
-  clientId: string;
-  orderId: string;
-  amount: string;
-  okUrl: string;
-  failUrl: string;
-  rnd: string;
-  storeKey: string;
-}) {
-  // Formula: clientid + oid + amount + okUrl + failUrl + rnd + storekey
-  const plainText =
-    clientId +
-    orderId +
-    amount +
-    okUrl +
-    failUrl +
-    rnd +
-    storeKey;
+function escapeField(val: string): string {
+  return val.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
+}
 
+/**
+ * NestPay ver3 hash:
+ * Sort ALL form fields alphabetically (case-insensitive),
+ * exclude 'hash', 'encoding', 'nationalidno',
+ * append storeKey at end, escape \ and | in values, join with |, SHA-512 base64.
+ */
+export function generateNestpayHash(
+  formFields: Record<string, string>,
+  storeKey: string,
+): string {
+  const excluded = ["hash", "encoding", "nationalidno"];
+
+  const sortedKeys = Object.keys(formFields)
+    .filter((k) => !excluded.includes(k.toLowerCase()))
+    .sort((a, b) => {
+      const al = a.toLowerCase();
+      const bl = b.toLowerCase();
+      if (al < bl) return -1;
+      if (al > bl) return 1;
+      return 0;
+    });
+
+  const values = sortedKeys.map((k) => formFields[k]);
+  values.push(storeKey);
+
+  const plainText = values.map(escapeField).join("|");
+
+  console.log("[HASH DEBUG] sortedKeys:", sortedKeys);
   console.log("[HASH DEBUG] plainText:", plainText);
 
-  const variants = {
-    "7f-b64": crypto.createHash("sha512").update(plainText, "utf8").digest("base64"),
-    "9f-b64": crypto.createHash("sha512").update(
-      clientId + orderId + amount + okUrl + failUrl + "Auth" + "" + rnd + storeKey, "utf8"
-    ).digest("base64"),
-  };
-  console.log("[HASH VARIANTS]", JSON.stringify(variants));
-
-  const hash = variants["9f-b64"];
+  const hash = crypto.createHash("sha512").update(plainText).digest("base64");
 
   console.log("[HASH DEBUG] hash:", hash);
 

@@ -66,27 +66,24 @@ export async function POST(req: Request) {
       },
     });
 
-    console.log("[ENV DEBUG] CLIENT_ID:", JSON.stringify(process.env.ZIRAAT_CLIENT_ID));
-    console.log("[ENV DEBUG] STORE_KEY:", JSON.stringify(process.env.ZIRAAT_STORE_KEY));
-    console.log("[ENV DEBUG] APP_URL:", JSON.stringify(process.env.APP_URL));
-    console.log("[ENV DEBUG] okUrl:", okUrl, "| failUrl:", failUrl);
-    console.log("[ENV DEBUG] rnd:", rnd, "| amount:", amount, "| orderId:", orderId);
-
-    const hash = generateNestpayHash({
-      clientId: process.env.ZIRAAT_CLIENT_ID!,
-
-      orderId,
-
+    // Build form fields first (without hash), then compute hash from them
+    const formFields: Record<string, string> = {
+      clientid: process.env.ZIRAAT_CLIENT_ID!,
+      storetype: "3d_pay",
+      hashAlgorithm: "ver3",
+      trantype: "Auth",
+      islemtipi: "Auth",
       amount,
-
+      currency: "949",
+      installment: "",
+      oid: orderId,
       okUrl,
-
       failUrl,
-
+      lang: "tr",
       rnd,
+    };
 
-      storeKey: process.env.ZIRAAT_STORE_KEY!,
-    });
+    const hash = generateNestpayHash(formFields, process.env.ZIRAAT_STORE_KEY!);
 
     return Response.json({
       success: true,
@@ -94,33 +91,8 @@ export async function POST(req: Request) {
       gatewayUrl: process.env.ZIRAAT_GATEWAY_URL,
 
       formData: {
-        clientid: process.env.ZIRAAT_CLIENT_ID,
-
-        storetype: "3d_pay",
-
+        ...formFields,
         hash,
-
-        hashAlgorithm: "ver3",
-
-        trantype: "Auth",
-
-        islemtipi: "Auth",
-
-        amount,
-
-        currency: "949",
-
-        installment: "",
-
-        oid: orderId,
-
-        okUrl,
-
-        failUrl,
-
-        lang: "tr",
-
-        rnd,
       },
     });
   } catch (error) {
