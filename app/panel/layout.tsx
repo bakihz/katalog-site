@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { cookies } from "next/headers";
 import { verifyAgentCookie } from "@/lib/agentAuth";
 import { prisma } from "@/lib/prisma";
@@ -29,12 +30,28 @@ export default async function PanelLayout({
     <div className="flex min-h-screen">
       <aside className="w-60 shrink-0 bg-blue-950 text-white flex flex-col">
         <div className="px-6 py-5 border-b border-blue-800">
-          <span className="text-lg font-bold tracking-wide">
-            Temsilci Paneli
-          </span>
-          {agent && (
-            <p className="text-sm text-blue-300 mt-1 truncate">{agent.name}</p>
-          )}
+          <div className="flex items-center gap-4">
+            <div className="relative size-14 shrink-0 overflow-hidden rounded-xl shadow-lg shadow-black/20">
+              <Image
+                src="/logo.svg"
+                alt="Lale EDT logo"
+                fill
+                priority
+                sizes="56px"
+                className="object-contain"
+              />
+            </div>
+            <div className="min-w-0">
+              <span className="block text-lg font-bold tracking-wide">
+                Temsilci Paneli
+              </span>
+              {agent && (
+                <p className="mt-1 truncate text-sm text-blue-300">
+                  {agent.name}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
