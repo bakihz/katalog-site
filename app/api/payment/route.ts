@@ -81,6 +81,10 @@ export async function POST(req: Request) {
       failUrl,
       lang: "tr",
       rnd,
+      pan: body.pan ?? "",
+      cv2: body.cv2 ?? "",
+      Ecom_Payment_Card_ExpDate_Month: body.expMonth ?? "",
+      Ecom_Payment_Card_ExpDate_Year: body.expYear ?? "",
     };
 
     const hash = generateNestpayHash(formFields, process.env.ZIRAAT_STORE_KEY!);
