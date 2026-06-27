@@ -4,6 +4,45 @@ function escapeField(val: string): string {
   return val.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
 }
 
+function getFormValue(
+  formFields: FormData | Record<string, string>,
+  key: string,
+): string {
+  if (formFields instanceof FormData) {
+    const value = formFields.get(key);
+    return typeof value === "string" ? value : "";
+  }
+
+  return formFields[key] ?? "";
+}
+
+function formDataToRecord(formData: FormData): Record<string, string> {
+  const fields: Record<string, string> = {};
+
+  formData.forEach((value, key) => {
+    if (typeof value === "string") {
+      fields[key] = value;
+    }
+  });
+
+  return fields;
+}
+
+function sha512Base64(value: string): string {
+  return crypto.createHash("sha512").update(value).digest("base64");
+}
+
+function safeCompare(a: string, b: string): boolean {
+  const aBuffer = Buffer.from(a);
+  const bBuffer = Buffer.from(b);
+
+  if (aBuffer.length !== bBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(aBuffer, bBuffer);
+}
+
 /**
  * NestPay ver3 hash:
  * Sort ALL form fields alphabetically (case-insensitive),
@@ -31,12 +70,43 @@ export function generateNestpayHash(
 
   const plainText = values.map(escapeField).join("|");
 
-  console.log("[HASH DEBUG] sortedKeys:", sortedKeys);
-  console.log("[HASH DEBUG] plainText:", plainText);
+  return sha512Base64(plainText);
+}
 
-  const hash = crypto.createHash("sha512").update(plainText).digest("base64");
+export function verifyNestpayResponseHash(
+  formData: FormData,
+  storeKey: string | undefined,
+): { ok: boolean; reason?: string } {
+  if (!storeKey) {
+    return { ok: false, reason: "missing_store_key" };
+  }
 
-  console.log("[HASH DEBUG] hash:", hash);
+  const receivedHash =
+    getFormValue(formData, "HASH") || getFormValue(formData, "hash");
 
-  return hash;
+  if (!receivedHash) {
+    return { ok: false, reason: "missing_hash" };
+  }
+
+  const fields = formDataToRecord(formData);
+  const candidates = [generateNestpayHash(fields, storeKey)];
+
+  const hashParams = getFormValue(formData, "HASHPARAMS");
+  const hashParamsVal = getFormValue(formData, "HASHPARAMSVAL");
+
+  if (hashParams && hashParamsVal) {
+    const paramsVal = hashParams
+      .split(":")
+      .filter(Boolean)
+      .map((key) => getFormValue(formData, key))
+      .join("");
+
+    if (paramsVal === hashParamsVal) {
+      candidates.push(sha512Base64(paramsVal + storeKey));
+    }
+  }
+
+  const ok = candidates.some((candidate) => safeCompare(candidate, receivedHash));
+
+  return ok ? { ok: true } : { ok: false, reason: "hash_mismatch" };
 }

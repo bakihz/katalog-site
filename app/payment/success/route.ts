@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyNestpayResponseHash } from "@/lib/nestpay";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -20,9 +21,21 @@ export async function POST(req: NextRequest) {
     const procReturnCode = formData.get("ProcReturnCode") as string;
     const transId = formData.get("TransId") as string;
     const mdStatus = formData.get("mdStatus") as string;
+    const hashCheck = verifyNestpayResponseHash(
+      formData,
+      process.env.ZIRAAT_STORE_KEY,
+    );
+
+    if (!hashCheck.ok) {
+      return NextResponse.redirect(
+        `${baseUrl}/odeme/hatali?err=Guvenlik+dogrulamasi+basarisiz`,
+      );
+    }
 
     const isSuccess =
-      response === "Approved" && procReturnCode === "00" && mdStatus === "1";
+      response === "Approved" &&
+      procReturnCode === "00" &&
+      mdStatus === "1";
 
     await prisma.payment.updateMany({
       where: { orderId },

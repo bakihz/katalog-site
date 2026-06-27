@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { verifyNestpayResponseHash } from "@/lib/nestpay";
 
 export async function POST(req: Request) {
   try {
@@ -13,9 +14,21 @@ export async function POST(req: Request) {
     const transId = formData.get("TransId") as string;
 
     const mdStatus = formData.get("mdStatus") as string;
+    const hashCheck = verifyNestpayResponseHash(
+      formData,
+      process.env.ZIRAAT_STORE_KEY,
+    );
+
+    if (!hashCheck.ok) {
+      return new Response("INVALID HASH", {
+        status: 400,
+      });
+    }
 
     const isSuccess =
-      response === "Approved" && procReturnCode === "00" && mdStatus === "1";
+      response === "Approved" &&
+      procReturnCode === "00" &&
+      mdStatus === "1";
 
     await prisma.payment.updateMany({
       where: {

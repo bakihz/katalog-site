@@ -31,8 +31,6 @@ export default function PaymentPage() {
 
     const data = await res.json();
 
-    console.log(data);
-
     setLoading(false);
 
     if (data.success) {
