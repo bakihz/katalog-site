@@ -88,6 +88,22 @@ function getExpiryYearOptions(currentYear: number) {
   );
 }
 
+function scrollFocusedFieldIntoView(element: HTMLElement) {
+  if (!window.matchMedia("(max-width: 1023px)").matches) {
+    return;
+  }
+
+  const target = element.closest("label") ?? element;
+
+  window.setTimeout(() => {
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, 80);
+
+  window.setTimeout(() => {
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, 420);
+}
+
 function InteractiveCard({
   pan,
   customerName,
@@ -275,6 +291,14 @@ export default function PaymentPage() {
     }
   }
 
+  function handleFieldFocus(
+    field: FocusedField,
+    element: HTMLInputElement | HTMLTextAreaElement,
+  ) {
+    setFocused(field);
+    scrollFocusedFieldIntoView(element);
+  }
+
   return (
     <main className="min-h-screen bg-[#f4f1ea] px-4 py-8 text-[#17201c] sm:px-6 lg:px-10">
       <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
@@ -304,7 +328,11 @@ export default function PaymentPage() {
           </div>
         </section>
 
-        <div className="sticky top-4 z-20 lg:hidden">
+        <div
+          className={`sticky top-2 z-20 origin-top transition-transform duration-300 lg:hidden ${
+            focused ? "scale-[0.86]" : ""
+          }`}
+        >
           <InteractiveCard
             pan={form.pan}
             customerName={form.customerName}
@@ -335,6 +363,8 @@ export default function PaymentPage() {
                 placeholder="Opsiyonel"
                 className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 outline-none transition focus:border-[#173f32]/40 focus:bg-white"
                 value={form.companyName}
+                onFocus={(e) => handleFieldFocus(null, e.currentTarget)}
+                onBlur={() => setFocused(null)}
                 onChange={(e) =>
                   setForm({ ...form, companyName: e.target.value })
                 }
@@ -351,6 +381,8 @@ export default function PaymentPage() {
                 placeholder="0.00"
                 className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 outline-none transition focus:border-[#173f32]/40 focus:bg-white"
                 value={form.amount}
+                onFocus={(e) => handleFieldFocus(null, e.currentTarget)}
+                onBlur={() => setFocused(null)}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
               />
             </label>
@@ -363,6 +395,8 @@ export default function PaymentPage() {
                 placeholder="Fatura no veya ödeme açıklaması"
                 className="min-h-24 w-full resize-none rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 outline-none transition focus:border-[#173f32]/40 focus:bg-white"
                 value={form.description}
+                onFocus={(e) => handleFieldFocus(null, e.currentTarget)}
+                onBlur={() => setFocused(null)}
                 onChange={(e) =>
                   setForm({ ...form, description: e.target.value })
                 }
@@ -383,7 +417,9 @@ export default function PaymentPage() {
                 className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 outline-none transition focus:border-[#173f32]/40 focus:bg-white"
                 maxLength={MAX_CARD_HOLDER_LENGTH}
                 value={form.customerName}
-                onFocus={() => setFocused("customerName")}
+                onFocus={(e) =>
+                  handleFieldFocus("customerName", e.currentTarget)
+                }
                 onBlur={() => setFocused(null)}
                 onChange={(e) =>
                   setForm({
@@ -412,7 +448,7 @@ export default function PaymentPage() {
                 className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 font-mono tracking-[0.18em] outline-none transition focus:border-[#173f32]/40 focus:bg-white"
                 maxLength={19}
                 value={formatCardInput(form.pan)}
-                onFocus={() => setFocused("pan")}
+                onFocus={(e) => handleFieldFocus("pan", e.currentTarget)}
                 onBlur={() => setFocused(null)}
                 onChange={(e) =>
                   setForm({
@@ -436,7 +472,7 @@ export default function PaymentPage() {
                   className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-center outline-none transition focus:border-[#173f32]/40 focus:bg-white"
                   maxLength={2}
                   value={form.expMonth}
-                  onFocus={() => setFocused("expiry")}
+                  onFocus={(e) => handleFieldFocus("expiry", e.currentTarget)}
                   onBlur={() => {
                     setFocused(null);
                     setForm({
@@ -473,7 +509,7 @@ export default function PaymentPage() {
                   className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-center outline-none transition focus:border-[#173f32]/40 focus:bg-white"
                   maxLength={2}
                   value={form.expYear}
-                  onFocus={() => setFocused("expiry")}
+                  onFocus={(e) => handleFieldFocus("expiry", e.currentTarget)}
                   onBlur={() => setFocused(null)}
                   onChange={(e) => {
                     const expYear = getAllowedYearInput(
@@ -506,7 +542,7 @@ export default function PaymentPage() {
                   className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-center outline-none transition focus:border-[#173f32]/40 focus:bg-white"
                   maxLength={MAX_CVV_DIGITS}
                   value={form.cv2}
-                  onFocus={() => setFocused("cv2")}
+                  onFocus={(e) => handleFieldFocus("cv2", e.currentTarget)}
                   onBlur={() => setFocused(null)}
                   onChange={(e) =>
                     setForm({
