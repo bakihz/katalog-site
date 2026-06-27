@@ -292,6 +292,19 @@ export default function PaymentPage() {
             </p>
           </div>
 
+          <div className="hidden lg:block">
+            <InteractiveCard
+              pan={form.pan}
+              customerName={form.customerName}
+              expMonth={form.expMonth}
+              expYear={form.expYear}
+              cv2={form.cv2}
+              focused={focused}
+            />
+          </div>
+        </section>
+
+        <div className="sticky top-4 z-20 lg:hidden">
           <InteractiveCard
             pan={form.pan}
             customerName={form.customerName}
@@ -300,7 +313,7 @@ export default function PaymentPage() {
             cv2={form.cv2}
             focused={focused}
           />
-        </section>
+        </div>
 
         <form
           onSubmit={handleSubmit}
