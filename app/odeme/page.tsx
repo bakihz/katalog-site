@@ -10,6 +10,10 @@ export default function PaymentPage() {
     companyName: "",
     description: "",
     amount: "",
+    pan: "",
+    cv2: "",
+    expMonth: "",
+    expYear: "",
   });
 
   async function handleSubmit(e: React.FormEvent) {
@@ -112,11 +116,57 @@ export default function PaymentPage() {
           }
         />
 
+        <hr className="border-gray-700" />
+
+        <input
+          type="text"
+          placeholder="Kart Numarası"
+          className="w-full border p-3 rounded font-mono tracking-widest"
+          maxLength={19}
+          value={form.pan}
+          onChange={(e) =>
+            setForm({ ...form, pan: e.target.value.replace(/\D/g, "") })
+          }
+        />
+
+        <div className="flex gap-3">
+          <input
+            type="text"
+            placeholder="AA (Ay)"
+            className="w-1/3 border p-3 rounded text-center"
+            maxLength={2}
+            value={form.expMonth}
+            onChange={(e) =>
+              setForm({ ...form, expMonth: e.target.value.replace(/\D/g, "") })
+            }
+          />
+          <input
+            type="text"
+            placeholder="YYYY (Yıl)"
+            className="w-1/3 border p-3 rounded text-center"
+            maxLength={4}
+            value={form.expYear}
+            onChange={(e) =>
+              setForm({ ...form, expYear: e.target.value.replace(/\D/g, "") })
+            }
+          />
+          <input
+            type="text"
+            placeholder="CVV"
+            className="w-1/3 border p-3 rounded text-center"
+            maxLength={4}
+            value={form.cv2}
+            onChange={(e) =>
+              setForm({ ...form, cv2: e.target.value.replace(/\D/g, "") })
+            }
+          />
+        </div>
+
         <button
           disabled={loading}
           className="bg-white text-black px-6 py-3 rounded-xl font-bold"
         >
-          {loading ? "Yükleniyor..." : "Sanal POS'a Git"}
+          {loading ? "Yükleniyor..." : "Ödemeyi Tamamla"}
         </button>
       </form>
     </main>
