@@ -329,8 +329,8 @@ export default function PaymentPage() {
         </section>
 
         <div
-          className={`sticky top-2 z-20 origin-top transition-transform duration-300 lg:hidden ${
-            focused ? "scale-[0.86]" : ""
+          className={`sticky top-2 z-10 origin-top transition-transform duration-300 lg:hidden ${
+            focused ? "scale-[0.75]" : ""
           }`}
         >
           <InteractiveCard
