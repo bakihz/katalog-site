@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { verifyAgentCookie } from "@/lib/agentAuth";
+import { getPaymentStatusLabel } from "@/lib/paymentStatus";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -80,7 +81,9 @@ export default async function DekontPage({
           />
           <Row
             label="Durum"
-            value={payment.status === "Paid" ? "BAŞARILI" : payment.status}
+            value={getPaymentStatusLabel(payment.status).toLocaleUpperCase(
+              "tr-TR",
+            )}
             color={
               payment.status === "Paid" ? "text-green-600" : "text-red-600"
             }

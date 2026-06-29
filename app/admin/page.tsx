@@ -1,7 +1,10 @@
 import { prisma } from "@/lib/prisma";
+import {
+  getPaymentStatusBadgeClass,
+  getPaymentStatusLabel,
+  SUCCESSFUL_PAYMENT_STATUSES,
+} from "@/lib/paymentStatus";
 import Link from "next/link";
-
-const successfulStatuses = ["success", "Paid"];
 
 async function getStats() {
   const [
@@ -14,7 +17,9 @@ async function getStats() {
   ] = await Promise.all([
     prisma.product.count(),
     prisma.payment.count(),
-    prisma.payment.count({ where: { status: { in: successfulStatuses } } }),
+    prisma.payment.count({
+      where: { status: { in: [...SUCCESSFUL_PAYMENT_STATUSES] } },
+    }),
     prisma.paymentProvider.findFirst({ where: { isActive: true } }),
     prisma.user.count(),
     prisma.payment.findMany({
@@ -26,7 +31,7 @@ async function getStats() {
 
   const revenue = await prisma.payment.aggregate({
     _sum: { amount: true },
-    where: { status: { in: successfulStatuses } },
+    where: { status: { in: [...SUCCESSFUL_PAYMENT_STATUSES] } },
   });
 
   return {
@@ -45,18 +50,6 @@ function formatMoney(amount: number) {
     style: "currency",
     currency: "TRY",
   });
-}
-
-function getStatusStyle(status: string) {
-  if (successfulStatuses.includes(status)) {
-    return "bg-emerald-100 text-emerald-700";
-  }
-
-  if (status === "Failed") {
-    return "bg-red-100 text-red-700";
-  }
-
-  return "bg-amber-100 text-amber-700";
 }
 
 export default async function AdminDashboardPage() {
@@ -199,11 +192,11 @@ export default async function AdminDashboardPage() {
                       </td>
                       <td className="py-4 pr-4">
                         <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusStyle(
+                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${getPaymentStatusBadgeClass(
                             payment.status,
                           )}`}
                         >
-                          {payment.status}
+                          {getPaymentStatusLabel(payment.status)}
                         </span>
                       </td>
                       <td className="py-4 text-sm text-[#68746e]">

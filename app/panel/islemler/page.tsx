@@ -1,20 +1,19 @@
 import { cookies } from "next/headers";
 import { verifyAgentCookie } from "@/lib/agentAuth";
+import {
+  getPaymentStatusBadgeClass,
+  getPaymentStatusLabel,
+  isSuccessfulPaymentStatus,
+} from "@/lib/paymentStatus";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
-const statusLabel: Record<string, string> = {
-  Paid: "Başarılı",
-  Failed: "Başarısız",
-  Pending: "Bekliyor",
-};
-
-const statusColor: Record<string, string> = {
-  Paid: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  Failed: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  Pending:
-    "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-};
+function formatMoney(value: number) {
+  return value.toLocaleString("tr-TR", {
+    style: "currency",
+    currency: "TRY",
+  });
+}
 
 export default async function IslemlerPage() {
   const cookieStore = await cookies();
@@ -30,98 +29,118 @@ export default async function IslemlerPage() {
   });
 
   const totalPaid = payments
-    .filter((p) => p.status === "Paid")
+    .filter((p) => isSuccessfulPaymentStatus(p.status))
     .reduce((sum, p) => sum + p.amount, 0);
 
   return (
-    <div className="p-10 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">İşlemlerim</h1>
-        <span className="text-sm text-neutral-500">
-          Toplam tahsilat:{" "}
-          <strong>
-            {totalPaid.toLocaleString("tr-TR", {
-              style: "currency",
-              currency: "TRY",
-            })}
-          </strong>
-        </span>
-      </div>
+    <div className="space-y-8">
+      <section className="rounded-[2rem] border border-[#17201c]/10 bg-white p-6 shadow-xl shadow-[#10231d]/10 md:p-8">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#c2853e]">
+              İşlemlerim
+            </p>
+            <h2 className="mt-2 text-3xl font-bold tracking-tight">
+              Tahsilat kayıtları
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#68746e]">
+              Bu listede yalnızca sizin hesabınızla oluşturulan işlemler
+              gösterilir.
+            </p>
+          </div>
 
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden">
+          <div className="rounded-2xl bg-[#edf1ec] px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#7a867f]">
+              Toplam Tahsilat
+            </p>
+            <p className="mt-1 text-xl font-bold text-[#10231d]">
+              {formatMoney(totalPaid)}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-[#17201c]/10 bg-white shadow-xl shadow-[#10231d]/10">
         {payments.length === 0 ? (
-          <p className="p-6 text-neutral-400 text-sm">
-            Henüz işlem bulunmuyor.
-          </p>
+          <div className="p-8">
+            <p className="text-sm text-[#68746e]">Henüz işlem bulunmuyor.</p>
+            <Link
+              href="/panel/odeme"
+              className="mt-4 inline-flex rounded-2xl bg-[#10231d] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#173f32]"
+            >
+              İlk Ödemeyi Al
+            </Link>
+          </div>
         ) : (
-          <table className="w-full">
-            <thead className="border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50">
-              <tr>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-neutral-500">
-                  Müşteri
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-neutral-500">
-                  Firma
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-neutral-500">
-                  Açıklama
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-neutral-500">
-                  Tutar
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-neutral-500">
-                  Durum
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-neutral-500">
-                  Tarih
-                </th>
-                <th className="px-6 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.map((p) => (
-                <tr
-                  key={p.id}
-                  className="border-b last:border-0 border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
-                >
-                  <td className="px-6 py-3 text-sm font-medium">
-                    {p.customerName}
-                  </td>
-                  <td className="px-6 py-3 text-sm text-neutral-500">
-                    {p.companyName ?? "—"}
-                  </td>
-                  <td className="px-6 py-3 text-sm text-neutral-500 max-w-[200px] truncate">
-                    {p.description ?? "—"}
-                  </td>
-                  <td className="px-6 py-3 text-sm font-semibold">
-                    {p.amount.toLocaleString("tr-TR")} TL
-                  </td>
-                  <td className="px-6 py-3">
-                    <span
-                      className={`text-xs font-medium px-2 py-1 rounded-full ${statusColor[p.status] ?? ""}`}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[980px]">
+              <thead className="bg-[#f8f6f1]">
+                <tr>
+                  {[
+                    "Müşteri",
+                    "Firma",
+                    "Açıklama",
+                    "Tutar",
+                    "Durum",
+                    "Tarih",
+                    "",
+                  ].map((head) => (
+                    <th
+                      key={head}
+                      className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-[#7a867f]"
                     >
-                      {statusLabel[p.status] ?? p.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-3 text-sm text-neutral-500 whitespace-nowrap">
-                    {new Date(p.createdAt).toLocaleString("tr-TR")}
-                  </td>
-                  <td className="px-6 py-3">
-                    {p.status === "Paid" && (
-                      <Link
-                        href={`/panel/dekont/${p.id}`}
-                        className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-500 transition-colors whitespace-nowrap"
-                      >
-                        Dekont
-                      </Link>
-                    )}
-                  </td>
+                      {head}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {payments.map((payment) => (
+                  <tr
+                    key={payment.id}
+                    className="border-t border-[#17201c]/8 transition hover:bg-[#f8f6f1]/70"
+                  >
+                    <td className="px-6 py-4 text-sm font-semibold">
+                      {payment.customerName}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-[#68746e]">
+                      {payment.companyName || "—"}
+                    </td>
+                    <td className="max-w-[220px] truncate px-6 py-4 text-sm text-[#68746e]">
+                      {payment.description || "—"}
+                    </td>
+                    <td className="px-6 py-4 text-sm font-bold">
+                      {formatMoney(payment.amount)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ring-1 ${getPaymentStatusBadgeClass(
+                          payment.status,
+                        )}`}
+                      >
+                        {getPaymentStatusLabel(payment.status)}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-[#68746e]">
+                      {new Date(payment.createdAt).toLocaleString("tr-TR")}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {payment.status === "Paid" && (
+                        <Link
+                          href={`/panel/dekont/${payment.id}`}
+                          className="rounded-full bg-[#10231d] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#173f32]"
+                        >
+                          Dekont
+                        </Link>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }

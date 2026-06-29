@@ -1,6 +1,11 @@
+import {
+  getPaymentStatusBadgeClass,
+  getPaymentStatusLabel,
+  isSuccessfulPaymentStatus,
+} from "@/lib/paymentStatus";
 import { prisma } from "@/lib/prisma";
 
-const successfulStatuses = ["success", "Paid"];
+const pendingExpirationHours = 1;
 
 async function getPayments() {
   return prisma.payment.findMany({
@@ -24,33 +29,16 @@ function formatMoney(amount: number) {
   });
 }
 
-function getStatusLabel(status: string) {
-  const labels: Record<string, string> = {
-    success: "Başarılı",
-    Paid: "Başarılı",
-    Failed: "Başarısız",
-    Pending: "Bekliyor",
-  };
-
-  return labels[status] ?? status;
-}
-
-function getStatusStyle(status: string) {
-  if (successfulStatuses.includes(status)) {
-    return "bg-emerald-100 text-emerald-700";
-  }
-
-  if (status === "Failed") {
-    return "bg-red-100 text-red-700";
-  }
-
-  return "bg-amber-100 text-amber-700";
-}
-
 export default async function PaymentsPage() {
   const payments = await getPayments();
+  const expiredBefore = new Date();
+  expiredBefore.setHours(expiredBefore.getHours() - pendingExpirationHours);
+  const expirablePendingCount = payments.filter(
+    (payment) =>
+      payment.status === "Pending" && payment.createdAt < expiredBefore,
+  ).length;
   const totalAmount = payments
-    .filter((payment) => successfulStatuses.includes(payment.status))
+    .filter((payment) => isSuccessfulPaymentStatus(payment.status))
     .reduce((sum, payment) => sum + payment.amount, 0);
 
   return (
@@ -87,6 +75,26 @@ export default async function PaymentsPage() {
               </p>
             </div>
           </div>
+        </div>
+
+        <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="font-bold">Bekleyen ödeme kontrolü</p>
+            <p className="mt-1 text-amber-800">
+              {pendingExpirationHours} saati aşan bekleyen işlemler “Süresi
+              Doldu” olarak işaretlenebilir. Şu an{" "}
+              <strong>{expirablePendingCount}</strong> işlem uygun görünüyor.
+            </p>
+          </div>
+          <form action="/api/admin/payments/expire-pending" method="post">
+            <button
+              type="submit"
+              disabled={expirablePendingCount === 0}
+              className="rounded-full bg-[#10231d] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#173f32] disabled:cursor-not-allowed disabled:bg-[#10231d]/35"
+            >
+              Eski Bekleyenleri Kapat
+            </button>
+          </form>
         </div>
       </section>
 
@@ -131,11 +139,11 @@ export default async function PaymentsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusStyle(
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${getPaymentStatusBadgeClass(
                           payment.status,
                         )}`}
                       >
-                        {getStatusLabel(payment.status)}
+                        {getPaymentStatusLabel(payment.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-[#68746e]">

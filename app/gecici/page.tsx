@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 const contactDetails = [
   {
@@ -74,9 +75,17 @@ export default function TemporaryPage() {
             </div>
           </div>
 
-          <span className="hidden rounded-full border border-[#173f32]/15 bg-white/60 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#476057] backdrop-blur sm:inline-flex">
-            Çok yakında
-          </span>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/giris"
+              className="rounded-full bg-[#173f32] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white shadow-lg shadow-[#173f32]/15 transition hover:bg-[#10231d]"
+            >
+              Temsilci Girişi
+            </Link>
+            <span className="hidden rounded-full border border-[#173f32]/15 bg-white/60 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#476057] backdrop-blur sm:inline-flex">
+              Çok yakında
+            </span>
+          </div>
         </header>
 
         <section className="grid flex-1 items-center gap-14 py-16 lg:min-h-0 lg:grid-cols-[1.15fr_0.85fr] lg:gap-12 lg:py-6 xl:py-8">
