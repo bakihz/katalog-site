@@ -139,7 +139,7 @@ export default function TemporaryPage() {
                               ? "noreferrer"
                               : undefined
                           }
-                          className="group inline-flex max-w-full items-center gap-1.5 py-1 text-sm font-medium text-[#26342e] underline decoration-[#173f32]/25 underline-offset-4 transition hover:text-[#c2853e] hover:decoration-[#c2853e]"
+                          className="group inline-flex max-w-full items-center gap-1.5 py-1 text-sm font-medium text-[#26342e]  transition hover:text-[#c2853e] hover:decoration-[#c2853e]"
                         >
                           <span>{link.value}</span>
                           <span
