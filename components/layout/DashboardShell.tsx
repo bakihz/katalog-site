@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   DashboardMobileNav,
+  DashboardMobileMenu,
   DashboardNavLink,
   DashboardSidebarNav,
 } from "./DashboardNav";
@@ -97,12 +98,20 @@ export function DashboardShell({
                   </p>
                 )}
               </div>
-              <Link
-                href="/"
-                className="rounded-full border border-[#17201c]/10 bg-white px-4 py-2 text-sm font-semibold text-[#17201c] shadow-sm transition hover:border-[#173f32]/25 hover:text-[#c2853e] lg:hidden"
-              >
-                Site
-              </Link>
+              <div className="flex items-center gap-2 lg:hidden">
+                <Link
+                  href="/"
+                  className="rounded-full border border-[#17201c]/10 bg-white px-4 py-2 text-sm font-semibold text-[#17201c] shadow-sm transition hover:border-[#173f32]/25 hover:text-[#c2853e]"
+                >
+                  Site
+                </Link>
+                <DashboardMobileMenu
+                  links={navLinks}
+                  logoutAction={logoutAction}
+                  sidebarTitle={sidebarTitle}
+                  userName={userName}
+                />
+              </div>
             </div>
 
             <DashboardMobileNav
