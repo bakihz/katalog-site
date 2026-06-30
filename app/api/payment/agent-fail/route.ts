@@ -4,12 +4,43 @@ import { createAgentToken } from "@/lib/agentAuth";
 import { verifyNestpayResponseHash } from "@/lib/nestpay";
 
 function getBaseUrl(req: NextRequest): string {
+  const requestUrl = new URL(req.url);
   const host =
     req.headers.get("x-forwarded-host") ||
     req.headers.get("host") ||
-    "localhost:3000";
-  const protocol = req.headers.get("x-forwarded-proto") || "http";
+    requestUrl.host;
+  const protocol =
+    req.headers.get("x-forwarded-proto") ||
+    requestUrl.protocol.replace(":", "");
   return `${protocol}://${host}`;
+}
+
+function getFailureRedirectUrl(
+  baseUrl: string,
+  paymentId: number | null | undefined,
+  formData: FormData,
+) {
+  if (!paymentId) return `${baseUrl}/panel/odeme?error=1`;
+
+  const params = new URLSearchParams();
+  const err = formData.get("ErrMsg") || formData.get("errmsg");
+  const code =
+    formData.get("ErrorCode") ||
+    formData.get("ProcReturnCode") ||
+    formData.get("mdStatus");
+
+  if (typeof err === "string" && err.trim()) {
+    params.set("err", err.trim());
+  }
+
+  if (typeof code === "string" && code.trim()) {
+    params.set("code", code.trim());
+  }
+
+  const queryString = params.toString();
+  return `${baseUrl}/panel/odeme/basarisiz/${paymentId}${
+    queryString ? `?${queryString}` : ""
+  }`;
 }
 
 async function redirectWithAgentSession(url: string, agentId: number | null) {
@@ -68,7 +99,7 @@ export async function POST(req: NextRequest) {
         durationMs: Date.now() - startedAt,
       });
       return redirectWithAgentSession(
-        `${baseUrl}/panel/odeme?error=1`,
+        getFailureRedirectUrl(baseUrl, payment?.id, formData),
         payment?.agentId ?? null,
       );
     }
