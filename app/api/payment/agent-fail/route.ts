@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createAgentToken } from "@/lib/agentAuth";
 import { verifyNestpayResponseHash } from "@/lib/nestpay";
 
 function getBaseUrl(req: NextRequest): string {
@@ -11,7 +12,26 @@ function getBaseUrl(req: NextRequest): string {
   return `${protocol}://${host}`;
 }
 
+async function redirectWithAgentSession(url: string, agentId: number | null) {
+  const redirectResponse = NextResponse.redirect(url);
+
+  if (agentId) {
+    const token = await createAgentToken(agentId);
+    redirectResponse.cookies.set("agent_session", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 8,
+      path: "/",
+    });
+  }
+
+  return redirectResponse;
+}
+
 export async function POST(req: NextRequest) {
+  const baseUrl = getBaseUrl(req);
+
   try {
     const formData = await req.formData();
     const orderId = formData.get("oid") as string;
@@ -25,11 +45,16 @@ export async function POST(req: NextRequest) {
         where: { orderId },
         data: { status: "Failed" },
       });
+
+      const payment = await prisma.payment.findFirst({ where: { orderId } });
+      return redirectWithAgentSession(
+        `${baseUrl}/panel/odeme?error=1`,
+        payment?.agentId ?? null,
+      );
     }
   } catch (err) {
     console.error(err);
   }
 
-  const baseUrl = getBaseUrl(req);
   return NextResponse.redirect(`${baseUrl}/panel/odeme?error=1`);
 }
