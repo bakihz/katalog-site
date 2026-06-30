@@ -3,9 +3,19 @@ import { generateNestpayHash } from "@/lib/nestpay";
 import { cookies } from "next/headers";
 import { verifyAgentCookie } from "@/lib/agentAuth";
 
+function getBaseUrl(req: Request): string {
+  const host =
+    req.headers.get("x-forwarded-host") ||
+    req.headers.get("host") ||
+    "localhost:3000";
+  const protocol = req.headers.get("x-forwarded-proto") || "http";
+  return `${protocol}://${host}`;
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const baseUrl = getBaseUrl(req);
 
     // Identify the agent making the request (if any)
     const cookieStore = await cookies();
@@ -40,11 +50,11 @@ export async function POST(req: Request) {
     // Agent flow uses dedicated success/fail API routes so the bank POST is handled
     const isAgentFlow = agentId !== null;
     const okUrl = isAgentFlow
-      ? `${process.env.APP_URL}/api/payment/agent-success`
-      : `${process.env.APP_URL}/payment/success`;
+      ? `${baseUrl}/api/payment/agent-success`
+      : `${baseUrl}/payment/success`;
     const failUrl = isAgentFlow
-      ? `${process.env.APP_URL}/api/payment/agent-fail`
-      : `${process.env.APP_URL}/payment/fail`;
+      ? `${baseUrl}/api/payment/agent-fail`
+      : `${baseUrl}/payment/fail`;
 
     await prisma.payment.create({
       data: {

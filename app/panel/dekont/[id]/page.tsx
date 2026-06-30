@@ -8,6 +8,7 @@ import { getPaymentStatusLabel } from "@/lib/paymentStatus";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { ReceiptPrintButton } from "./ReceiptPrintButton";
 
 export default async function DekontPage({
   params,
@@ -31,35 +32,27 @@ export default async function DekontPage({
 
   return (
     <>
-      {/* Ekran görünümü */}
       <div className="p-10 print:hidden">
-        <div className="flex items-center gap-4 mb-6">
+        <div className="mb-6 flex items-center gap-4">
           <Link
             href="/panel/islemler"
             className="text-sm text-blue-600 hover:underline"
           >
             ← İşlemlere Dön
           </Link>
-          <button
-            onClick={() => window.print()}
-            className="ml-auto bg-blue-600 text-white px-6 py-2 rounded-xl hover:bg-blue-500 transition-colors"
-          >
-            Yazdır / PDF
-          </button>
+          <ReceiptPrintButton />
         </div>
       </div>
 
-      {/* Dekont - hem ekran hem baskı */}
       <div
         id="dekont"
-        className="mx-auto max-w-lg bg-white text-black p-10 print:p-8 print:max-w-full print:mx-0 print:shadow-none shadow-lg rounded-2xl print:rounded-none"
+        className="mx-auto max-w-lg rounded-2xl bg-white p-10 text-black shadow-lg print:mx-0 print:max-w-full print:rounded-none print:p-8 print:shadow-none"
       >
-        {/* Başlık */}
-        <div className="text-center border-b pb-6 mb-6">
-          <h1 className="text-2xl font-bold tracking-wide uppercase">
+        <div className="mb-6 border-b pb-6 text-center">
+          <h1 className="text-2xl font-bold uppercase tracking-wide">
             Ödeme Dekontu
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="mt-1 text-sm text-gray-500">
             {formatDateTime(payment.createdAt, {
               dateStyle: "long",
               timeStyle: "short",
@@ -67,7 +60,6 @@ export default async function DekontPage({
           </p>
         </div>
 
-        {/* Detaylar */}
         <dl className="space-y-3 text-sm">
           <Row label="Dekont No" value={`#${payment.id}`} />
           <Row label="Sipariş No" value={payment.orderId ?? "—"} />
@@ -101,8 +93,7 @@ export default async function DekontPage({
           {payment.agent && <Row label="Temsilci" value={payment.agent.name} />}
         </dl>
 
-        {/* Alt bilgi */}
-        <div className="mt-8 pt-6 border-t text-center text-xs text-gray-400">
+        <div className="mt-8 border-t pt-6 text-center text-xs text-gray-400">
           <p>Bu dekont bilgilendirme amaçlıdır.</p>
           <p>
             Oluşturma tarihi:{" "}
@@ -113,15 +104,6 @@ export default async function DekontPage({
           </p>
         </div>
       </div>
-
-      {/* Print butonu için client script */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            document.querySelector('button')?.addEventListener('click', () => window.print());
-          `,
-        }}
-      />
 
       <style>{`
         @media print {
@@ -147,9 +129,9 @@ function Row({
 }) {
   return (
     <div className="flex justify-between gap-4">
-      <dt className="text-gray-500 shrink-0">{label}</dt>
+      <dt className="shrink-0 text-gray-500">{label}</dt>
       <dd
-        className={`text-right font-medium ${bold ? "font-bold text-base" : ""} ${color ?? ""}`}
+        className={`text-right font-medium ${bold ? "text-base font-bold" : ""} ${color ?? ""}`}
       >
         {value}
       </dd>
