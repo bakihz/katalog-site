@@ -1,7 +1,15 @@
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createAgentToken } from "@/lib/agentAuth";
 import { verifyNestpayResponseHash } from "@/lib/nestpay";
+import { logPaymentDebug } from "@/lib/paymentDebug";
+import {
+  getFailureRedirectUrl,
+  getPaymentFailureDetails,
+} from "@/lib/paymentFailure";
+import { isSuccessfulPaymentStatus } from "@/lib/paymentStatus";
 
 function getBaseUrl(req: NextRequest): string {
   const requestUrl = new URL(req.url);
@@ -13,34 +21,6 @@ function getBaseUrl(req: NextRequest): string {
     req.headers.get("x-forwarded-proto") ||
     requestUrl.protocol.replace(":", "");
   return `${protocol}://${host}`;
-}
-
-function getFailureRedirectUrl(
-  baseUrl: string,
-  paymentId: number | null | undefined,
-  formData: FormData,
-) {
-  if (!paymentId) return `${baseUrl}/panel/odeme?error=1`;
-
-  const params = new URLSearchParams();
-  const err = formData.get("ErrMsg") || formData.get("errmsg");
-  const code =
-    formData.get("ErrorCode") ||
-    formData.get("ProcReturnCode") ||
-    formData.get("mdStatus");
-
-  if (typeof err === "string" && err.trim()) {
-    params.set("err", err.trim());
-  }
-
-  if (typeof code === "string" && code.trim()) {
-    params.set("code", code.trim());
-  }
-
-  const queryString = params.toString();
-  return `${baseUrl}/panel/odeme/basarisiz/${paymentId}${
-    queryString ? `?${queryString}` : ""
-  }`;
 }
 
 async function redirectWithAgentSession(url: string, agentId: number | null) {
@@ -57,7 +37,7 @@ async function redirectWithAgentSession(url: string, agentId: number | null) {
     });
   }
 
-  console.info("[AgentPaymentRedirect]", {
+  logPaymentDebug("[AgentPaymentRedirect]", {
     url,
     agentId,
     refreshedAgentSession: Boolean(agentId),
@@ -82,7 +62,7 @@ export async function POST(req: NextRequest) {
       process.env.ZIRAAT_STORE_KEY,
     );
 
-    console.info("[AgentPaymentSuccessCallback:received]", {
+    logPaymentDebug("[AgentPaymentSuccessCallback:received]", {
       orderId,
       baseUrl,
       response,
@@ -106,37 +86,59 @@ export async function POST(req: NextRequest) {
       response === "Approved" &&
       procReturnCode === "00" &&
       mdStatus === "1";
-
-    await prisma.payment.updateMany({
-      where: { orderId },
-      data: {
-        status: isSuccess ? "Paid" : "Failed",
-        transactionId: transId || null,
-      },
-    });
+    const failureDetails = isSuccess
+      ? { errorCode: null, errorMessage: null }
+      : getPaymentFailureDetails(formData);
 
     const payment = await prisma.payment.findFirst({ where: { orderId } });
 
-    console.info("[AgentPaymentSuccessCallback:processed]", {
+    if (!payment) {
+      return NextResponse.redirect(`${baseUrl}/panel/odeme?error=1`, {
+        status: 303,
+      });
+    }
+
+    if (isSuccessfulPaymentStatus(payment.status)) {
+      return redirectWithAgentSession(
+        `${baseUrl}/panel/dekont/${payment.id}`,
+        payment.agentId,
+      );
+    }
+
+    const updatedPayment = await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: isSuccess ? "Paid" : "Failed",
+        transactionId: transId || null,
+        errorCode: failureDetails.errorCode,
+        errorMessage: failureDetails.errorMessage,
+      } as unknown as Prisma.PaymentUpdateInput,
+    });
+    revalidatePath("/panel");
+    revalidatePath("/panel/islemler");
+
+    logPaymentDebug("[AgentPaymentSuccessCallback:processed]", {
       orderId,
-      paymentId: payment?.id ?? null,
-      paymentAgentId: payment?.agentId ?? null,
+      paymentId: updatedPayment.id,
+      paymentAgentId: updatedPayment.agentId,
       isSuccess,
       durationMs: Date.now() - startedAt,
     });
 
     if (isSuccess) {
-      if (payment) {
-        return redirectWithAgentSession(
-          `${baseUrl}/panel/dekont/${payment.id}`,
-          payment.agentId,
-        );
-      }
+      return redirectWithAgentSession(
+        `${baseUrl}/panel/dekont/${updatedPayment.id}`,
+        updatedPayment.agentId,
+      );
     }
 
     return redirectWithAgentSession(
-      getFailureRedirectUrl(baseUrl, payment?.id, formData),
-      payment?.agentId ?? null,
+      getFailureRedirectUrl({
+        baseUrl,
+        paymentId: updatedPayment.id,
+        formData,
+      }),
+      updatedPayment.agentId,
     );
   } catch (err) {
     console.error(err);

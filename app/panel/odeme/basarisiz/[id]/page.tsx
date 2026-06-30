@@ -35,8 +35,16 @@ export default async function FailedPaymentPage({
 
   if (!payment) return notFound();
 
-  const errorMessage = getFirstParam(queryParams.err);
-  const errorCode = getFirstParam(queryParams.code);
+  const paymentWithFailure = payment as typeof payment & {
+    errorCode?: string | null;
+    errorMessage?: string | null;
+  };
+  const errorMessage =
+    getFirstParam(queryParams.err) ??
+    paymentWithFailure.errorMessage ??
+    undefined;
+  const errorCode =
+    getFirstParam(queryParams.code) ?? paymentWithFailure.errorCode ?? undefined;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">

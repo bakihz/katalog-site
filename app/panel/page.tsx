@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { AppButton, PageHeader, PaymentStatusBadge, StatCard } from "@/components/ui";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export default async function PanelDashboardPage() {
   const cookieStore = await cookies();
   const agentId = await verifyAgentCookie(

@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { generateNestpayHash } from "@/lib/nestpay";
 import { cookies } from "next/headers";
 import { verifyAgentCookie } from "@/lib/agentAuth";
+import { logPaymentDebug } from "@/lib/paymentDebug";
+import { validatePaymentInput } from "@/lib/paymentValidation";
 
 function getBaseUrl(req: Request): string {
   const host =
@@ -24,6 +26,45 @@ export async function POST(req: Request) {
     const agentCookie = cookieStore.get("agent_session")?.value;
     const agentId = await verifyAgentCookie(agentCookie);
 
+    if (!agentId) {
+      return Response.json(
+        {
+          success: false,
+          message: "Ödeme almak için temsilci girişi yapmalısınız.",
+        },
+        { status: 401 },
+      );
+    }
+
+    const agent = await prisma.user.findUnique({
+      where: { id: agentId },
+      select: { isActive: true },
+    });
+
+    if (!agent?.isActive) {
+      return Response.json(
+        {
+          success: false,
+          message: "Temsilci hesabınız aktif değil.",
+        },
+        { status: 403 },
+      );
+    }
+
+    const validation = validatePaymentInput(body);
+
+    if (!validation.ok) {
+      return Response.json(
+        {
+          success: false,
+          message: validation.message,
+        },
+        { status: 400 },
+      );
+    }
+
+    const paymentInput = validation.data;
+
     const provider = await prisma.paymentProvider.findFirst({
       where: {
         isActive: true,
@@ -44,23 +85,18 @@ export async function POST(req: Request) {
 
     const orderId = Date.now().toString();
 
-    const amount = Number(body.amount).toFixed(2);
+    const amount = paymentInput.amount;
 
     const rnd = Math.random().toString(36).substring(2, 22).padEnd(20, "0");
 
     // Agent flow uses dedicated success/fail API routes so the bank POST is handled
-    const isAgentFlow = agentId !== null;
-    const okUrl = isAgentFlow
-      ? `${baseUrl}/api/payment/agent-success`
-      : `${baseUrl}/payment/success`;
-    const failUrl = isAgentFlow
-      ? `${baseUrl}/api/payment/agent-fail`
-      : `${baseUrl}/payment/fail`;
+    const okUrl = `${baseUrl}/api/payment/agent-success`;
+    const failUrl = `${baseUrl}/api/payment/agent-fail`;
 
-    console.info("[PaymentStart]", {
+    logPaymentDebug("[PaymentStart]", {
       orderId,
       baseUrl,
-      isAgentFlow,
+      isAgentFlow: true,
       agentId,
       hasAgentCookie: Boolean(agentCookie),
       amount,
@@ -71,13 +107,13 @@ export async function POST(req: Request) {
 
     await prisma.payment.create({
       data: {
-        customerName: body.customerName,
+        customerName: paymentInput.customerName,
 
-        companyName: body.companyName,
+        companyName: paymentInput.companyName,
 
-        description: body.description,
+        description: paymentInput.description,
 
-        amount: Number(amount),
+        amount: paymentInput.amountNumber,
 
         status: "Pending",
 
@@ -85,7 +121,7 @@ export async function POST(req: Request) {
 
         orderId,
 
-        agentId: agentId ?? undefined,
+        agentId,
       },
     });
 
@@ -104,17 +140,17 @@ export async function POST(req: Request) {
       failUrl,
       lang: "tr",
       rnd,
-      pan: body.pan ?? "",
-      cv2: body.cv2 ?? "",
-      Ecom_Payment_Card_ExpDate_Month: body.expMonth ?? "",
-      Ecom_Payment_Card_ExpDate_Year: body.expYear ?? "",
+      pan: paymentInput.pan,
+      cv2: paymentInput.cv2,
+      Ecom_Payment_Card_ExpDate_Month: paymentInput.expMonth,
+      Ecom_Payment_Card_ExpDate_Year: paymentInput.expYear,
     };
 
     const hash = generateNestpayHash(formFields, process.env.ZIRAAT_STORE_KEY!);
 
-    console.info("[PaymentStart:ready]", {
+    logPaymentDebug("[PaymentStart:ready]", {
       orderId,
-      isAgentFlow,
+      isAgentFlow: true,
       agentId,
       durationMs: Date.now() - startedAt,
     });

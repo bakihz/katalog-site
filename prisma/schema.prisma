@@ -64,6 +64,10 @@ model Payment {
 
   orderId String?
 
+  errorCode      String?
+
+  errorMessage   String?
+
   agentId        Int?
   agent          User?     @relation(fields: [agentId], references: [id])
 

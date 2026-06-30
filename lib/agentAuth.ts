@@ -18,7 +18,7 @@ async function hmacBase64(secret: string, message: string): Promise<string> {
 
 /** Creates a signed cookie value: `${agentId}.${hmac}` */
 export async function createAgentToken(agentId: number): Promise<string> {
-  const secret = process.env.SESSION_SECRET ?? "default_secret_change_me";
+  const secret = getSessionSecret();
   const mac = await hmacBase64(secret, `agent:${agentId}`);
   return `${agentId}.${mac}`;
 }
@@ -36,4 +36,14 @@ export async function verifyAgentCookie(
   const expected = await createAgentToken(agentId);
   if (cookie !== expected) return null;
   return agentId;
+}
+
+function getSessionSecret() {
+  const secret = process.env.SESSION_SECRET;
+
+  if (!secret || secret.length < 32) {
+    throw new Error("SESSION_SECRET must be set and at least 32 characters.");
+  }
+
+  return secret;
 }

@@ -8,6 +8,7 @@ export default async function GirisPage({
 }) {
   const params = await searchParams;
   const hasError = params.error === "1";
+  const isRateLimited = params.error === "rate";
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#f4f1ea] px-4 py-8 text-[#17201c] sm:px-6">
@@ -79,9 +80,11 @@ export default async function GirisPage({
               </p>
             </div>
 
-            {hasError && (
+            {(hasError || isRateLimited) && (
               <p className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                Kullanıcı adı veya şifre hatalı.
+                {isRateLimited
+                  ? "Çok fazla hatalı deneme yapıldı. Lütfen 15 dakika sonra tekrar deneyin."
+                  : "Kullanıcı adı veya şifre hatalı."}
               </p>
             )}
 
