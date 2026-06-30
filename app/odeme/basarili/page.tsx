@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { formatAmountWithCurrencySuffix, formatDateTime } from "@/lib/format";
 import Link from "next/link";
 import { PrintReceiptButton } from "./PrintReceiptButton";
 
@@ -13,10 +14,10 @@ export default async function BasariliPage({
   const payment = id
     ? await prisma.payment.findUnique({ where: { id } })
     : null;
-  const formattedDate = payment
-    ? new Date(payment.createdAt).toLocaleString("tr-TR")
+  const formattedDate = payment ? formatDateTime(payment.createdAt) : "";
+  const formattedAmount = payment
+    ? formatAmountWithCurrencySuffix(payment.amount)
     : "";
-  const formattedAmount = payment ? `${payment.amount.toFixed(2)} TL` : "";
 
   return (
     <main className="mx-auto w-full max-w-sm px-3 py-6 text-center sm:max-w-xl sm:px-6 sm:py-10">

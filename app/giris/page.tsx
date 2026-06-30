@@ -42,14 +42,6 @@ export default async function GirisPage({
                 görüntüleyebilirsiniz.
               </p>
             </div>
-
-            {/* <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-white/70">
-              <p className="font-semibold text-white">Yetki sınırı</p>
-              <p className="mt-2 leading-6">
-                Bu alan sadece temsilcilere özeldir. Admin paneli ve genel
-                sistem ayarlarına erişim verilmez.
-              </p>
-            </div> */}
           </section>
 
           <section className="p-6 sm:p-8 lg:p-12">
@@ -82,8 +74,8 @@ export default async function GirisPage({
                 Temsilci Girişi
               </h2>
               <p className="mt-3 text-sm leading-6 text-[#68746e]">
-                Pazarlamacı hesabınızla giriş yapın. Giriş sonrası yalnızca
-                size ait ödeme ve işlem kayıtlarını görebilirsiniz.
+                Pazarlamacı hesabınızla giriş yapın. Giriş sonrası yalnızca size
+                ait ödeme ve işlem kayıtlarını görebilirsiniz.
               </p>
             </div>
 

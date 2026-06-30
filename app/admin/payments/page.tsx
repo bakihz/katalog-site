@@ -1,9 +1,14 @@
 import {
-  getPaymentStatusBadgeClass,
-  getPaymentStatusLabel,
   isSuccessfulPaymentStatus,
 } from "@/lib/paymentStatus";
 import { prisma } from "@/lib/prisma";
+import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
+import {
+  AppButton,
+  PageHeader,
+  PaymentStatusBadge,
+  StatCard,
+} from "@/components/ui";
 
 const pendingExpirationHours = 1;
 
@@ -22,13 +27,6 @@ async function getPayments() {
   });
 }
 
-function formatMoney(amount: number) {
-  return amount.toLocaleString("tr-TR", {
-    style: "currency",
-    currency: "TRY",
-  });
-}
-
 export default async function PaymentsPage() {
   const payments = await getPayments();
   const expiredBefore = new Date();
@@ -43,41 +41,28 @@ export default async function PaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[1.75rem] border border-[#17201c]/10 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#c2853e]">
-              Finans
-            </p>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight">
-              Ödeme Kayıtları
-            </h2>
-            <p className="mt-2 text-sm text-[#68746e]">
-              Tüm ödeme denemeleri ve tahsilat kayıtları burada listelenir.
-            </p>
-          </div>
-
+      <PageHeader
+        eyebrow="Finans"
+        title="Ödeme Kayıtları"
+        description="Tüm ödeme denemeleri ve tahsilat kayıtları burada listelenir."
+        aside={
           <div className="grid grid-cols-2 gap-3 sm:min-w-80">
-            <div className="rounded-2xl bg-[#f5f3ee] p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#7a867f]">
-                Kayıt
-              </p>
-              <p className="mt-1 text-2xl font-bold">
-                {payments.length.toLocaleString("tr-TR")}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-[#10231d] p-4 text-white">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/55">
-                Ciro
-              </p>
-              <p className="mt-1 text-2xl font-bold">
-                {formatMoney(totalAmount)}
-              </p>
-            </div>
+            <StatCard
+              label="Kayıt"
+              value={formatNumber(payments.length)}
+              className="bg-[#f5f3ee] p-4 shadow-none"
+            />
+            <StatCard
+              label="Ciro"
+              value={formatCurrency(totalAmount)}
+              className="bg-[#10231d] p-4 text-white shadow-none [&_p:first-of-type]:text-white/55"
+            />
           </div>
-        </div>
+        }
+      />
 
-        <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 md:flex-row md:items-center md:justify-between">
+      <section className="rounded-[1.75rem] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="font-bold">Bekleyen ödeme kontrolü</p>
             <p className="mt-1 text-amber-800">
@@ -87,13 +72,13 @@ export default async function PaymentsPage() {
             </p>
           </div>
           <form action="/api/admin/payments/expire-pending" method="post">
-            <button
+            <AppButton
               type="submit"
               disabled={expirablePendingCount === 0}
-              className="rounded-full bg-[#10231d] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#173f32] disabled:cursor-not-allowed disabled:bg-[#10231d]/35"
+              size="sm"
             >
               Eski Bekleyenleri Kapat
-            </button>
+            </AppButton>
           </form>
         </div>
       </section>
@@ -135,19 +120,13 @@ export default async function PaymentsPage() {
                       {payment.description || "—"}
                     </td>
                     <td className="px-6 py-4 text-sm font-bold">
-                      {formatMoney(payment.amount)}
+                      {formatCurrency(payment.amount)}
                     </td>
                     <td className="px-6 py-4">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${getPaymentStatusBadgeClass(
-                          payment.status,
-                        )}`}
-                      >
-                        {getPaymentStatusLabel(payment.status)}
-                      </span>
+                      <PaymentStatusBadge status={payment.status} />
                     </td>
                     <td className="px-6 py-4 text-sm text-[#68746e]">
-                      {new Date(payment.createdAt).toLocaleString("tr-TR")}
+                      {formatDateTime(payment.createdAt)}
                     </td>
                   </tr>
                 ))

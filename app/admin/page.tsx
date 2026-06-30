@@ -1,9 +1,12 @@
+import { SUCCESSFUL_PAYMENT_STATUSES } from "@/lib/paymentStatus";
 import { prisma } from "@/lib/prisma";
+import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
 import {
-  getPaymentStatusBadgeClass,
-  getPaymentStatusLabel,
-  SUCCESSFUL_PAYMENT_STATUSES,
-} from "@/lib/paymentStatus";
+  AppButton,
+  PageHeader,
+  PaymentStatusBadge,
+  StatCard,
+} from "@/components/ui";
 import Link from "next/link";
 
 async function getStats() {
@@ -45,38 +48,31 @@ async function getStats() {
   };
 }
 
-function formatMoney(amount: number) {
-  return amount.toLocaleString("tr-TR", {
-    style: "currency",
-    currency: "TRY",
-  });
-}
-
 export default async function AdminDashboardPage() {
   const stats = await getStats();
 
   const cards = [
     {
       label: "Toplam Ürün",
-      value: stats.totalProducts.toLocaleString("tr-TR"),
+      value: formatNumber(stats.totalProducts),
       helper: "Katalogdaki kayıt sayısı",
       accent: "bg-[#173f32]",
     },
     {
       label: "Toplam Ödeme",
-      value: stats.totalPayments.toLocaleString("tr-TR"),
+      value: formatNumber(stats.totalPayments),
       helper: "Tüm işlem kayıtları",
       accent: "bg-[#c2853e]",
     },
     {
       label: "Başarılı Ödeme",
-      value: stats.successPayments.toLocaleString("tr-TR"),
+      value: formatNumber(stats.successPayments),
       helper: "Tahsil edilmiş görünen işlemler",
       accent: "bg-emerald-600",
     },
     {
       label: "Toplam Ciro",
-      value: formatMoney(stats.revenue),
+      value: formatCurrency(stats.revenue),
       helper: "Başarılı ödemeler toplamı",
       accent: "bg-blue-600",
     },
@@ -102,42 +98,30 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-8">
-      <section className="overflow-hidden rounded-[2rem] bg-[#10231d] p-6 text-white shadow-2xl shadow-[#10231d]/15 md:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
-            <p className="mb-3 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
-              Genel Bakış
-            </p>
-            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-              Lale EDT operasyonlarını tek ekrandan takip et.
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-white/65 md:text-base">
-              Ürün kataloğu, temsilciler, sanal POS ve ödeme kayıtları için hızlı
-              erişim alanı.
-            </p>
-          </div>
+      <PageHeader
+        variant="hero"
+        eyebrow="Genel Bakış"
+        title="Lale EDT operasyonlarını tek ekrandan takip et."
+        description="Ürün kataloğu, temsilciler, sanal POS ve ödeme kayıtları için hızlı erişim alanı."
+        aside={
           <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
               Aktif POS
             </p>
             <p className="mt-1 text-xl font-bold">{stats.activeProvider}</p>
           </div>
-        </div>
-      </section>
+        }
+      />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
-          <div
+          <StatCard
             key={card.label}
-            className="rounded-[1.5rem] border border-[#17201c]/10 bg-white p-6 shadow-sm"
-          >
-            <div className={`mb-5 h-1.5 w-14 rounded-full ${card.accent}`} />
-            <p className="text-sm font-medium text-[#68746e]">{card.label}</p>
-            <p className="mt-2 text-3xl font-bold tracking-tight">
-              {card.value}
-            </p>
-            <p className="mt-2 text-sm text-[#7a867f]">{card.helper}</p>
-          </div>
+            label={card.label}
+            value={card.value}
+            helper={card.helper}
+            accentClassName={card.accent}
+          />
         ))}
       </section>
 
@@ -152,12 +136,9 @@ export default async function AdminDashboardPage() {
                 En yeni 5 işlem listelenir.
               </p>
             </div>
-            <Link
-              href="/admin/payments"
-              className="rounded-full bg-[#10231d] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#173f32]"
-            >
+            <AppButton href="/admin/payments" size="md">
               Tümü
-            </Link>
+            </AppButton>
           </div>
 
           <div className="overflow-x-auto">
@@ -188,19 +169,13 @@ export default async function AdminDashboardPage() {
                         {payment.agent?.name ?? "Genel"}
                       </td>
                       <td className="py-4 pr-4 text-sm font-semibold">
-                        {formatMoney(payment.amount)}
+                        {formatCurrency(payment.amount)}
                       </td>
                       <td className="py-4 pr-4">
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${getPaymentStatusBadgeClass(
-                            payment.status,
-                          )}`}
-                        >
-                          {getPaymentStatusLabel(payment.status)}
-                        </span>
+                        <PaymentStatusBadge status={payment.status} />
                       </td>
                       <td className="py-4 text-sm text-[#68746e]">
-                        {new Date(payment.createdAt).toLocaleString("tr-TR")}
+                        {formatDateTime(payment.createdAt)}
                       </td>
                     </tr>
                   ))
@@ -211,15 +186,11 @@ export default async function AdminDashboardPage() {
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-[1.5rem] border border-[#17201c]/10 bg-white p-6 shadow-sm">
-            <p className="text-sm font-medium text-[#68746e]">Temsilci Sayısı</p>
-            <p className="mt-2 text-3xl font-bold">
-              {stats.agents.toLocaleString("tr-TR")}
-            </p>
-            <p className="mt-2 text-sm text-[#7a867f]">
-              Aktif/pasif yönetimi temsilciler ekranında.
-            </p>
-          </div>
+          <StatCard
+            label="Temsilci Sayısı"
+            value={formatNumber(stats.agents)}
+            helper="Aktif/pasif yönetimi temsilciler ekranında."
+          />
 
           {shortcuts.map((shortcut) => (
             <Link

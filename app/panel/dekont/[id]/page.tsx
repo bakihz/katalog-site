@@ -1,5 +1,9 @@
 import { cookies } from "next/headers";
 import { verifyAgentCookie } from "@/lib/agentAuth";
+import {
+  formatAmountWithCurrencySuffix,
+  formatDateTime,
+} from "@/lib/format";
 import { getPaymentStatusLabel } from "@/lib/paymentStatus";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
@@ -56,7 +60,7 @@ export default async function DekontPage({
             Ödeme Dekontu
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            {new Date(payment.createdAt).toLocaleString("tr-TR", {
+            {formatDateTime(payment.createdAt, {
               dateStyle: "long",
               timeStyle: "short",
             })}
@@ -76,7 +80,7 @@ export default async function DekontPage({
           )}
           <Row
             label="Ödeme Tutarı"
-            value={`${payment.amount.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} TL`}
+            value={formatAmountWithCurrencySuffix(payment.amount)}
             bold
           />
           <Row
@@ -102,7 +106,7 @@ export default async function DekontPage({
           <p>Bu dekont bilgilendirme amaçlıdır.</p>
           <p>
             Oluşturma tarihi:{" "}
-            {new Date().toLocaleString("tr-TR", {
+            {formatDateTime(new Date(), {
               dateStyle: "short",
               timeStyle: "short",
             })}
