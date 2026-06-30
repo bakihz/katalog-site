@@ -1,25 +1,28 @@
 # Katalog Site — Lale EDT Gıda
 
-Bu proje, Lale EDT Gıda için geliştirilen Next.js tabanlı ürün kataloğu, temsilci paneli, ödeme akışı ve yönetim paneli uygulamasıdır.
+Lale EDT Gıda için geliştirilen Next.js tabanlı ürün kataloğu, geçici kapak sayfası, temsilci tahsilat paneli, sanal POS ödeme akışı ve admin yönetim paneli uygulamasıdır.
 
-> Not: Projede kullanılan Next.js sürümü güncel ve bazı eski alışkanlıklardan farklı davranabiliyor. Kod yazmadan önce `AGENTS.md` içindeki notu dikkate alın ve gerekiyorsa `node_modules/next/dist/docs/` altındaki ilgili Next.js dokümanını kontrol edin.
+> Not: Bu proje Next.js `16.2.6` kullanır. Bu sürümde bazı API ve dosya yapısı davranışları eski Next.js alışkanlıklarından farklı olabilir. Kod yazmadan önce `AGENTS.md` notunu ve gerekiyorsa `node_modules/next/dist/docs/` altındaki ilgili Next.js dokümanını kontrol edin.
+
+---
 
 ## Türkçe
 
-### Şu anki durum
+### Güncel durum
 
-- Ana sayfa geçici olarak `/gecici` sayfasına yönleniyor.
-- Ziyaretçiler ilk girişte “yapım aşamasında / çok yakında” kapak sayfasını görüyor.
-- Kapak sayfasında Lale EDT Gıda logosu, telefon numaraları, e-posta, adres ve çalışma saatleri yer alıyor.
-- Telefon, e-posta ve adres tıklanabilir durumda:
-  - Telefon linkleri mobilde doğrudan arama başlatır.
-  - E-posta linki mail uygulamasını açar.
-  - Adres linki Google Haritalar’da Lale EDT Gıda konumunu arar.
-- Sekmede görünen site ikonu `public/logo.svg` üzerinden ayarlanmıştır.
-- Mail order / ödeme tarafı şimdilik bilinçli olarak ana çalışma kapsamının dışında tutuluyor.
-- Bir sonraki ana hedef: admin dashboard ve yönetim panelini daha düzenli, kullanışlı ve güvenli hale getirmek.
+- `/` adresi geçici kapak sayfasına yönlenir.
+- Kapak sayfasında firma logosu, telefon, e-posta, adres ve çalışma saatleri bulunur.
+- Telefon, e-posta ve adres alanları tıklanabilir durumdadır.
+- Adres bağlantısı Google Haritalar üzerinde “Lale EDT Gıda” aramasına yönlendirir.
+- Temsilciler `/giris` üzerinden giriş yapıp `/panel` altında kendi tahsilat işlemlerini yönetebilir.
+- Admin panel `/admin` altında ürün, temsilci, ödeme ve sanal POS yönetimi için kullanılır.
+- Ziraat / Nestpay 3D Pay sanal POS akışı çalışır durumdadır.
+- Başarılı ödemeler için dekont/PDF paylaşım akışı bulunur.
+- Ödeme durumları kullanıcı arayüzünde Türkçe gösterilir.
+- 1 saatten eski bekleyen ödemeler admin panelden “Süresi Doldu” durumuna alınabilir.
+- UI ve layout yapısı modülerleştirilmeye başlanmıştır.
 
-### Kullanılan teknolojiler
+### Teknolojiler
 
 - Next.js `16.2.6`
 - React `19.2.4`
@@ -27,51 +30,96 @@ Bu proje, Lale EDT Gıda için geliştirilen Next.js tabanlı ürün kataloğu, 
 - Tailwind CSS v4
 - Prisma `6.19.3`
 - SQL Server
-- PM2 ile sunucu tarafında çalıştırma
+- jsPDF
+- Docker / Docker Compose
+- PM2
 
-### Önemli klasörler ve dosyalar
+### Ana klasör yapısı
 
 | Yol | Açıklama |
 | --- | --- |
-| `app/page.tsx` | Ana giriş noktası. Şu an `/gecici` sayfasına yönlendiriyor. |
-| `app/gecici/page.tsx` | Geçici kapak / yapım aşamasında sayfası. |
-| `app/layout.tsx` | Global metadata, HTML dili ve site ikon ayarları. |
-| `public/logo.svg` | Sitede ve tarayıcı sekmesinde kullanılan logo. |
-| `app/admin` | Admin panel sayfaları. |
-| `app/panel` | Temsilci paneli sayfaları. |
-| `app/api` | API route’ları; admin, temsilci, ürün ve ödeme işlemleri burada. |
+| `app/` | Next.js App Router sayfaları ve route handler dosyaları. |
+| `app/admin/` | Admin panel sayfaları. |
+| `app/panel/` | Temsilci paneli sayfaları. |
+| `app/api/` | Ürün, admin, temsilci ve ödeme API route'ları. |
+| `app/payment/` | Bankadan dönen public ödeme success/fail POST route'ları. |
+| `app/odeme/` | Public ödeme ve ödeme sonucu sayfaları. |
+| `components/layout/` | Admin/panel için ortak dashboard shell ve navigasyon component'leri. |
+| `components/payment/` | Ortak ödeme formu, kart görseli ve ödeme form yardımcıları. |
+| `components/ui/` | Ortak Button, PageHeader, StatCard ve ödeme durum rozeti component'leri. |
+| `lib/` | Prisma, auth, ödeme, format ve yardımcı fonksiyonlar. |
 | `prisma/schema.prisma` | Veritabanı modelleri. |
-| `middleware.ts` | Admin ve temsilci paneli giriş kontrolleri. |
-| `lib` | Prisma bağlantısı, auth yardımcıları ve ödeme yardımcı fonksiyonları. |
+| `public/logo.svg` | Site ve panel logosu. |
+| `proxy.ts` | Admin ve temsilci route koruması. |
 
-### Mevcut ana sayfalar
+### Önemli route'lar
 
-- `/` → `/gecici` sayfasına yönlenir.
-- `/gecici` → Geçici bilgilendirme / kapak sayfası.
-- `/admin/login` → Admin girişi.
-- `/admin` → Admin dashboard.
-- `/admin/payments` → Ödeme kayıtları.
-- `/admin/agents` → Temsilci yönetimi.
-- `/admin/providers` → Sanal POS sağlayıcıları.
-- `/admin/import` → Ürün içe aktarma.
-- `/giris` → Temsilci girişi.
-- `/panel` → Temsilci dashboard.
-- `/panel/odeme` → Temsilci ödeme alma ekranı.
-- `/panel/islemler` → Temsilci işlem listesi.
-- `/urun/[slug]` → Ürün detay sayfası.
+| Route | Açıklama |
+| --- | --- |
+| `/` | Geçici sayfaya yönlendirir. |
+| `/gecici` | Yapım aşamasında / kapak sayfası. |
+| `/giris` | Temsilci giriş ekranı. |
+| `/panel` | Temsilci dashboard. |
+| `/panel/odeme` | Temsilci ödeme alma ekranı. |
+| `/panel/islemler` | Temsilcinin kendi işlem listesi. |
+| `/panel/dekont/[id]` | Temsilci işlem dekontu. |
+| `/admin/login` | Admin giriş ekranı. |
+| `/admin` | Admin dashboard. |
+| `/admin/payments` | Tüm ödeme kayıtları. |
+| `/admin/agents` | Temsilci yönetimi. |
+| `/admin/providers` | Sanal POS sağlayıcı yönetimi. |
+| `/admin/import` | Ürün içe aktarma. |
+| `/odeme` | Public ödeme sayfası. |
+| `/odeme/basarili` | Başarılı ödeme sonucu ve dekont ekranı. |
+| `/odeme/hatali` | Hatalı ödeme sonucu. |
+| `/urun/[slug]` | Ürün detay sayfası. |
+
+### API / ödeme akışı
+
+- `/api/payment` ödeme başlatır.
+- Public ödeme akışı banka dönüşünde:
+  - `/payment/success`
+  - `/payment/fail`
+- Temsilci ödeme akışı banka dönüşünde:
+  - `/api/payment/agent-success`
+  - `/api/payment/agent-fail`
+- Aktif POS sağlayıcısı `PaymentProvider` tablosundan seçilir.
+- Hassas Ziraat bilgileri `.env` içinden okunur.
+- Kart bilgileri veritabanına kaydedilmez.
+
+### Ödeme durumları
+
+Arayüzde ödeme durumları merkezi helper üzerinden Türkçe gösterilir:
+
+| DB / Internal | UI |
+| --- | --- |
+| `Pending` | Bekliyor |
+| `Paid` | Başarılı |
+| `success` | Başarılı |
+| `Failed` | Başarısız |
+| `Expired` | Süresi Doldu |
+| `Cancelled` | İptal Edildi |
+
+İlgili dosya:
+
+```text
+lib/paymentStatus.ts
+```
 
 ### Veritabanı modelleri
 
-Projede şu ana modeller bulunuyor:
+Ana Prisma modelleri:
 
-- `Product`: Ürün kataloğu kayıtları.
+- `Product`: Ürün katalog kayıtları.
 - `User`: Temsilci kullanıcıları.
 - `Payment`: Ödeme / tahsilat kayıtları.
-- `PaymentProvider`: Sanal POS sağlayıcı bilgileri.
+- `PaymentProvider`: Sanal POS sağlayıcı kayıtları.
 
 ### Ortam değişkenleri
 
-`.env` dosyası repoya gönderilmemelidir. Gerekli değişkenler:
+`.env` dosyası repoya gönderilmemelidir.
+
+Gerekli değişkenler:
 
 ```env
 DATABASE_URL=
@@ -84,7 +132,11 @@ ZIRAAT_STORE_KEY=
 ZIRAAT_GATEWAY_URL=
 ```
 
-Ödeme entegrasyonu kullanılacaksa Ziraat / Nestpay tarafındaki gerçek bilgiler sunucudaki `.env` içine girilmelidir.
+Notlar:
+
+- `APP_URL` canlı ortamda gerçek domain olmalıdır.
+- Ziraat / Nestpay bilgileri canlı sunucuda doğru ve gizli tutulmalıdır.
+- Admin şifresi güçlü olmalıdır.
 
 ### Lokal geliştirme
 
@@ -114,37 +166,84 @@ npx tsc --noEmit
 npm run build
 ```
 
-Windows PowerShell üzerinde komut çalıştırırken gerekirse `npm` yerine `npm.cmd` kullanılabilir.
+Windows PowerShell script policy sorunlarında `npm` yerine `npm.cmd` kullanılabilir:
 
-### Sunucuda çalışma notları
+```bash
+npm.cmd run dev
+npm.cmd run build
+```
 
-Sunucuda repo güncellendikten sonra tipik akış:
+### Docker / SQL Server
+
+SQL Server için Docker Compose kullanılabilir:
+
+```bash
+docker compose up -d
+```
+
+Container adı çakışırsa mevcut container kontrol edilmelidir:
+
+```bash
+docker ps -a
+```
+
+### Sunucuda deploy / güncelleme
+
+Tipik canlı güncelleme akışı:
 
 ```bash
 git pull origin master
 npm install
 npm run build
-pm2 restart <uygulama-adi>
+pm2 restart katalog-site
 pm2 save
 pm2 status
 ```
 
-Eğer PM2 process adı bilinmiyorsa:
+PM2 process adı bilinmiyorsa:
 
 ```bash
 pm2 list
 ```
 
+Eğer deploy sonrası Next.js eski/yeni build karışması gibi davranırsa:
+
+```bash
+pm2 stop katalog-site
+rm -rf .next
+npm run build
+pm2 start katalog-site
+pm2 save
+```
+
+> Bu komutları doğru proje klasöründeyken çalıştırın.
+
+### Sunucu yeniden başlatma notları
+
+Elektrik kesintisi / reboot sonrası:
+
+- BIOS power restore açık olmalı.
+- Docker servisi enable olmalı.
+- SQL Server container restart policy ile yeniden başlamalı.
+- PM2 startup ayarı yapılmış olmalı.
+- PM2 process listesi kaydedilmiş olmalı.
+
+Kontrol:
+
+```bash
+systemctl status docker
+sudo docker ps -a
+pm2 status
+```
+
 ### Git çalışma düzeni
 
-Çakışma yaşamamak için doğrudan `master` üzerinde geliştirme yapmak yerine branch ile çalışmak daha güvenlidir.
-
-Önerilen akış:
+Şu an ekip zaman zaman doğrudan `master` üzerinden çalışıyor. Çakışma riskini azaltmak için ideal akış:
 
 ```bash
 git switch master
 git pull origin master
-git switch -c codex/yapilacak-is-adi
+git switch -c codex/is-adi
 ```
 
 İş bitince:
@@ -153,31 +252,56 @@ git switch -c codex/yapilacak-is-adi
 git status
 git add .
 git commit -m "Kısa ve net commit mesajı"
-git push -u origin codex/yapilacak-is-adi
+git push -u origin codex/is-adi
 ```
 
-Sonra GitHub üzerinden Pull Request açılıp `master` branch’ine merge edilir.
+Sonra GitHub üzerinden Pull Request açılır ve `master` branch'ine merge edilir.
 
-### Şu ana kadar yapılan önemli işler
+Doğrudan `master` kullanılacaksa en azından işe başlamadan önce:
 
-- Proje ilk kez incelendi ve genel mimari değerlendirildi.
-- Geçici olarak eğlenceli bir sayfa fikri denendi, sonra iptal edilip gerçek kapak sayfasına geçildi.
-- Müşterilerin siteye ilk girdiğinde göreceği geçici kapak sayfası hazırlandı.
-- Kapak sayfası 1920×1080 ekranda taşma yapmayacak şekilde sıkılaştırıldı.
-- Logo sayfaya eklendi ve tarayıcı sekmesi ikonu olarak kullanıldı.
+```bash
+git pull origin master
+```
+
+iş bitince:
+
+```bash
+git status
+git add .
+git commit -m "Açıklayıcı commit mesajı"
+git push
+```
+
+### Son yapılan önemli işler
+
+- Geçici kapak sayfası hazırlandı.
+- Logo ve favicon düzenlendi.
 - Telefon, e-posta ve adres linkleri tıklanabilir hale getirildi.
-- Adres Google Haritalar’a yönlenecek şekilde düzenlendi.
-- Değişiklikler GitHub üzerinden `master` branch’ine aktarıldı.
-- Sunucuda `git pull` ile çekildi ve PM2 üzerinden çalıştırıldı.
+- Admin panel temel ekranları oluşturuldu.
+- Temsilci giriş ve temsilci panel akışı eklendi.
+- Temsilcilerin kendi ödeme işlemlerini görmesi sağlandı.
+- Ortak public/temsilci ödeme formu oluşturuldu.
+- Kart görseli ve kart bilgisi giriş alanları iyileştirildi.
+- Kart numarası görselde ilk 4 ve son 4 hane açık, orta haneler maskeli gösterilecek şekilde düzenlendi.
+- Ziraat / Nestpay 3D Pay ödeme akışı çalışır hale getirildi.
+- Dekont/PDF paylaşım özelliği eklendi.
+- Ödeme durumları merkezi helper ile Türkçeleştirildi.
+- Eski bekleyen ödemeleri “Süresi Doldu” yapma admin aksiyonu eklendi.
+- `components/payment` klasörüyle ödeme formu modüler hale getirildi.
+- `components/ui` klasörüyle ortak UI component'leri çıkarıldı.
+- `components/layout` klasörüyle admin/panel dashboard layout tekrarları birleştirildi.
+- `lib/format.ts` ile para, sayı ve tarih formatları merkezi hale getirildi.
 
 ### Bilinen notlar / sonraki işler
 
-- Admin panel tasarımı ve kullanılabilirliği geliştirilecek.
-- Mail order / ödeme tarafına şimdilik dokunulmamalı.
-- Ürün içe aktarma, ödeme callback’leri ve bazı admin API’leri ayrıca güvenlik açısından gözden geçirilmeli.
-- Ödeme durumlarında `success` ve `Paid` gibi farklı status değerleri kullanılıyor; ileride tek standarda çekilmeli.
-- Para alanları şu an `Float`; finansal hesaplar için ileride daha güvenli bir veri tipi/strateji değerlendirilmeli.
-- Production ortamında `SESSION_SECRET`, `ADMIN_USERNAME`, `ADMIN_PASSWORD` güçlü ve gizli tutulmalı.
+- Tek login ve rol bazlı yönlendirme değerlendirilecek.
+- Admin şifre değiştirme ekranı eklenmeli.
+- Login denemeleri için rate limit eklenmeli.
+- Ödeme callback route'larında tekrar eden mantık servis katmanına taşınmalı.
+- Ürün import route'u ve eski ürün sayfaları lint açısından temizlenmeli.
+- Prisma `Payment.status` ileride enum yapısına taşınabilir.
+- Para alanları şu an `Float`; finansal hesaplar için ileride daha güvenli strateji değerlendirilmeli.
+- Admin ve temsilci yetkileri uzun vadede DB tabanlı role sistemiyle netleştirilmeli.
 
 ---
 
@@ -185,22 +309,20 @@ Sonra GitHub üzerinden Pull Request açılıp `master` branch’ine merge edili
 
 ### Project overview
 
-This is a Next.js based catalog, agent panel, payment flow and admin panel project for Lale EDT Gıda.
-
-The current public homepage is intentionally redirected to a temporary “coming soon / under construction” landing page while the main website and admin improvements are being prepared.
+This is a Next.js based product catalog, temporary landing page, agent collection panel, virtual POS payment flow and admin management panel for Lale EDT Gıda.
 
 ### Current status
 
-- `/` redirects visitors to `/gecici`.
-- Visitors see a temporary landing page with company information.
-- The temporary page includes the company logo, phone numbers, email address, physical address and business hours.
-- Phone, email and address entries are clickable:
-  - Phone links start a call on mobile devices.
-  - Email opens the user’s mail client.
-  - Address opens Google Maps search for Lale EDT Gıda.
-- The browser tab icon uses `public/logo.svg`.
-- Mail order / payment logic is intentionally not the current focus.
-- Next main goal: improve the admin dashboard and management panel.
+- `/` redirects visitors to the temporary landing page.
+- The temporary page includes logo, phone, email, address and business hours.
+- Phone, email and address fields are clickable.
+- Agents can log in from `/giris` and manage their own collection records under `/panel`.
+- Admin screens live under `/admin`.
+- Ziraat / Nestpay 3D Pay payment flow is working.
+- Successful payments can generate/share receipt PDFs.
+- Payment statuses are displayed in Turkish through a centralized helper.
+- Old pending payments can be marked as expired from the admin payments page.
+- UI and layout structure has been modularized.
 
 ### Tech stack
 
@@ -210,42 +332,83 @@ The current public homepage is intentionally redirected to a temporary “coming
 - Tailwind CSS v4
 - Prisma `6.19.3`
 - SQL Server
-- PM2 for running the app on the server
+- jsPDF
+- Docker / Docker Compose
+- PM2
 
-### Important folders and files
+### Main folders
 
 | Path | Description |
 | --- | --- |
-| `app/page.tsx` | Main entry point. Currently redirects to `/gecici`. |
-| `app/gecici/page.tsx` | Temporary landing / under construction page. |
-| `app/layout.tsx` | Global metadata, HTML language and icon settings. |
-| `public/logo.svg` | Logo used on the page and browser tab. |
-| `app/admin` | Admin panel pages. |
-| `app/panel` | Agent panel pages. |
-| `app/api` | API routes for admin, agents, products and payments. |
+| `app/` | Next.js App Router pages and route handlers. |
+| `app/admin/` | Admin panel pages. |
+| `app/panel/` | Agent panel pages. |
+| `app/api/` | API routes for products, admin, agents and payments. |
+| `app/payment/` | Public payment success/fail POST routes used by the bank. |
+| `app/odeme/` | Public payment and payment result pages. |
+| `components/layout/` | Shared dashboard shell and navigation components. |
+| `components/payment/` | Shared payment form, card preview and payment form utilities. |
+| `components/ui/` | Shared Button, PageHeader, StatCard and status badge components. |
+| `lib/` | Prisma, auth, payment, formatting and helper functions. |
 | `prisma/schema.prisma` | Database models. |
-| `middleware.ts` | Admin and agent route protection. |
-| `lib` | Prisma client, auth helpers and payment helper functions. |
+| `public/logo.svg` | Site and panel logo. |
+| `proxy.ts` | Admin and agent route protection. |
 
 ### Main routes
 
-- `/` → redirects to `/gecici`.
-- `/gecici` → Temporary landing page.
-- `/admin/login` → Admin login.
-- `/admin` → Admin dashboard.
-- `/admin/payments` → Payment records.
-- `/admin/agents` → Agent management.
-- `/admin/providers` → Virtual POS providers.
-- `/admin/import` → Product import.
-- `/giris` → Agent login.
-- `/panel` → Agent dashboard.
-- `/panel/odeme` → Agent payment page.
-- `/panel/islemler` → Agent transaction list.
-- `/urun/[slug]` → Product detail page.
+| Route | Description |
+| --- | --- |
+| `/` | Redirects to the temporary page. |
+| `/gecici` | Temporary under-construction landing page. |
+| `/giris` | Agent login page. |
+| `/panel` | Agent dashboard. |
+| `/panel/odeme` | Agent payment page. |
+| `/panel/islemler` | Agent transaction list. |
+| `/panel/dekont/[id]` | Agent receipt page. |
+| `/admin/login` | Admin login page. |
+| `/admin` | Admin dashboard. |
+| `/admin/payments` | Payment records. |
+| `/admin/agents` | Agent management. |
+| `/admin/providers` | Virtual POS provider management. |
+| `/admin/import` | Product import. |
+| `/odeme` | Public payment page. |
+| `/odeme/basarili` | Successful payment and receipt page. |
+| `/odeme/hatali` | Failed payment page. |
+| `/urun/[slug]` | Product detail page. |
+
+### Payment flow
+
+- `/api/payment` starts a payment request.
+- Public bank callbacks:
+  - `/payment/success`
+  - `/payment/fail`
+- Agent bank callbacks:
+  - `/api/payment/agent-success`
+  - `/api/payment/agent-fail`
+- The active POS provider is selected from the `PaymentProvider` table.
+- Sensitive Ziraat credentials are read from `.env`.
+- Card details are not stored in the database.
+
+### Payment statuses
+
+| DB / Internal | UI |
+| --- | --- |
+| `Pending` | Bekliyor |
+| `Paid` | Başarılı |
+| `success` | Başarılı |
+| `Failed` | Başarısız |
+| `Expired` | Süresi Doldu |
+| `Cancelled` | İptal Edildi |
+
+Related file:
+
+```text
+lib/paymentStatus.ts
+```
 
 ### Database models
 
-The main Prisma models are:
+Main Prisma models:
 
 - `Product`: Product catalog records.
 - `User`: Agent users.
@@ -254,7 +417,9 @@ The main Prisma models are:
 
 ### Environment variables
 
-The `.env` file must not be committed to the repository. Required variables:
+The `.env` file must not be committed.
+
+Required variables:
 
 ```env
 DATABASE_URL=
@@ -267,7 +432,11 @@ ZIRAAT_STORE_KEY=
 ZIRAAT_GATEWAY_URL=
 ```
 
-If the payment integration is enabled, real Ziraat / Nestpay credentials must be configured in the server `.env` file.
+Notes:
+
+- `APP_URL` must match the production domain in production.
+- Ziraat / Nestpay credentials must be configured securely on the server.
+- Admin credentials must be strong.
 
 ### Local development
 
@@ -297,32 +466,47 @@ npx tsc --noEmit
 npm run build
 ```
 
-On Windows PowerShell, use `npm.cmd` instead of `npm` if the shell blocks script execution.
+On Windows PowerShell, use `npm.cmd` if script execution is blocked:
 
-### Server notes
+```bash
+npm.cmd run dev
+npm.cmd run build
+```
 
-Typical deployment flow after pulling the latest code:
+### Server deployment
+
+Typical production update flow:
 
 ```bash
 git pull origin master
 npm install
 npm run build
-pm2 restart <app-name>
+pm2 restart katalog-site
 pm2 save
 pm2 status
 ```
 
-If the PM2 process name is unknown:
+If PM2 process name is unknown:
 
 ```bash
 pm2 list
 ```
 
+If old/new Next.js build mismatch appears:
+
+```bash
+pm2 stop katalog-site
+rm -rf .next
+npm run build
+pm2 start katalog-site
+pm2 save
+```
+
+Run these commands only inside the correct project directory.
+
 ### Git workflow
 
-To avoid conflicts, use feature branches instead of working directly on `master`.
-
-Recommended flow:
+Preferred workflow:
 
 ```bash
 git switch master
@@ -330,7 +514,7 @@ git pull origin master
 git switch -c codex/task-name
 ```
 
-After the work is done:
+After completing the work:
 
 ```bash
 git status
@@ -341,23 +525,43 @@ git push -u origin codex/task-name
 
 Then open a Pull Request on GitHub and merge it into `master`.
 
-### Completed work so far
+If working directly on `master`, always pull first and push after committing:
 
-- The project was reviewed and the general architecture was documented.
-- A temporary playful page idea was tested, then reverted in favor of a real temporary landing page.
-- A customer-facing temporary landing page was created.
-- The landing page was adjusted to fit 1920×1080 screens without overflow.
-- The company logo was added to the page and used as the browser tab icon.
-- Phone, email and address entries were made clickable.
-- The address was linked to Google Maps.
-- Changes were merged into `master` through GitHub.
-- The server pulled the latest code and the app was restarted through PM2.
+```bash
+git pull origin master
+git status
+git add .
+git commit -m "Clear commit message"
+git push
+```
+
+### Recent important changes
+
+- Temporary landing page was created.
+- Logo and favicon were configured.
+- Phone, email and address links were made clickable.
+- Admin panel pages were added.
+- Agent login and agent panel flow were added.
+- Agent-specific payment and transaction views were added.
+- Shared public/agent payment form was created.
+- Card preview and card input UX were improved.
+- Card number preview masks middle digits.
+- Ziraat / Nestpay 3D Pay payment flow was completed.
+- Receipt/PDF sharing was added.
+- Payment statuses were centralized and translated for UI.
+- Admin action for expiring old pending payments was added.
+- Payment form was modularized under `components/payment`.
+- Shared UI components were added under `components/ui`.
+- Admin and agent dashboard layouts were unified under `components/layout`.
+- Currency, number and date formatting were centralized in `lib/format.ts`.
 
 ### Known notes / next steps
 
-- Improve the admin panel design and usability.
-- Do not touch the mail order / payment flow for now unless explicitly planned.
-- Product import, payment callbacks and some admin APIs should be reviewed from a security perspective.
-- Payment statuses currently use different values such as `success` and `Paid`; they should be standardized later.
-- Money amounts currently use `Float`; a safer financial data strategy should be considered later.
-- Production `SESSION_SECRET`, `ADMIN_USERNAME` and `ADMIN_PASSWORD` must be strong and kept private.
+- Consider a single login flow with role-based redirects.
+- Add admin password change screen.
+- Add login rate limiting.
+- Move repeated payment callback logic into a service layer.
+- Clean up lint issues in product import and old product/original pages.
+- Consider moving `Payment.status` to a Prisma enum.
+- Consider a safer money representation than `Float`.
+- Move admin/agent authorization to a clearer DB-backed role model later.
