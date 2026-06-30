@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
     if (!hashCheck.ok) {
       return NextResponse.redirect(
         `${baseUrl}/odeme/hatali?err=Guvenlik+dogrulamasi+basarisiz`,
+        { status: 303 },
       );
     }
 
@@ -48,13 +49,16 @@ export async function POST(req: NextRequest) {
     if (isSuccess) {
       const payment = await prisma.payment.findFirst({ where: { orderId } });
       if (payment) {
-        return NextResponse.redirect(`${baseUrl}/odeme/basarili?id=${payment.id}`);
+        return NextResponse.redirect(
+          `${baseUrl}/odeme/basarili?id=${payment.id}`,
+          { status: 303 },
+        );
       }
     }
 
-    return NextResponse.redirect(`${baseUrl}/odeme/hatali`);
+    return NextResponse.redirect(`${baseUrl}/odeme/hatali`, { status: 303 });
   } catch (err) {
     console.error(err);
-    return NextResponse.redirect(`${baseUrl}/odeme/hatali`);
+    return NextResponse.redirect(`${baseUrl}/odeme/hatali`, { status: 303 });
   }
 }

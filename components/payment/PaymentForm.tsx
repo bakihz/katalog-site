@@ -84,6 +84,7 @@ export function PaymentForm({ mode }: { mode: PaymentMode }) {
     try {
       const res = await fetch("/api/payment", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,

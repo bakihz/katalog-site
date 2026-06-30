@@ -13,7 +13,7 @@ function getBaseUrl(req: NextRequest): string {
 }
 
 async function redirectWithAgentSession(url: string, agentId: number | null) {
-  const redirectResponse = NextResponse.redirect(url);
+  const redirectResponse = NextResponse.redirect(url, { status: 303 });
 
   if (agentId) {
     const token = await createAgentToken(agentId);
@@ -26,10 +26,17 @@ async function redirectWithAgentSession(url: string, agentId: number | null) {
     });
   }
 
+  console.info("[AgentPaymentRedirect]", {
+    url,
+    agentId,
+    refreshedAgentSession: Boolean(agentId),
+  });
+
   return redirectResponse;
 }
 
 export async function POST(req: NextRequest) {
+  const startedAt = Date.now();
   const baseUrl = getBaseUrl(req);
 
   try {
@@ -40,6 +47,13 @@ export async function POST(req: NextRequest) {
       process.env.ZIRAAT_STORE_KEY,
     );
 
+    console.info("[AgentPaymentFailCallback:received]", {
+      orderId,
+      baseUrl,
+      hashValid: hashCheck.ok,
+      hashReason: hashCheck.reason,
+    });
+
     if (hashCheck.ok) {
       await prisma.payment.updateMany({
         where: { orderId },
@@ -47,14 +61,27 @@ export async function POST(req: NextRequest) {
       });
 
       const payment = await prisma.payment.findFirst({ where: { orderId } });
+      console.info("[AgentPaymentFailCallback:processed]", {
+        orderId,
+        paymentId: payment?.id ?? null,
+        paymentAgentId: payment?.agentId ?? null,
+        durationMs: Date.now() - startedAt,
+      });
       return redirectWithAgentSession(
         `${baseUrl}/panel/odeme?error=1`,
         payment?.agentId ?? null,
       );
     }
+
+    console.warn("[AgentPaymentFailCallback:hash-failed]", {
+      orderId,
+      reason: hashCheck.reason,
+    });
   } catch (err) {
     console.error(err);
   }
 
-  return NextResponse.redirect(`${baseUrl}/panel/odeme?error=1`);
+  return NextResponse.redirect(`${baseUrl}/panel/odeme?error=1`, {
+    status: 303,
+  });
 }

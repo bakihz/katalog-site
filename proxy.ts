@@ -42,11 +42,18 @@ export async function proxy(request: NextRequest) {
   }
 
   if (pathname.startsWith("/panel")) {
-    const agentId = await verifyAgentCookie(
-      request.cookies.get("agent_session")?.value,
-    );
+    const agentCookie = request.cookies.get("agent_session")?.value;
+    const agentId = await verifyAgentCookie(agentCookie);
 
     if (!agentId) {
+      console.warn("[AgentPanelAuth:redirect-login]", {
+        pathname,
+        host: request.headers.get("host"),
+        referer: request.headers.get("referer"),
+        hasAgentCookie: Boolean(agentCookie),
+        cookieLength: agentCookie?.length ?? 0,
+      });
+
       const url = request.nextUrl.clone();
       url.pathname = "/giris";
       return NextResponse.redirect(url);

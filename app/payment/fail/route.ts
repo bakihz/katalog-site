@@ -45,10 +45,13 @@ export async function POST(req: NextRequest) {
     const params = new URLSearchParams();
     if (errMsg) params.set("err", errMsg);
     if (mdStatus) params.set("md", mdStatus);
-    return NextResponse.redirect(`${baseUrl}/odeme/hatali?${params.toString()}`);
+    return NextResponse.redirect(
+      `${baseUrl}/odeme/hatali?${params.toString()}`,
+      { status: 303 },
+    );
   } catch (err) {
     console.error(err);
   }
 
-  return NextResponse.redirect(`${baseUrl}/odeme/hatali`);
+  return NextResponse.redirect(`${baseUrl}/odeme/hatali`, { status: 303 });
 }

@@ -13,7 +13,7 @@ function getBaseUrl(req: NextRequest): string {
 }
 
 async function redirectWithAgentSession(url: string, agentId: number | null) {
-  const redirectResponse = NextResponse.redirect(url);
+  const redirectResponse = NextResponse.redirect(url, { status: 303 });
 
   if (agentId) {
     const token = await createAgentToken(agentId);
@@ -26,10 +26,18 @@ async function redirectWithAgentSession(url: string, agentId: number | null) {
     });
   }
 
+  console.info("[AgentPaymentRedirect]", {
+    url,
+    agentId,
+    refreshedAgentSession: Boolean(agentId),
+  });
+
   return redirectResponse;
 }
 
 export async function POST(req: NextRequest) {
+  const startedAt = Date.now();
+
   try {
     const formData = await req.formData();
     const orderId = formData.get("oid") as string;
@@ -43,8 +51,24 @@ export async function POST(req: NextRequest) {
       process.env.ZIRAAT_STORE_KEY,
     );
 
+    console.info("[AgentPaymentSuccessCallback:received]", {
+      orderId,
+      baseUrl,
+      response,
+      procReturnCode,
+      mdStatus,
+      hashValid: hashCheck.ok,
+      hashReason: hashCheck.reason,
+    });
+
     if (!hashCheck.ok) {
-      return NextResponse.redirect(`${baseUrl}/panel/odeme?error=1`);
+      console.warn("[AgentPaymentSuccessCallback:hash-failed]", {
+        orderId,
+        reason: hashCheck.reason,
+      });
+      return NextResponse.redirect(`${baseUrl}/panel/odeme?error=1`, {
+        status: 303,
+      });
     }
 
     const isSuccess =
@@ -62,6 +86,14 @@ export async function POST(req: NextRequest) {
 
     const payment = await prisma.payment.findFirst({ where: { orderId } });
 
+    console.info("[AgentPaymentSuccessCallback:processed]", {
+      orderId,
+      paymentId: payment?.id ?? null,
+      paymentAgentId: payment?.agentId ?? null,
+      isSuccess,
+      durationMs: Date.now() - startedAt,
+    });
+
     if (isSuccess) {
       if (payment) {
         return redirectWithAgentSession(
@@ -78,6 +110,8 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error(err);
     const baseUrl = getBaseUrl(req);
-    return NextResponse.redirect(`${baseUrl}/panel/odeme?error=1`);
+    return NextResponse.redirect(`${baseUrl}/panel/odeme?error=1`, {
+      status: 303,
+    });
   }
 }

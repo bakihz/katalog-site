@@ -13,15 +13,16 @@ function getBaseUrl(req: Request): string {
 }
 
 export async function POST(req: Request) {
+  const startedAt = Date.now();
+
   try {
     const body = await req.json();
     const baseUrl = getBaseUrl(req);
 
     // Identify the agent making the request (if any)
     const cookieStore = await cookies();
-    const agentId = await verifyAgentCookie(
-      cookieStore.get("agent_session")?.value,
-    );
+    const agentCookie = cookieStore.get("agent_session")?.value;
+    const agentId = await verifyAgentCookie(agentCookie);
 
     const provider = await prisma.paymentProvider.findFirst({
       where: {
@@ -55,6 +56,18 @@ export async function POST(req: Request) {
     const failUrl = isAgentFlow
       ? `${baseUrl}/api/payment/agent-fail`
       : `${baseUrl}/payment/fail`;
+
+    console.info("[PaymentStart]", {
+      orderId,
+      baseUrl,
+      isAgentFlow,
+      agentId,
+      hasAgentCookie: Boolean(agentCookie),
+      amount,
+      providerName: provider.name,
+      okUrl,
+      failUrl,
+    });
 
     await prisma.payment.create({
       data: {
@@ -98,6 +111,13 @@ export async function POST(req: Request) {
     };
 
     const hash = generateNestpayHash(formFields, process.env.ZIRAAT_STORE_KEY!);
+
+    console.info("[PaymentStart:ready]", {
+      orderId,
+      isAgentFlow,
+      agentId,
+      durationMs: Date.now() - startedAt,
+    });
 
     return Response.json({
       success: true,
