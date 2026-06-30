@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { hashPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 
 function getBaseUrl(req: NextRequest): string {
@@ -16,7 +17,17 @@ export async function POST(
 ) {
   const { id } = await params;
   const baseUrl = getBaseUrl(req);
-  const agent = await prisma.user.findUnique({ where: { id: Number(id) } });
+  const formData = await req.formData();
+  const password = ((formData.get("password") as string) ?? "").trim();
+  const agentId = Number(id);
+
+  if (!Number.isInteger(agentId) || agentId <= 0 || password.length < 8) {
+    return NextResponse.redirect(`${baseUrl}/admin/agents?error=password`, {
+      status: 303,
+    });
+  }
+
+  const agent = await prisma.user.findUnique({ where: { id: agentId } });
 
   if (!agent) {
     return NextResponse.redirect(`${baseUrl}/admin/agents?error=not-found`, {
@@ -25,11 +36,11 @@ export async function POST(
   }
 
   await prisma.user.update({
-    where: { id: Number(id) },
-    data: { isActive: !agent.isActive },
+    where: { id: agentId },
+    data: { password: hashPassword(password) },
   });
 
-  return NextResponse.redirect(`${baseUrl}/admin/agents?success=status`, {
+  return NextResponse.redirect(`${baseUrl}/admin/agents?success=password`, {
     status: 303,
   });
 }

@@ -7,6 +7,7 @@ const panelNavLinks: DashboardNavLink[] = [
   { href: "/panel", label: "Dashboard", icon: "📊", exact: true },
   { href: "/panel/odeme", label: "Ödeme Al", icon: "💳" },
   { href: "/panel/islemler", label: "İşlemlerim", icon: "🧾" },
+  { href: "/panel/ayarlar", label: "Ayarlar", icon: "⚙️" },
 ];
 
 export default async function PanelLayout({

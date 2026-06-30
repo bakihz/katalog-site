@@ -1,7 +1,6 @@
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashPassword } from "@/lib/password";
-import { Prisma } from "@prisma/client";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -12,24 +11,27 @@ function getBaseUrl(req: NextRequest): string {
   return `${protocol}://${host}`;
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const baseUrl = getBaseUrl(req);
   const formData = await req.formData();
   const name = ((formData.get("name") as string) ?? "").trim();
   const username = ((formData.get("username") as string) ?? "").trim();
-  const password = (formData.get("password") as string) ?? "";
-  const baseUrl = getBaseUrl(req);
+  const agentId = Number(id);
 
-  if (!name || !username || password.length < 8) {
-    return NextResponse.redirect(`${baseUrl}/admin/agents?error=create`, {
+  if (!Number.isInteger(agentId) || agentId <= 0 || !name || !username) {
+    return NextResponse.redirect(`${baseUrl}/admin/agents?error=update`, {
       status: 303,
     });
   }
 
-  const hashed = hashPassword(password);
-
   try {
-    await prisma.user.create({
-      data: { name, username, password: hashed },
+    await prisma.user.update({
+      where: { id: agentId },
+      data: { name, username },
     });
   } catch (error) {
     if (
@@ -44,7 +46,7 @@ export async function POST(req: NextRequest) {
     throw error;
   }
 
-  return NextResponse.redirect(`${baseUrl}/admin/agents?success=created`, {
+  return NextResponse.redirect(`${baseUrl}/admin/agents?success=updated`, {
     status: 303,
   });
 }
