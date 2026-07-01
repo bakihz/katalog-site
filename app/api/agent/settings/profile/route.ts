@@ -29,11 +29,10 @@ export async function POST(req: NextRequest) {
   }
 
   const formData = await req.formData();
-  const name = ((formData.get("name") as string) ?? "").trim();
   const username = ((formData.get("username") as string) ?? "").trim();
   const currentPassword = (formData.get("currentPassword") as string) ?? "";
 
-  if (!name || !username || !currentPassword) {
+  if (!username || !currentPassword) {
     return NextResponse.redirect(`${baseUrl}/panel/ayarlar?error=profile`, {
       status: 303,
     });
@@ -54,7 +53,7 @@ export async function POST(req: NextRequest) {
   try {
     await prisma.user.update({
       where: { id: agentId },
-      data: { name, username },
+      data: { username },
     });
   } catch (error) {
     if (
