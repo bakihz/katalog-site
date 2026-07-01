@@ -36,7 +36,7 @@ Bu checklist, sanal POS akışı temsilcilere açılmadan veya canlıya deploy e
 ## Mobil kontrol
 
 - [+] Android Chrome ödeme akışı çalışıyor.
-- [ ] iPhone Safari/Chrome ödeme akışı çalışıyor.
+- [+] iPhone Safari/Chrome ödeme akışı çalışıyor.
 - [+] Banka uygulaması/3D doğrulama dönüşü doğru sayfaya geliyor.
 - [+] Klavye açıkken ödeme formunda taşma veya kullanılamayan alan kalmıyor.
 
