@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getExpectedSessionToken } from "@/lib/adminAuth";
+import { createAdminSessionToken } from "@/lib/adminAuth";
 import {
   getClientIp,
   isRateLimited,
@@ -11,6 +11,7 @@ const adminLoginRateLimit = {
   limit: 5,
   windowMs: 15 * 60 * 1000,
 };
+const adminSessionMaxAgeSeconds = 60 * 60;
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
   }
 
   resetRateLimit(rateLimitKey);
-  const token = await getExpectedSessionToken();
+  const token = await createAdminSessionToken(adminSessionMaxAgeSeconds);
   const response = NextResponse.redirect(`${baseUrl}/admin`, {
     status: 303,
   });
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 60 * 60 * 1,
+    maxAge: adminSessionMaxAgeSeconds,
     path: "/",
   });
 

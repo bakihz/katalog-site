@@ -3,8 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { verifyAgentCookie } from "@/lib/agentAuth";
 import { formatAmountWithCurrencySuffix, formatDateTime } from "@/lib/format";
+import { getPaymentCardMasked } from "@/lib/paymentCard";
 import { getPaymentStatusLabel } from "@/lib/paymentStatus";
 import { prisma } from "@/lib/prisma";
+import { canViewAllPayments } from "@/lib/userRole";
 import { AppButton, PaymentStatusBadge } from "@/components/ui";
 
 type FailedPaymentPageProps = {
@@ -28,8 +30,10 @@ export default async function FailedPaymentPage({
 
   if (!agentId) return null;
 
+  const currentUser = await prisma.user.findUnique({ where: { id: agentId } });
+  const canViewAll = canViewAllPayments(currentUser);
   const payment = await prisma.payment.findFirst({
-    where: { id: Number(id), agentId },
+    where: { id: Number(id), ...(canViewAll ? {} : { agentId }) },
     include: { agent: { select: { name: true } } },
   });
 
@@ -91,8 +95,9 @@ export default async function FailedPaymentPage({
             label="Durum"
             value={getPaymentStatusLabel(payment.status)}
           />
-          <SummaryRow label="Müşteri" value={payment.customerName} />
           <SummaryRow label="Firma / Cari" value={payment.companyName ?? "—"} />
+          <SummaryRow label="Kart Sahibi" value={payment.customerName} />
+          <SummaryRow label="Kart" value={getPaymentCardMasked(payment) ?? "—"} />
           <SummaryRow
             label="Tutar"
             value={formatAmountWithCurrencySuffix(payment.amount)}

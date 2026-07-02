@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { normalizeUserRole } from "@/lib/userRole";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -20,6 +21,7 @@ export async function POST(
   const formData = await req.formData();
   const name = ((formData.get("name") as string) ?? "").trim();
   const username = ((formData.get("username") as string) ?? "").trim();
+  const role = normalizeUserRole(formData.get("role"));
   const agentId = Number(id);
 
   if (!Number.isInteger(agentId) || agentId <= 0 || !name || !username) {
@@ -31,7 +33,7 @@ export async function POST(
   try {
     await prisma.user.update({
       where: { id: agentId },
-      data: { name, username },
+      data: { name, username, role } as Prisma.UserUpdateInput,
     });
   } catch (error) {
     if (

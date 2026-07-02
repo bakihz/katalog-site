@@ -1,4 +1,5 @@
 import { formatNumber } from "@/lib/format";
+import { getUserRole, getUserRoleLabel, userRoleOptions } from "@/lib/userRole";
 import { prisma } from "@/lib/prisma";
 import { AppButton, PageHeader, StatCard } from "@/components/ui";
 import Link from "next/link";
@@ -44,6 +45,9 @@ export default async function AdminAgentsPage({
 
   const activeAgents = agents.filter((agent) => agent.isActive).length;
   const passiveAgents = agents.length - activeAgents;
+  const financeAgents = agents.filter(
+    (agent) => getUserRole(agent) === "finance",
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -52,7 +56,7 @@ export default async function AdminAgentsPage({
         title="Temsilciler"
         description="Temsilci hesaplarını ekle, bilgilerini güncelle, şifre belirle, pasife al veya güvenli şekilde sil."
         aside={
-          <div className="grid grid-cols-3 gap-3 sm:min-w-[28rem]">
+          <div className="grid grid-cols-4 gap-3 sm:min-w-[34rem]">
             <StatCard
               label="Toplam"
               value={formatNumber(agents.length)}
@@ -67,6 +71,11 @@ export default async function AdminAgentsPage({
               label="Pasif"
               value={formatNumber(passiveAgents)}
               className="bg-red-50 p-4 text-red-800 shadow-none"
+            />
+            <StatCard
+              label="Finans"
+              value={formatNumber(financeAgents)}
+              className="bg-blue-50 p-4 text-blue-800 shadow-none"
             />
           </div>
         }
@@ -96,7 +105,7 @@ export default async function AdminAgentsPage({
         <form
           action="/api/admin/agents"
           method="POST"
-          className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr_1fr_auto]"
+          className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr_1fr_180px_auto]"
         >
           <input
             type="text"
@@ -120,6 +129,17 @@ export default async function AdminAgentsPage({
             placeholder="Geçici şifre"
             className="rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm outline-none transition focus:border-[#173f32]/40 focus:bg-white"
           />
+          <select
+            name="role"
+            defaultValue="agent"
+            className="rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#173f32]/40 focus:bg-white"
+          >
+            {userRoleOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
           <AppButton type="submit" size="lg">
             Ekle
           </AppButton>
@@ -132,6 +152,7 @@ export default async function AdminAgentsPage({
             <thead className="bg-[#f8f6f1]">
               <tr className="text-xs uppercase tracking-[0.14em] text-[#89938e]">
                 <th className="px-6 py-4">Temsilci</th>
+                <th className="px-6 py-4">Yetki</th>
                 <th className="px-6 py-4">İşlem</th>
                 <th className="px-6 py-4">Durum</th>
                 <th className="px-6 py-4">Bilgi Güncelle</th>
@@ -142,7 +163,7 @@ export default async function AdminAgentsPage({
             <tbody className="divide-y divide-[#17201c]/8">
               {agents.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-sm text-[#68746e]">
+                  <td colSpan={7} className="px-6 py-10 text-sm text-[#68746e]">
                     Henüz temsilci bulunmuyor.
                   </td>
                 </tr>
@@ -162,6 +183,17 @@ export default async function AdminAgentsPage({
                           Oluşturma:{" "}
                           {agent.createdAt.toLocaleDateString("tr-TR")}
                         </p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+                            getUserRole(agent) === "finance"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-[#edf1ec] text-[#173f32]"
+                          }`}
+                        >
+                          {getUserRoleLabel(agent)}
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <Link
@@ -215,6 +247,17 @@ export default async function AdminAgentsPage({
                             defaultValue={agent.username}
                             className="rounded-xl border border-[#17201c]/10 bg-[#f8f6f1] px-3 py-2 text-sm outline-none transition focus:border-[#173f32]/40 focus:bg-white"
                           />
+                          <select
+                            name="role"
+                            defaultValue={getUserRole(agent)}
+                            className="rounded-xl border border-[#17201c]/10 bg-[#f8f6f1] px-3 py-2 text-sm font-semibold outline-none transition focus:border-[#173f32]/40 focus:bg-white"
+                          >
+                            {userRoleOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
                           <AppButton type="submit" size="sm">
                             Kaydet
                           </AppButton>

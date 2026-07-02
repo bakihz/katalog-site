@@ -4,8 +4,10 @@ import {
   formatAmountWithCurrencySuffix,
   formatDateTime,
 } from "@/lib/format";
+import { getPaymentCardMasked } from "@/lib/paymentCard";
 import { getPaymentStatusLabel } from "@/lib/paymentStatus";
 import { prisma } from "@/lib/prisma";
+import { canViewAllPayments } from "@/lib/userRole";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ReceiptPrintButton } from "./ReceiptPrintButton";
@@ -23,8 +25,10 @@ export default async function DekontPage({
 
   if (!agentId) return null;
 
+  const currentUser = await prisma.user.findUnique({ where: { id: agentId } });
+  const canViewAll = canViewAllPayments(currentUser);
   const payment = await prisma.payment.findFirst({
-    where: { id: Number(id), agentId },
+    where: { id: Number(id), ...(canViewAll ? {} : { agentId }) },
     include: { agent: { select: { name: true } } },
   });
 
@@ -63,10 +67,9 @@ export default async function DekontPage({
         <dl className="space-y-3 text-sm">
           <Row label="Dekont No" value={`#${payment.id}`} />
           <Row label="Sipariş No" value={payment.orderId ?? "—"} />
-          <Row label="Müşteri Adı" value={payment.customerName} />
-          {payment.companyName && (
-            <Row label="Firma / Cari" value={payment.companyName} />
-          )}
+          <Row label="Firma / Cari" value={payment.companyName ?? "—"} />
+          <Row label="Kart Sahibi" value={payment.customerName} />
+          <Row label="Kart" value={getPaymentCardMasked(payment) ?? "—"} />
           {payment.description && (
             <Row label="Açıklama" value={payment.description} />
           )}

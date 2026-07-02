@@ -32,7 +32,7 @@ async function redirectWithAgentSession(url: string, agentId: number | null) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 8,
+      maxAge: 60 * 60 * 12,
       path: "/",
     });
   }

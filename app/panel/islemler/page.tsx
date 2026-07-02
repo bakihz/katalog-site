@@ -3,8 +3,10 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { verifyAgentCookie } from "@/lib/agentAuth";
 import { formatCurrency, formatDateTime } from "@/lib/format";
+import { getPaymentCardMasked } from "@/lib/paymentCard";
 import { isSuccessfulPaymentStatus } from "@/lib/paymentStatus";
 import { prisma } from "@/lib/prisma";
+import { canViewAllPayments } from "@/lib/userRole";
 import { AppButton, PageHeader, PaymentStatusBadge } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -36,11 +38,13 @@ export default async function IslemlerPage({
 
   if (!agentId) return null;
 
+  const currentUser = await prisma.user.findUnique({ where: { id: agentId } });
+  const canViewAll = canViewAllPayments(currentUser);
   const query = (getFirstParam(params.q) ?? "").trim();
   const status = (getFirstParam(params.status) ?? "").trim();
 
   const where: Prisma.PaymentWhereInput = {
-    agentId,
+    ...(canViewAll ? {} : { agentId }),
     ...(status ? { status } : {}),
     ...(query
       ? {
@@ -62,7 +66,7 @@ export default async function IslemlerPage({
     }),
     prisma.payment.aggregate({
       where: {
-        agentId,
+        ...(canViewAll ? {} : { agentId }),
         status: { in: ["success", "Paid"] },
       },
       _sum: { amount: true },
@@ -100,7 +104,7 @@ export default async function IslemlerPage({
               type="search"
               name="q"
               defaultValue={query}
-              placeholder="Müşteri, firma, açıklama veya sipariş no"
+              placeholder="Firma/cari, kart sahibi, açıklama veya sipariş no"
               className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm outline-none transition focus:border-[#173f32]/40 focus:bg-white"
             />
           </label>
@@ -153,12 +157,13 @@ export default async function IslemlerPage({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px]">
+            <table className="w-full min-w-[1080px]">
               <thead className="bg-[#f8f6f1]">
                 <tr>
                   {[
-                    "Müşteri",
-                    "Firma",
+                    "Firma / Cari",
+                    "Kart Sahibi",
+                    "Kart",
                     "Açıklama",
                     "Tutar",
                     "Durum",
@@ -181,10 +186,13 @@ export default async function IslemlerPage({
                     className="border-t border-[#17201c]/8 transition hover:bg-[#f8f6f1]/70"
                   >
                     <td className="px-6 py-4 text-sm font-semibold">
-                      {payment.customerName}
+                      {payment.companyName || "—"}
                     </td>
                     <td className="px-6 py-4 text-sm text-[#68746e]">
-                      {payment.companyName || "—"}
+                      {payment.customerName}
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs text-[#68746e]">
+                      {getPaymentCardMasked(payment) ?? "—"}
                     </td>
                     <td className="max-w-[220px] truncate px-6 py-4 text-sm text-[#68746e]">
                       {payment.description || payment.errorMessage || "—"}
