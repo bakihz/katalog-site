@@ -17,13 +17,6 @@ function isPublicAdminRoute(pathname: string) {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const host = request.headers.get("host");
-
-  if (host === "www.laleedt.com.tr") {
-    const url = request.nextUrl.clone();
-    url.hostname = "laleedt.com.tr";
-    return NextResponse.redirect(url, { status: 308 });
-  }
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", pathname);
