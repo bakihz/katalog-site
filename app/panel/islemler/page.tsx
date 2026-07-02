@@ -63,6 +63,7 @@ export default async function IslemlerPage({
     prisma.payment.findMany({
       where,
       orderBy: { createdAt: "desc" },
+      include: { agent: { select: { name: true } } },
     }),
     prisma.payment.aggregate({
       where: {
@@ -81,7 +82,11 @@ export default async function IslemlerPage({
       <PageHeader
         eyebrow="İşlemlerim"
         title="Tahsilat kayıtları"
-        description="Bu listede yalnızca sizin hesabınızla oluşturulan işlemler gösterilir."
+        description={
+          canViewAll
+            ? "Bu listede tüm temsilcilerin oluşturduğu işlemler gösterilir."
+            : "Bu listede yalnızca sizin hesabınızla oluşturulan işlemler gösterilir."
+        }
         aside={
           <div className="rounded-2xl bg-[#edf1ec] px-5 py-4">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#7a867f]">
@@ -157,12 +162,15 @@ export default async function IslemlerPage({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1080px]">
+            <table
+              className={`w-full ${canViewAll ? "min-w-[1200px]" : "min-w-[1080px]"}`}
+            >
               <thead className="bg-[#f8f6f1]">
                 <tr>
                   {[
                     "Firma / Cari",
                     "Kart Sahibi",
+                    ...(canViewAll ? ["Temsilci"] : []),
                     "Kart",
                     "Açıklama",
                     "Tutar",
@@ -191,6 +199,11 @@ export default async function IslemlerPage({
                     <td className="px-6 py-4 text-sm text-[#68746e]">
                       {payment.customerName}
                     </td>
+                    {canViewAll && (
+                      <td className="px-6 py-4 text-sm font-semibold text-[#173f32]">
+                        {payment.agent?.name ?? "Genel"}
+                      </td>
+                    )}
                     <td className="px-6 py-4 font-mono text-xs text-[#68746e]">
                       {getPaymentCardMasked(payment) ?? "—"}
                     </td>

@@ -42,6 +42,7 @@ export default async function PanelDashboardPage() {
         where: paymentScope,
         orderBy: { createdAt: "desc" },
         take: 5,
+        include: { agent: { select: { name: true } } },
       }),
     ]);
 
@@ -113,10 +114,20 @@ export default async function PanelDashboardPage() {
           <p className="p-6 text-sm text-[#68746e]">Henüz işlem bulunmuyor.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px]">
+            <table
+              className={`w-full ${canViewAll ? "min-w-[940px]" : "min-w-[820px]"}`}
+            >
               <thead className="bg-[#f8f6f1]">
                 <tr>
-                  {["Firma / Cari", "Kart", "Tutar", "Durum", "Tarih", ""].map((head) => (
+                  {[
+                    "Firma / Cari",
+                    ...(canViewAll ? ["Temsilci"] : []),
+                    "Kart",
+                    "Tutar",
+                    "Durum",
+                    "Tarih",
+                    "",
+                  ].map((head) => (
                     <th
                       key={head}
                       className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-[#7a867f]"
@@ -135,6 +146,11 @@ export default async function PanelDashboardPage() {
                     <td className="px-6 py-4 text-sm font-semibold">
                       {payment.companyName || payment.customerName}
                     </td>
+                    {canViewAll && (
+                      <td className="px-6 py-4 text-sm font-semibold text-[#173f32]">
+                        {payment.agent?.name ?? "Genel"}
+                      </td>
+                    )}
                     <td className="px-6 py-4 text-sm font-bold">
                       {getPaymentCardMasked(payment) ?? "—"}
                     </td>
