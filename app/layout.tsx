@@ -13,11 +13,36 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.laleedt.com.tr"),
   title: "Lale EDT Gıda A.Ş. | Çok Yakında",
   description:
     "Yeni web sitemiz hazırlanıyor. İletişim bilgilerimize bu sayfadan ulaşabilirsiniz.",
+  applicationName: "Lale EDT Gıda",
+  openGraph: {
+    title: "Lale EDT Gıda A.Ş.",
+    description:
+      "Yeni web sitemiz hazırlanıyor. İletişim bilgilerimize bu sayfadan ulaşabilirsiniz.",
+    url: "https://www.laleedt.com.tr/gecici",
+    siteName: "Lale EDT Gıda",
+    images: [
+      {
+        url: "/logo.svg",
+        width: 720,
+        height: 720,
+        alt: "Lale EDT Gıda logosu",
+      },
+    ],
+    locale: "tr_TR",
+    type: "website",
+  },
   icons: {
-    icon: "/logo.svg",
+    icon: [
+      {
+        url: "/logo.svg",
+        type: "image/svg+xml",
+        sizes: "any",
+      },
+    ],
     shortcut: "/logo.svg",
     apple: "/logo.svg",
   },

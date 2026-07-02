@@ -1,8 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { verifyAgentCookie } from "@/lib/agentAuth";
 import { prisma } from "@/lib/prisma";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "https://www.laleedt.com.tr/gecici",
+  },
+};
 
 const contactDetails = [
   {
