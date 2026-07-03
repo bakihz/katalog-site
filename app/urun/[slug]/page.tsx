@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
@@ -26,6 +27,7 @@ export default async function ProductDetailPage({
         <div>
           <img
             src={product.imageUrl || "https://via.placeholder.com/800x600"}
+            alt={product.name}
             className="rounded-2xl w-full"
           />
         </div>

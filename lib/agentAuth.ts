@@ -1,5 +1,7 @@
 /** Edge Runtime-compatible agent session helpers (uses Web Crypto only). */
 
+export const agentSessionMaxAgeSeconds = 60 * 60 * 12; // 12 saat
+
 async function hmacBase64(secret: string, message: string): Promise<string> {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -16,11 +18,12 @@ async function hmacBase64(secret: string, message: string): Promise<string> {
   return btoa(binary);
 }
 
-/** Creates a signed cookie value: `${agentId}.${hmac}` */
+/** Creates a signed cookie value: `${agentId}.${expiresAt}.${hmac}` */
 export async function createAgentToken(agentId: number): Promise<string> {
   const secret = getSessionSecret();
-  const mac = await hmacBase64(secret, `agent:${agentId}`);
-  return `${agentId}.${mac}`;
+  const expiresAt = Date.now() + agentSessionMaxAgeSeconds * 1000;
+  const mac = await hmacBase64(secret, getAgentSessionMessage(agentId, expiresAt));
+  return `${agentId}.${expiresAt}.${mac}`;
 }
 
 /** Verifies cookie and returns agentId, or null if invalid. */
@@ -28,14 +31,26 @@ export async function verifyAgentCookie(
   cookie: string | undefined,
 ): Promise<number | null> {
   if (!cookie) return null;
-  const dotIndex = cookie.indexOf(".");
-  if (dotIndex === -1) return null;
-  const agentIdStr = cookie.substring(0, dotIndex);
+
+  const [agentIdStr, expiresAtStr, mac] = cookie.split(".");
   const agentId = parseInt(agentIdStr, 10);
+  const expiresAt = Number(expiresAtStr);
+
   if (isNaN(agentId) || agentId <= 0) return null;
-  const expected = await createAgentToken(agentId);
-  if (cookie !== expected) return null;
+  if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) return null;
+  if (!mac) return null;
+
+  const expected = await hmacBase64(
+    getSessionSecret(),
+    getAgentSessionMessage(agentId, expiresAt),
+  );
+
+  if (mac !== expected) return null;
   return agentId;
+}
+
+function getAgentSessionMessage(agentId: number, expiresAt: number) {
+  return `agent:${agentId}:${expiresAt}`;
 }
 
 function getSessionSecret() {

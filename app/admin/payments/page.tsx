@@ -1,11 +1,12 @@
-import { Prisma } from "@prisma/client";
+import Link from "next/link";
 import {
-  isSuccessfulPaymentStatus,
-} from "@/lib/paymentStatus";
-import { prisma } from "@/lib/prisma";
+  adminPaymentPageSizeOptions,
+  buildAdminPaymentsQueryString,
+  parseAdminPaymentFilters,
+} from "@/lib/adminPaymentFilters";
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
 import { getPaymentCardMasked } from "@/lib/paymentCard";
-import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 import {
   AppButton,
   PageHeader,
@@ -28,54 +29,35 @@ const statusOptions = [
   { value: "Cancelled", label: "İptal Edildi" },
 ];
 
-function getFirstParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-async function getPayments(where: Prisma.PaymentWhereInput) {
-  return prisma.payment.findMany({
-    where,
-    orderBy: {
-      createdAt: "desc",
-    },
-    include: {
-      agent: {
-        select: {
-          name: true,
-        },
-      },
-    },
-  });
-}
-
 export default async function PaymentsPage({
   searchParams,
 }: AdminPaymentsPageProps) {
   const params = await searchParams;
-  const query = (getFirstParam(params.q) ?? "").trim();
-  const status = (getFirstParam(params.status) ?? "").trim();
-  const agentId = Number(getFirstParam(params.agentId) ?? "");
-  const selectedAgentId = Number.isInteger(agentId) && agentId > 0 ? agentId : 0;
-  const where: Prisma.PaymentWhereInput = {
-    ...(selectedAgentId ? { agentId: selectedAgentId } : {}),
-    ...(status ? { status } : {}),
-    ...(query
-      ? {
-          OR: [
-            { customerName: { contains: query } },
-            { companyName: { contains: query } },
-            { description: { contains: query } },
-            { orderId: { contains: query } },
-            { providerName: { contains: query } },
-          ],
-        }
-      : {}),
-  };
-  const [payments, agents] = await Promise.all([
-    getPayments(where),
+  const filters = parseAdminPaymentFilters(params);
+  const exportQuery = buildAdminPaymentsQueryString(filters, { page: "" });
+  const [payments, agents, totalCount, totalAmountResult] = await Promise.all([
+    prisma.payment.findMany({
+      where: filters.where,
+      orderBy: { createdAt: "desc" },
+      skip: (filters.page - 1) * filters.pageSize,
+      take: filters.pageSize,
+      include: {
+        agent: {
+          select: { name: true },
+        },
+      },
+    }),
     prisma.user.findMany({
       orderBy: { name: "asc" },
       select: { id: true, name: true, username: true },
+    }),
+    prisma.payment.count({ where: filters.where }),
+    prisma.payment.aggregate({
+      where: {
+        ...filters.where,
+        status: { in: ["success", "Paid"] },
+      },
+      _sum: { amount: true },
     }),
   ]);
   const expiredBefore = new Date();
@@ -84,9 +66,21 @@ export default async function PaymentsPage({
     (payment) =>
       payment.status === "Pending" && payment.createdAt < expiredBefore,
   ).length;
-  const totalAmount = payments
-    .filter((payment) => isSuccessfulPaymentStatus(payment.status))
-    .reduce((sum, payment) => sum + payment.amount, 0);
+  const totalAmount = totalAmountResult._sum.amount ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / filters.pageSize));
+  const safePage = Math.min(filters.page, totalPages);
+  const previousPageHref =
+    safePage > 1
+      ? `/admin/payments?${buildAdminPaymentsQueryString(filters, {
+          page: String(safePage - 1),
+        })}`
+      : undefined;
+  const nextPageHref =
+    safePage < totalPages
+      ? `/admin/payments?${buildAdminPaymentsQueryString(filters, {
+          page: String(safePage + 1),
+        })}`
+      : undefined;
 
   return (
     <div className="space-y-6">
@@ -98,7 +92,7 @@ export default async function PaymentsPage({
           <div className="grid grid-cols-2 gap-3 sm:min-w-80">
             <StatCard
               label="Kayıt"
-              value={formatNumber(payments.length)}
+              value={formatNumber(totalCount)}
               className="bg-[#f5f3ee] p-4 shadow-none"
             />
             <StatCard
@@ -116,7 +110,7 @@ export default async function PaymentsPage({
             <p className="font-bold">Bekleyen ödeme kontrolü</p>
             <p className="mt-1 text-amber-800">
               {pendingExpirationHours} saati aşan bekleyen işlemler “Süresi
-              Doldu” olarak işaretlenebilir. Şu an{" "}
+              Doldu” olarak işaretlenebilir. Bu sayfada{" "}
               <strong>{expirablePendingCount}</strong> işlem uygun görünüyor.
             </p>
           </div>
@@ -133,7 +127,7 @@ export default async function PaymentsPage({
       </section>
 
       <section className="rounded-[1.75rem] border border-[#17201c]/10 bg-white p-5 shadow-sm">
-        <form className="grid gap-3 xl:grid-cols-[1fr_220px_260px_auto_auto]">
+        <form className="grid gap-3 xl:grid-cols-[1fr_180px_220px_170px_170px_150px_auto_auto]">
           <label>
             <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-[#7a867f]">
               Ara
@@ -141,7 +135,7 @@ export default async function PaymentsPage({
             <input
               type="search"
               name="q"
-              defaultValue={query}
+              defaultValue={filters.query}
               placeholder="Firma/cari, kart sahibi, açıklama veya sipariş no"
               className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm outline-none transition focus:border-[#173f32]/40 focus:bg-white"
             />
@@ -153,7 +147,7 @@ export default async function PaymentsPage({
             </span>
             <select
               name="status"
-              defaultValue={status}
+              defaultValue={filters.status}
               className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#173f32]/40 focus:bg-white"
             >
               {statusOptions.map((option) => (
@@ -170,13 +164,54 @@ export default async function PaymentsPage({
             </span>
             <select
               name="agentId"
-              defaultValue={selectedAgentId || ""}
+              defaultValue={filters.selectedAgentId || ""}
               className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#173f32]/40 focus:bg-white"
             >
               <option value="">Tüm Temsilciler</option>
               {agents.map((agent) => (
                 <option key={agent.id} value={agent.id}>
                   {agent.name} (@{agent.username})
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-[#7a867f]">
+              Başlangıç
+            </span>
+            <input
+              type="date"
+              name="from"
+              defaultValue={filters.from}
+              className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#173f32]/40 focus:bg-white"
+            />
+          </label>
+
+          <label>
+            <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-[#7a867f]">
+              Bitiş
+            </span>
+            <input
+              type="date"
+              name="to"
+              defaultValue={filters.to}
+              className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#173f32]/40 focus:bg-white"
+            />
+          </label>
+
+          <label>
+            <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-[#7a867f]">
+              Sayfa
+            </span>
+            <select
+              name="pageSize"
+              defaultValue={filters.pageSize}
+              className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#173f32]/40 focus:bg-white"
+            >
+              {adminPaymentPageSizeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option} kayıt
                 </option>
               ))}
             </select>
@@ -199,6 +234,20 @@ export default async function PaymentsPage({
             </AppButton>
           </div>
         </form>
+
+        <div className="mt-4 flex flex-col gap-2 border-t border-[#17201c]/8 pt-4 text-sm text-[#68746e] sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            {formatNumber(totalCount)} kayıt içinden bu sayfada{" "}
+            {formatNumber(payments.length)} kayıt gösteriliyor.
+          </p>
+          <AppButton
+            href={`/api/admin/payments/export${exportQuery ? `?${exportQuery}` : ""}`}
+            variant="secondary"
+            size="sm"
+          >
+            CSV İndir
+          </AppButton>
+        </div>
       </section>
 
       <section className="overflow-hidden rounded-[1.75rem] border border-[#17201c]/10 bg-white shadow-sm">
@@ -266,6 +315,33 @@ export default async function PaymentsPage({
           </table>
         </div>
       </section>
+
+      {totalCount > 0 && (
+        <nav className="flex flex-col gap-3 rounded-[1.75rem] border border-[#17201c]/10 bg-white p-4 text-sm text-[#68746e] shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            Sayfa <strong className="text-[#10231d]">{safePage}</strong> /{" "}
+            <strong className="text-[#10231d]">{totalPages}</strong>
+          </p>
+          <div className="flex gap-2">
+            <AppButton
+              href={previousPageHref}
+              variant="outline"
+              size="sm"
+              disabled={!previousPageHref}
+            >
+              Önceki
+            </AppButton>
+            <AppButton
+              href={nextPageHref}
+              variant="outline"
+              size="sm"
+              disabled={!nextPageHref}
+            >
+              Sonraki
+            </AppButton>
+          </div>
+        </nav>
+      )}
     </div>
   );
 }

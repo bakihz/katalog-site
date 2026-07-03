@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { cookies } from "next/headers";
@@ -137,6 +138,7 @@ export default async function HomeOriginal({
                   ? product.imageUrl
                   : "https://via.placeholder.com/800x600"
               }
+              alt={product.name}
               className="rounded-xl mb-4 w-full"
             />
 

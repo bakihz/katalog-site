@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { createAgentToken } from "@/lib/agentAuth";
+import { agentSessionMaxAgeSeconds, createAgentToken } from "@/lib/agentAuth";
 import { verifyNestpayResponseHash } from "@/lib/nestpay";
 import { logPaymentDebug } from "@/lib/paymentDebug";
 import {
@@ -32,7 +32,7 @@ async function redirectWithAgentSession(url: string, agentId: number | null) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 12,
+      maxAge: agentSessionMaxAgeSeconds,
       path: "/",
     });
   }

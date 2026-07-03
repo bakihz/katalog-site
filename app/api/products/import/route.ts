@@ -2,6 +2,19 @@ import { prisma } from "@/lib/prisma";
 import csv from "csv-parser";
 import { Readable } from "stream";
 
+type ProductCsvRow = {
+  stockCode?: string;
+  name?: string;
+  description?: string;
+  price?: string;
+  brand?: string;
+  category?: string;
+  subCategory?: string;
+  stockStatus?: string;
+  unit?: string;
+  imageUrl?: string;
+};
+
 function slugify(text: string) {
   return text
     .toLowerCase()
@@ -37,12 +50,12 @@ export async function POST(req: Request) {
 
     const buffer = Buffer.from(bytes);
 
-    const results: any[] = [];
+    const results: ProductCsvRow[] = [];
 
     await new Promise<void>((resolve, reject) => {
       Readable.from(buffer)
         .pipe(csv())
-        .on("data", (data) => {
+        .on("data", (data: ProductCsvRow) => {
           results.push(data);
         })
         .on("end", () => {

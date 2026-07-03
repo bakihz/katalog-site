@@ -1,8 +1,12 @@
-import { Prisma } from "@prisma/client";
 import { cookies } from "next/headers";
 import Link from "next/link";
+import {
+  adminPaymentPageSizeOptions,
+  buildAdminPaymentsQueryString,
+  parseAdminPaymentFilters,
+} from "@/lib/adminPaymentFilters";
 import { verifyAgentCookie } from "@/lib/agentAuth";
-import { formatCurrency, formatDateTime } from "@/lib/format";
+import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
 import { getPaymentCardMasked } from "@/lib/paymentCard";
 import { isSuccessfulPaymentStatus } from "@/lib/paymentStatus";
 import { prisma } from "@/lib/prisma";
@@ -24,10 +28,6 @@ const statusOptions = [
   { value: "Cancelled", label: "İptal Edildi" },
 ];
 
-function getFirstParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
 export default async function IslemlerPage({
   searchParams,
 }: IslemlerPageProps) {
@@ -40,47 +40,56 @@ export default async function IslemlerPage({
 
   const currentUser = await prisma.user.findUnique({ where: { id: agentId } });
   const canViewAll = canViewAllPayments(currentUser);
-  const query = (getFirstParam(params.q) ?? "").trim();
-  const status = (getFirstParam(params.status) ?? "").trim();
-
-  const where: Prisma.PaymentWhereInput = {
+  const filters = parseAdminPaymentFilters(params);
+  const where = {
+    ...filters.where,
     ...(canViewAll ? {} : { agentId }),
-    ...(status ? { status } : {}),
-    ...(query
-      ? {
-          OR: [
-            { customerName: { contains: query } },
-            { companyName: { contains: query } },
-            { description: { contains: query } },
-            { orderId: { contains: query } },
-            { providerName: { contains: query } },
-          ],
-        }
-      : {}),
   };
-
-  const [payments, totalPaid] = await Promise.all([
+  const [payments, totalPaid, totalCount, agents] = await Promise.all([
     prisma.payment.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      include: { agent: { select: { name: true } } },
+      skip: (filters.page - 1) * filters.pageSize,
+      take: filters.pageSize,
+      include: { agent: { select: { name: true, username: true } } },
     }),
     prisma.payment.aggregate({
       where: {
-        ...(canViewAll ? {} : { agentId }),
+        ...where,
         status: { in: ["success", "Paid"] },
       },
       _sum: { amount: true },
     }),
+    prisma.payment.count({ where }),
+    canViewAll
+      ? prisma.user.findMany({
+          orderBy: { name: "asc" },
+          select: { id: true, name: true, username: true },
+        })
+      : Promise.resolve([]),
   ]);
   const paymentsWithFailure = payments as Array<
     (typeof payments)[number] & { errorMessage?: string | null }
   >;
+  const totalPages = Math.max(1, Math.ceil(totalCount / filters.pageSize));
+  const safePage = Math.min(filters.page, totalPages);
+  const previousPageHref =
+    safePage > 1
+      ? `/panel/islemler?${buildAdminPaymentsQueryString(filters, {
+          page: String(safePage - 1),
+        })}`
+      : undefined;
+  const nextPageHref =
+    safePage < totalPages
+      ? `/panel/islemler?${buildAdminPaymentsQueryString(filters, {
+          page: String(safePage + 1),
+        })}`
+      : undefined;
 
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="İşlemlerim"
+        eyebrow={canViewAll ? "Finans" : "İşlemlerim"}
         title="Tahsilat kayıtları"
         description={
           canViewAll
@@ -100,7 +109,13 @@ export default async function IslemlerPage({
       />
 
       <section className="rounded-[2rem] border border-[#17201c]/10 bg-white p-5 shadow-sm">
-        <form className="grid gap-3 lg:grid-cols-[1fr_220px_auto_auto]">
+        <form
+          className={`grid gap-3 ${
+            canViewAll
+              ? "xl:grid-cols-[1fr_180px_220px_170px_170px_150px_auto_auto]"
+              : "xl:grid-cols-[1fr_180px_170px_170px_150px_auto_auto]"
+          }`}
+        >
           <label>
             <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-[#7a867f]">
               Ara
@@ -108,7 +123,7 @@ export default async function IslemlerPage({
             <input
               type="search"
               name="q"
-              defaultValue={query}
+              defaultValue={filters.query}
               placeholder="Firma/cari, kart sahibi, açıklama veya sipariş no"
               className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm outline-none transition focus:border-[#173f32]/40 focus:bg-white"
             />
@@ -120,12 +135,73 @@ export default async function IslemlerPage({
             </span>
             <select
               name="status"
-              defaultValue={status}
+              defaultValue={filters.status}
               className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#173f32]/40 focus:bg-white"
             >
               {statusOptions.map((option) => (
                 <option key={option.value || "all"} value={option.value}>
                   {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {canViewAll && (
+            <label>
+              <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-[#7a867f]">
+                Temsilci
+              </span>
+              <select
+                name="agentId"
+                defaultValue={filters.selectedAgentId || ""}
+                className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#173f32]/40 focus:bg-white"
+              >
+                <option value="">Tüm Temsilciler</option>
+                {agents.map((agent) => (
+                  <option key={agent.id} value={agent.id}>
+                    {agent.name} (@{agent.username})
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          <label>
+            <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-[#7a867f]">
+              Başlangıç
+            </span>
+            <input
+              type="date"
+              name="from"
+              defaultValue={filters.from}
+              className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#173f32]/40 focus:bg-white"
+            />
+          </label>
+
+          <label>
+            <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-[#7a867f]">
+              Bitiş
+            </span>
+            <input
+              type="date"
+              name="to"
+              defaultValue={filters.to}
+              className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#173f32]/40 focus:bg-white"
+            />
+          </label>
+
+          <label>
+            <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-[#7a867f]">
+              Sayfa
+            </span>
+            <select
+              name="pageSize"
+              defaultValue={filters.pageSize}
+              className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#173f32]/40 focus:bg-white"
+            >
+              {adminPaymentPageSizeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option} kayıt
                 </option>
               ))}
             </select>
@@ -148,6 +224,11 @@ export default async function IslemlerPage({
             </AppButton>
           </div>
         </form>
+
+        <p className="mt-4 border-t border-[#17201c]/8 pt-4 text-sm text-[#68746e]">
+          {formatNumber(totalCount)} kayıt içinden bu sayfada{" "}
+          {formatNumber(payments.length)} kayıt gösteriliyor.
+        </p>
       </section>
 
       <section className="rounded-[2rem] border border-[#17201c]/10 bg-white shadow-xl shadow-[#10231d]/10">
@@ -243,6 +324,33 @@ export default async function IslemlerPage({
           </div>
         )}
       </section>
+
+      {totalCount > 0 && (
+        <nav className="flex flex-col gap-3 rounded-[1.75rem] border border-[#17201c]/10 bg-white p-4 text-sm text-[#68746e] shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            Sayfa <strong className="text-[#10231d]">{safePage}</strong> /{" "}
+            <strong className="text-[#10231d]">{totalPages}</strong>
+          </p>
+          <div className="flex gap-2">
+            <AppButton
+              href={previousPageHref}
+              variant="outline"
+              size="sm"
+              disabled={!previousPageHref}
+            >
+              Önceki
+            </AppButton>
+            <AppButton
+              href={nextPageHref}
+              variant="outline"
+              size="sm"
+              disabled={!nextPageHref}
+            >
+              Sonraki
+            </AppButton>
+          </div>
+        </nav>
+      )}
     </div>
   );
 }
