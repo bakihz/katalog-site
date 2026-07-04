@@ -87,7 +87,7 @@ export default async function PaymentsPage({
       <PageHeader
         eyebrow="Finans"
         title="Ödeme Kayıtları"
-        description="Tüm ödeme denemeleri ve tahsilat kayıtları burada listelenir."
+        description="Tüm tahsilat kayıtlarını, ödeme durumlarını ve temsilci hareketlerini bu ekrandan takip edebilirsiniz."
         aside={
           <div className="grid grid-cols-2 gap-3 sm:min-w-80">
             <StatCard
@@ -98,7 +98,7 @@ export default async function PaymentsPage({
             <StatCard
               label="Ciro"
               value={formatCurrency(totalAmount)}
-              className="bg-[#10231d] p-4 text-white shadow-none [&_p:first-of-type]:text-white/55"
+              className="bg-[#10231d] p-4 shadow-none [&_p:first-of-type]:/55"
             />
           </div>
         }
@@ -107,11 +107,11 @@ export default async function PaymentsPage({
       <section className="rounded-[1.75rem] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="font-bold">Bekleyen ödeme kontrolü</p>
+            <p className="font-bold">Bekleyen ödeme takibi</p>
             <p className="mt-1 text-amber-800">
               {pendingExpirationHours} saati aşan bekleyen işlemler “Süresi
-              Doldu” olarak işaretlenebilir. Bu sayfada{" "}
-              <strong>{expirablePendingCount}</strong> işlem uygun görünüyor.
+              Doldu” olarak işaretlenebilir. Bu sayfada işlem yapılabilecek{" "}
+              <strong>{expirablePendingCount}</strong> kayıt bulunuyor.
             </p>
           </div>
           <form action="/api/admin/payments/expire-pending" method="post">
@@ -120,7 +120,7 @@ export default async function PaymentsPage({
               disabled={expirablePendingCount === 0}
               size="sm"
             >
-              Eski Bekleyenleri Kapat
+              Süresi Dolanları İşaretle
             </AppButton>
           </form>
         </div>

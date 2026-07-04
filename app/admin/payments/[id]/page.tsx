@@ -5,6 +5,7 @@ import { getPaymentCardMasked } from "@/lib/paymentCard";
 import { getPaymentStatusLabel } from "@/lib/paymentStatus";
 import { prisma } from "@/lib/prisma";
 import { AppButton, PageHeader, PaymentStatusBadge } from "@/components/ui";
+import { ReceiptPrintButton } from "@/app/panel/dekont/[id]/ReceiptPrintButton";
 
 type AdminPaymentDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -25,17 +26,53 @@ export default async function AdminPaymentDetailPage({
     errorCode?: string | null;
     errorMessage?: string | null;
   };
+  const formattedDate = formatDateTime(payment.createdAt, {
+    dateStyle: "long",
+    timeStyle: "short",
+  });
+  const formattedAmount = formatAmountWithCurrencySuffix(payment.amount);
+  const statusLabel = getPaymentStatusLabel(payment.status).toLocaleUpperCase(
+    "tr-TR",
+  );
+  const card = getPaymentCardMasked(payment) ?? "—";
+  const canCreateReceipt =
+    payment.status === "Paid" || payment.status === "success";
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <PageHeader
         eyebrow="Ödeme Detayı"
         title={`İşlem #${payment.id}`}
-        description="Bu ekranda ödeme denemesinin tüm operasyonel detayları görüntülenir."
+        description="Tahsilat kaydına ait işlem bilgilerini buradan inceleyebilirsiniz."
         actions={
-          <AppButton href="/admin/payments" variant="outline" size="lg">
-            Ödeme Kayıtlarına Dön
-          </AppButton>
+          <div className="flex flex-wrap items-center gap-2">
+            <AppButton href="/admin/payments" variant="outline" size="lg">
+              Ödeme Kayıtlarına Dön
+            </AppButton>
+            {canCreateReceipt && (
+              <ReceiptPrintButton
+                receipt={{
+                  id: payment.id,
+                  orderId: payment.orderId ?? "—",
+                  companyName: payment.companyName ?? "—",
+                  customerName: payment.customerName,
+                  card,
+                  description: payment.description ?? undefined,
+                  amount: formattedAmount,
+                  status: statusLabel,
+                  transactionId: payment.transactionId ?? undefined,
+                  providerName: payment.providerName ?? undefined,
+                  agentName: payment.agent?.name,
+                  date: formattedDate,
+                  fileDate: formatDateTime(payment.createdAt, {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                  }).replaceAll(".", "-"),
+                }}
+              />
+            )}
+          </div>
         }
       />
 
@@ -49,7 +86,7 @@ export default async function AdminPaymentDetailPage({
           </h2>
           <p className="mt-2 text-sm leading-6">
             {paymentWithFailure.errorMessage ||
-              "Bankadan hata mesajı alınamadı."}
+              "Banka tarafından açıklama iletilmedi."}
             {paymentWithFailure.errorCode
               ? ` (${paymentWithFailure.errorCode})`
               : ""}
@@ -72,25 +109,13 @@ export default async function AdminPaymentDetailPage({
 
         <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
           <SummaryRow label="Sipariş No" value={payment.orderId ?? "—"} />
-          <SummaryRow
-            label="Durum"
-            value={getPaymentStatusLabel(payment.status)}
-          />
+          <SummaryRow label="Durum" value={getPaymentStatusLabel(payment.status)} />
           <SummaryRow label="Firma / Cari" value={payment.companyName ?? "—"} />
           <SummaryRow label="Kart Sahibi" value={payment.customerName} />
-          <SummaryRow label="Kart" value={getPaymentCardMasked(payment) ?? "—"} />
-          <SummaryRow
-            label="Tutar"
-            value={formatAmountWithCurrencySuffix(payment.amount)}
-          />
+          <SummaryRow label="Kart" value={card} />
+          <SummaryRow label="Tutar" value={formattedAmount} />
           <SummaryRow label="POS" value={payment.providerName ?? "—"} />
-          <SummaryRow
-            label="Tarih"
-            value={formatDateTime(payment.createdAt, {
-              dateStyle: "long",
-              timeStyle: "short",
-            })}
-          />
+          <SummaryRow label="Tarih" value={formattedDate} />
           <SummaryRow
             label="Temsilci"
             value={

@@ -51,7 +51,7 @@ export default async function BasariliPage({
             className="mx-auto mt-6 w-full max-w-[360px] rounded-xl border border-gray-300 bg-white p-4 text-left font-mono text-[13px] leading-5 text-black shadow-md print:mt-0 print:max-w-[78mm] print:rounded-none print:border-0 print:p-0 print:shadow-none"
           >
             <div className="text-center">
-              <p className="text-[15px] font-bold tracking-wide">KATALOG POS</p>
+              <p className="text-[15px] font-bold tracking-wide">LALE EDT GIDA</p>
               <p className="text-[11px] tracking-wide">SATIS DEKONTU</p>
             </div>
 
@@ -96,7 +96,7 @@ export default async function BasariliPage({
             <div className="my-3 border-t border-dashed border-gray-400" />
 
             <div className="text-center text-[11px] text-gray-700">
-              <p>BU DEKONT BILGILENDIRME AMACLIDIR</p>
+              <p>BU BELGE TAHSILAT KAYDI OLARAK OLUSTURULMUSTUR</p>
               <p>PAYLASIM ICIN UYGUNDUR</p>
             </div>
           </div>

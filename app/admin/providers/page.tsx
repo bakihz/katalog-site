@@ -22,9 +22,8 @@ export default async function ProvidersPage() {
           Sanal POS Yönetimi
         </h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-[#68746e]">
-          Aktif sanal POS sağlayıcısını buradan görebilir ve gerektiğinde
-          değiştirebilirsin. Mail order / ödeme entegrasyonu şu an ana çalışma
-          kapsamımızın dışında, bu yüzden bu ekranda sadece görünüm toparlandı.
+          Aktif sanal POS sağlayıcısını buradan görüntüleyebilir ve gerekli
+          durumlarda geçerli sağlayıcıyı değiştirebilirsiniz.
         </p>
         <form
           action="/api/admin/providers/seed-ziraat"
@@ -35,7 +34,7 @@ export default async function ProvidersPage() {
             type="submit"
             className="rounded-2xl bg-[#10231d] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#173f32]"
           >
-            Ziraat Test POS Ekle / Aktif Yap
+            Ziraat Sanal POS&apos;u Ekle / Aktif Yap
           </button>
         </form>
       </section>

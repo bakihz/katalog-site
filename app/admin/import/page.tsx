@@ -137,11 +137,10 @@ export default function ImportPage() {
           </div>
 
           <div className="mt-6 rounded-2xl bg-[#f8f6f1] p-4">
-            <p className="font-semibold">Küçük not</p>
+            <p className="font-semibold">Aktarım notu</p>
             <p className="mt-2 text-sm leading-6 text-[#68746e]">
-              Canlı ortamda büyük dosya yüklemeden önce küçük bir CSV ile test
-              etmek iyi fikir. Sessiz sakin ilerleyelim, veritabanı da bizi
-              sevsin.
+              Büyük dosyalar için aktarım öncesinde dosya kolonlarının beklenen
+              formatla uyumlu olduğundan emin olun.
             </p>
           </div>
         </aside>

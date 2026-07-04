@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { DashboardNavLink, DashboardShell } from "@/components/layout";
 
 const panelNavLinks: DashboardNavLink[] = [
-  { href: "/panel", label: "Dashboard", icon: "📊", exact: true },
+  { href: "/panel", label: "Özet", icon: "📊", exact: true },
   { href: "/panel/odeme", label: "Ödeme Al", icon: "💳" },
   { href: "/panel/islemler", label: "İşlemlerim", icon: "🧾" },
   { href: "/panel/ayarlar", label: "Ayarlar", icon: "⚙️" },

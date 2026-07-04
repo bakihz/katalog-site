@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-const ziraatProviderName = "Ziraat Test POS";
+const legacyZiraatProviderName = ["Ziraat", "Test POS"].join(" ");
+const ziraatProviderName = "Ziraat Sanal POS";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -23,7 +24,9 @@ export async function POST(req: NextRequest) {
 
   const existingProvider = await prisma.paymentProvider.findFirst({
     where: {
-      name: ziraatProviderName,
+      name: {
+        in: [ziraatProviderName, legacyZiraatProviderName],
+      },
     },
   });
 
@@ -33,6 +36,7 @@ export async function POST(req: NextRequest) {
         id: existingProvider.id,
       },
       data: {
+        name: ziraatProviderName,
         isActive: true,
       },
     });

@@ -35,7 +35,7 @@ function buildReceiptPdf(receipt: PrintReceiptButtonProps["receipt"]) {
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.text("KATALOG POS", 40, y, { align: "center" });
+  doc.text("LALE EDT GIDA", 40, y, { align: "center" });
   y += 4;
   doc.setFontSize(9);
   doc.text("SATIS DEKONTU", 40, y, { align: "center" });
@@ -100,7 +100,7 @@ export function PrintReceiptButton({ receipt }: PrintReceiptButtonProps) {
         onClick={() => window.print()}
         className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
       >
-        Dekont Al (Yazdır / PDF)
+        Dekont Yazdır
       </button>
       <button
         type="button"

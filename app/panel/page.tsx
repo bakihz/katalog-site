@@ -70,12 +70,12 @@ export default async function PanelDashboardPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Dashboard"
+        eyebrow="Özet"
         title={canViewAll ? "Finans özeti" : "Temsilci özeti"}
         description={
           canViewAll
-            ? "Tüm temsilcilerin tahsilat kayıtları ve son işlemleri burada görüntülenir."
-            : "Sadece size ait tahsilat kayıtları ve son işlemler burada görüntülenir."
+            ? "Tüm temsilcilerin tahsilat kayıtlarını ve son işlemlerini buradan takip edebilirsiniz."
+            : "Size ait tahsilat kayıtlarını ve son işlemleri buradan takip edebilirsiniz."
         }
         actions={
           <AppButton href="/panel/odeme" size="lg">
@@ -102,7 +102,7 @@ export default async function PanelDashboardPage() {
           <div>
             <h2 className="text-xl font-bold">Son İşlemler</h2>
             <p className="mt-1 text-sm text-[#68746e]">
-              En son oluşturduğunuz tahsilat kayıtları.
+              Güncel tahsilat hareketleri.
             </p>
           </div>
           <AppButton href="/panel/islemler" variant="outline" size="md">

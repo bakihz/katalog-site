@@ -102,7 +102,7 @@ export default async function GirisPage({
             {(hasError || isRateLimited) && (
               <p className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                 {isRateLimited
-                  ? "Çok fazla hatalı deneme yapıldı. Lütfen 15 dakika sonra tekrar deneyin."
+                  ? "Çok fazla hatalı giriş yapıldı. Lütfen 15 dakika sonra tekrar deneyin."
                   : "Kullanıcı adı veya şifre hatalı."}
               </p>
             )}
