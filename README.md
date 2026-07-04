@@ -1,5 +1,7 @@
 # Katalog Site — Lale EDT Gıda
 
+> Canlı sunucu, deploy, backup ve acil durum prosedürleri için: [`docs/production-operations.md`](docs/production-operations.md)
+
 Lale EDT Gıda için geliştirilen Next.js tabanlı ürün kataloğu, geçici kapak sayfası, temsilci tahsilat paneli, sanal POS ödeme akışı ve admin yönetim paneli uygulamasıdır.
 
 > Not: Bu proje Next.js `16.2.6` kullanır. Bu sürümde bazı API ve dosya yapısı davranışları eski Next.js alışkanlıklarından farklı olabilir. Kod yazmadan önce `AGENTS.md` notunu ve gerekiyorsa `node_modules/next/dist/docs/` altındaki ilgili Next.js dokümanını kontrol edin.
