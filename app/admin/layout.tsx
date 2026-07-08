@@ -7,6 +7,7 @@ const adminNavLinks: DashboardNavLink[] = [
   { href: "/admin/agents", label: "Temsilciler", icon: "👥" },
   { href: "/admin/providers", label: "Sanal POS", icon: "🏦" },
   { href: "/admin/import", label: "Ürün Aktar", icon: "📦" },
+  { href: "/admin/settings", label: "Ayarlar", icon: "⚙️" },
 ];
 
 export default async function AdminLayout({

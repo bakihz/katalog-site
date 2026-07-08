@@ -4,11 +4,12 @@ import Link from "next/link";
 export default async function AdminLoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; success?: string }>;
 }) {
   const params = await searchParams;
   const hasError = params.error === "1";
   const isRateLimited = params.error === "rate";
+  const passwordChanged = params.success === "password";
 
   return (
     <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#10231d] px-6 py-10 text-white">
@@ -47,6 +48,12 @@ export default async function AdminLoginPage({
             {isRateLimited
               ? "Çok fazla hatalı giriş yapıldı. Lütfen 15 dakika sonra tekrar deneyin."
               : "Kullanıcı adı veya şifre hatalı."}
+          </p>
+        )}
+
+        {passwordChanged && (
+          <p className="mb-5 rounded-2xl bg-emerald-500/15 px-4 py-3 text-sm font-medium text-emerald-100">
+            Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz.
           </p>
         )}
 

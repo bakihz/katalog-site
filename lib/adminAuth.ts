@@ -1,4 +1,5 @@
 const adminSessionMessagePrefix = "admin_authenticated";
+export const adminSessionMaxAgeSeconds = 60 * 60;
 
 async function signAdminSession(message: string): Promise<string> {
   const secret = getAdminSessionSecret();
@@ -55,5 +56,5 @@ function getAdminSessionSecret() {
     throw new Error("SESSION_SECRET must be set and at least 32 characters.");
   }
 
-  return `${process.env.ADMIN_USERNAME}:${process.env.ADMIN_PASSWORD}:${secret}`;
+  return secret;
 }
