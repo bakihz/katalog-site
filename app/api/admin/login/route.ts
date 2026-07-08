@@ -43,56 +43,63 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const adminUser = await prisma.user.findFirst({
-    where: { username, role: "admin" },
-  });
-  const envAdminMatches =
-    username === process.env.ADMIN_USERNAME &&
-    password === process.env.ADMIN_PASSWORD;
+  try {
+    const adminUser = await prisma.user.findFirst({
+      where: { username, role: "admin" },
+    });
+    const envAdminMatches =
+      username === process.env.ADMIN_USERNAME &&
+      password === process.env.ADMIN_PASSWORD;
 
-  if (adminUser) {
-    const isValidDbAdmin =
-      adminUser.isActive && verifyPassword(password, adminUser.password);
+    if (adminUser) {
+      const isValidDbAdmin =
+        adminUser.isActive && verifyPassword(password, adminUser.password);
 
-    if (!isValidDbAdmin) {
-      recordFailedAttempt(rateLimitKey, adminLoginRateLimit);
-      return NextResponse.redirect(`${baseUrl}/admin/login?error=1`, {
-        status: 303,
-      });
-    }
-  } else if (envAdminMatches) {
-    const existingUser = await prisma.user.findUnique({ where: { username } });
+      if (!isValidDbAdmin) {
+        recordFailedAttempt(rateLimitKey, adminLoginRateLimit);
+        return NextResponse.redirect(`${baseUrl}/admin/login?error=1`, {
+          status: 303,
+        });
+      }
+    } else if (envAdminMatches) {
+      const existingUser = await prisma.user.findUnique({ where: { username } });
 
-    if (existingUser && existingUser.role !== "admin") {
-      recordFailedAttempt(rateLimitKey, adminLoginRateLimit);
-      return NextResponse.redirect(`${baseUrl}/admin/login?error=1`, {
-        status: 303,
-      });
-    }
+      if (existingUser && existingUser.role !== "admin") {
+        recordFailedAttempt(rateLimitKey, adminLoginRateLimit);
+        return NextResponse.redirect(`${baseUrl}/admin/login?error=1`, {
+          status: 303,
+        });
+      }
 
-    if (existingUser) {
-      await prisma.user.update({
-        where: { id: existingUser.id },
-        data: {
-          password: hashPassword(password),
-          role: "admin",
-          isActive: true,
-        },
-      });
+      if (existingUser) {
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            password: hashPassword(password),
+            role: "admin",
+            isActive: true,
+          },
+        });
+      } else {
+        await prisma.user.create({
+          data: {
+            name: "Yönetici",
+            username,
+            password: hashPassword(password),
+            role: "admin",
+            isActive: true,
+          },
+        });
+      }
     } else {
-      await prisma.user.create({
-        data: {
-          name: "Yönetici",
-          username,
-          password: hashPassword(password),
-          role: "admin",
-          isActive: true,
-        },
+      recordFailedAttempt(rateLimitKey, adminLoginRateLimit);
+      return NextResponse.redirect(`${baseUrl}/admin/login?error=1`, {
+        status: 303,
       });
     }
-  } else {
-    recordFailedAttempt(rateLimitKey, adminLoginRateLimit);
-    return NextResponse.redirect(`${baseUrl}/admin/login?error=1`, {
+  } catch (error) {
+    console.error("[AdminLoginDbError]", error);
+    return NextResponse.redirect(`${baseUrl}/admin/login?error=db`, {
       status: 303,
     });
   }

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyNestpayResponseHash } from "@/lib/nestpay";
+import {
+  getPaymentProviderConfigByName,
+  ZIRAAT_PROVIDER_NAME,
+} from "@/lib/paymentProviders";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -21,10 +25,16 @@ export async function POST(req: NextRequest) {
     const procReturnCode = formData.get("ProcReturnCode") as string;
     const transId = formData.get("TransId") as string;
     const mdStatus = formData.get("mdStatus") as string;
-    const hashCheck = verifyNestpayResponseHash(
-      formData,
-      process.env.ZIRAAT_STORE_KEY,
+    const payment = await prisma.payment.findFirst({ where: { orderId } });
+    const providerConfig = await getPaymentProviderConfigByName(
+      payment?.providerName ?? ZIRAAT_PROVIDER_NAME,
     );
+
+    if (!payment || !providerConfig) {
+      return NextResponse.redirect(`${baseUrl}/odeme/hatali`, { status: 303 });
+    }
+
+    const hashCheck = verifyNestpayResponseHash(formData, providerConfig.storeKey);
 
     if (!hashCheck.ok) {
       return NextResponse.redirect(
@@ -47,13 +57,9 @@ export async function POST(req: NextRequest) {
     });
 
     if (isSuccess) {
-      const payment = await prisma.payment.findFirst({ where: { orderId } });
-      if (payment) {
-        return NextResponse.redirect(
-          `${baseUrl}/odeme/basarili?id=${payment.id}`,
-          { status: 303 },
-        );
-      }
+      return NextResponse.redirect(`${baseUrl}/odeme/basarili?id=${payment.id}`, {
+        status: 303,
+      });
     }
 
     return NextResponse.redirect(`${baseUrl}/odeme/hatali`, { status: 303 });

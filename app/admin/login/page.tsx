@@ -9,6 +9,7 @@ export default async function AdminLoginPage({
   const params = await searchParams;
   const hasError = params.error === "1";
   const isRateLimited = params.error === "rate";
+  const hasDatabaseError = params.error === "db";
   const passwordChanged = params.success === "password";
 
   return (
@@ -43,9 +44,11 @@ export default async function AdminLoginPage({
           </div>
         </div>
 
-        {(hasError || isRateLimited) && (
+        {(hasError || isRateLimited || hasDatabaseError) && (
           <p className="mb-5 rounded-2xl bg-red-500/15 px-4 py-3 text-sm font-medium text-red-100">
-            {isRateLimited
+            {hasDatabaseError
+              ? "Veritabanina baglanilamadi. Once SQL Server'i baslatin."
+              : isRateLimited
               ? "Çok fazla hatalı giriş yapıldı. Lütfen 15 dakika sonra tekrar deneyin."
               : "Kullanıcı adı veya şifre hatalı."}
           </p>

@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { verifyNestpayResponseHash } from "@/lib/nestpay";
+import {
+  getPaymentProviderConfigByName,
+  ZIRAAT_PROVIDER_NAME,
+} from "@/lib/paymentProviders";
 
 export async function POST(req: Request) {
   try {
@@ -14,10 +18,18 @@ export async function POST(req: Request) {
     const transId = formData.get("TransId") as string;
 
     const mdStatus = formData.get("mdStatus") as string;
-    const hashCheck = verifyNestpayResponseHash(
-      formData,
-      process.env.ZIRAAT_STORE_KEY,
+    const payment = await prisma.payment.findFirst({ where: { orderId } });
+    const providerConfig = await getPaymentProviderConfigByName(
+      payment?.providerName ?? ZIRAAT_PROVIDER_NAME,
     );
+
+    if (!payment || !providerConfig) {
+      return new Response("UNKNOWN PROVIDER", {
+        status: 400,
+      });
+    }
+
+    const hashCheck = verifyNestpayResponseHash(formData, providerConfig.storeKey);
 
     if (!hashCheck.ok) {
       return new Response("INVALID HASH", {

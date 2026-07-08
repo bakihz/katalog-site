@@ -86,6 +86,8 @@ model PaymentProvider {
   apiPassword String?
 
   merchantId  String?
+  storeKey    String?
+  gatewayUrl  String?
 
   isActive    Boolean @default(false)
 

@@ -4,6 +4,7 @@ import { generateNestpayHash } from "@/lib/nestpay";
 import { cookies } from "next/headers";
 import { verifyAgentCookie } from "@/lib/agentAuth";
 import { logPaymentDebug } from "@/lib/paymentDebug";
+import { getPaymentProviderConfigByName } from "@/lib/paymentProviders";
 import { validatePaymentInput } from "@/lib/paymentValidation";
 
 function getBaseUrl(req: Request): string {
@@ -84,6 +85,20 @@ export async function POST(req: Request) {
       );
     }
 
+    const providerConfig = await getPaymentProviderConfigByName(provider.name);
+
+    if (!providerConfig) {
+      return Response.json(
+        {
+          success: false,
+          message: `${provider.name} için ödeme entegrasyonu henüz tanımlı değil.`,
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
     const orderId = Date.now().toString();
 
     const amount = paymentInput.amount;
@@ -130,7 +145,7 @@ export async function POST(req: Request) {
 
     // Build form fields first (without hash), then compute hash from them
     const formFields: Record<string, string> = {
-      clientid: process.env.ZIRAAT_CLIENT_ID!,
+      clientid: providerConfig.clientId,
       storetype: "3d_pay",
       hashAlgorithm: "ver3",
       trantype: "Auth",
@@ -149,7 +164,7 @@ export async function POST(req: Request) {
       Ecom_Payment_Card_ExpDate_Year: paymentInput.expYear,
     };
 
-    const hash = generateNestpayHash(formFields, process.env.ZIRAAT_STORE_KEY!);
+    const hash = generateNestpayHash(formFields, providerConfig.storeKey);
 
     logPaymentDebug("[PaymentStart:ready]", {
       orderId,
@@ -161,7 +176,7 @@ export async function POST(req: Request) {
     return Response.json({
       success: true,
 
-      gatewayUrl: process.env.ZIRAAT_GATEWAY_URL,
+      gatewayUrl: providerConfig.gatewayUrl,
 
       formData: {
         ...formFields,

@@ -1,9 +1,6 @@
+import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import {
-  ensureZiraatPaymentProvider,
-  ZIRAAT_PROVIDER_NAME,
-} from "@/lib/paymentProviders";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -15,8 +12,26 @@ function getBaseUrl(req: NextRequest): string {
 }
 
 export async function POST(req: NextRequest) {
-  const baseUrl = getBaseUrl(req);
-  const provider = await ensureZiraatPaymentProvider();
+  const formData = await req.formData();
+  const providerId = Number(formData.get("providerId"));
+
+  if (!Number.isInteger(providerId) || providerId <= 0) {
+    return new Response("Geçerli bir sanal POS seçilmedi.", {
+      status: 400,
+    });
+  }
+
+  const provider = await prisma.paymentProvider.findUnique({
+    where: {
+      id: providerId,
+    },
+  });
+
+  if (!provider) {
+    return new Response("Seçilen sanal POS bulunamadı.", {
+      status: 404,
+    });
+  }
 
   await prisma.$transaction([
     prisma.paymentProvider.updateMany({
@@ -29,11 +44,15 @@ export async function POST(req: NextRequest) {
         id: provider.id,
       },
       data: {
-        name: ZIRAAT_PROVIDER_NAME,
         isActive: true,
       },
     }),
   ]);
 
-  return NextResponse.redirect(`${baseUrl}/admin/providers`);
+  revalidatePath("/admin");
+  revalidatePath("/admin/providers");
+
+  return NextResponse.redirect(`${getBaseUrl(req)}/admin/providers`, {
+    status: 303,
+  });
 }

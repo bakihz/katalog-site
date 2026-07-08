@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyNestpayResponseHash } from "@/lib/nestpay";
+import {
+  getPaymentProviderConfigByName,
+  ZIRAAT_PROVIDER_NAME,
+} from "@/lib/paymentProviders";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -21,10 +25,14 @@ export async function POST(req: NextRequest) {
     const response = formData.get("Response") as string;
     const procReturnCode = formData.get("ProcReturnCode") as string;
     const mdStatus = formData.get("mdStatus") as string;
-    const hashCheck = verifyNestpayResponseHash(
-      formData,
-      process.env.ZIRAAT_STORE_KEY,
+    const payment = await prisma.payment.findFirst({ where: { orderId } });
+    const providerConfig = await getPaymentProviderConfigByName(
+      payment?.providerName ?? ZIRAAT_PROVIDER_NAME,
     );
+    const hashCheck =
+      payment && providerConfig
+        ? verifyNestpayResponseHash(formData, providerConfig.storeKey)
+        : { ok: false };
 
     console.error("[Ziraat FAIL]", {
       orderId,

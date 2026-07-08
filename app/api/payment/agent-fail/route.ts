@@ -9,6 +9,10 @@ import {
   getFailureRedirectUrl,
   getPaymentFailureDetails,
 } from "@/lib/paymentFailure";
+import {
+  getPaymentProviderConfigByName,
+  ZIRAAT_PROVIDER_NAME,
+} from "@/lib/paymentProviders";
 import { isSuccessfulPaymentStatus } from "@/lib/paymentStatus";
 
 function getBaseUrl(req: NextRequest): string {
@@ -53,10 +57,14 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const orderId = formData.get("oid") as string;
-    const hashCheck = verifyNestpayResponseHash(
-      formData,
-      process.env.ZIRAAT_STORE_KEY,
+    const payment = await prisma.payment.findFirst({ where: { orderId } });
+    const providerConfig = await getPaymentProviderConfigByName(
+      payment?.providerName ?? ZIRAAT_PROVIDER_NAME,
     );
+    const hashCheck =
+      payment && providerConfig
+        ? verifyNestpayResponseHash(formData, providerConfig.storeKey)
+        : { ok: false, reason: "provider-not-found" };
 
     logPaymentDebug("[AgentPaymentFailCallback:received]", {
       orderId,
@@ -67,7 +75,6 @@ export async function POST(req: NextRequest) {
 
     if (hashCheck.ok) {
       const failureDetails = getPaymentFailureDetails(formData);
-      const payment = await prisma.payment.findFirst({ where: { orderId } });
 
       if (!payment) {
         return NextResponse.redirect(`${baseUrl}/panel/odeme?error=1`, {
