@@ -1,6 +1,7 @@
 import { SUCCESSFUL_PAYMENT_STATUSES } from "@/lib/paymentStatus";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
+import { getPaymentCardMasked } from "@/lib/paymentCard";
 import {
   AppButton,
   PageHeader,
@@ -142,10 +143,11 @@ export default async function AdminDashboardPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left">
+            <table className="w-full min-w-[820px] text-left">
               <thead>
                 <tr className="border-b border-[#17201c]/10 text-xs uppercase tracking-[0.14em] text-[#89938e]">
-                  <th className="py-3 pr-4">Müşteri</th>
+                  <th className="py-3 pr-4">Firma / Cari</th>
+                  <th className="py-3 pr-4">Kart</th>
                   <th className="py-3 pr-4">Temsilci</th>
                   <th className="py-3 pr-4">Tutar</th>
                   <th className="py-3 pr-4">Durum</th>
@@ -155,7 +157,7 @@ export default async function AdminDashboardPage() {
               <tbody className="divide-y divide-[#17201c]/8">
                 {stats.recentPayments.length === 0 ? (
                   <tr>
-                    <td className="py-6 text-sm text-[#7a867f]" colSpan={5}>
+                    <td className="py-6 text-sm text-[#7a867f]" colSpan={6}>
                       Henüz ödeme kaydı bulunmuyor.
                     </td>
                   </tr>
@@ -163,7 +165,10 @@ export default async function AdminDashboardPage() {
                   stats.recentPayments.map((payment) => (
                     <tr key={payment.id}>
                       <td className="py-4 pr-4 font-semibold">
-                        {payment.customerName}
+                        {payment.companyName || payment.customerName}
+                      </td>
+                      <td className="py-4 pr-4 font-mono text-xs text-[#68746e]">
+                        {getPaymentCardMasked(payment) ?? "—"}
                       </td>
                       <td className="py-4 pr-4 text-sm text-[#68746e]">
                         {payment.agent?.name ?? "Genel"}

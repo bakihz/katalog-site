@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
-import { createAgentToken } from "@/lib/agentAuth";
+import { agentSessionMaxAgeSeconds, createAgentToken } from "@/lib/agentAuth";
 import {
   getClientIp,
   isRateLimited,
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 60 * 60 * 8, // 8 saat
+    maxAge: agentSessionMaxAgeSeconds,
     path: "/",
   });
 

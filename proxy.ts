@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getExpectedSessionToken } from "@/lib/adminAuth";
+import { verifyAdminSessionToken } from "@/lib/adminAuth";
 import { verifyAgentCookie } from "@/lib/agentAuth";
 
 function isAdminRoute(pathname: string) {
@@ -30,9 +30,9 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    const expectedToken = await getExpectedSessionToken();
+    const isValidAdminSession = await verifyAdminSessionToken(sessionCookie);
 
-    if (sessionCookie !== expectedToken) {
+    if (!isValidAdminSession) {
       const url = request.nextUrl.clone();
       url.pathname = "/admin/login";
       const res = NextResponse.redirect(url);
@@ -46,14 +46,6 @@ export async function proxy(request: NextRequest) {
     const agentId = await verifyAgentCookie(agentCookie);
 
     if (!agentId) {
-      console.warn("[AgentPanelAuth:redirect-login]", {
-        pathname,
-        host: request.headers.get("host"),
-        referer: request.headers.get("referer"),
-        hasAgentCookie: Boolean(agentCookie),
-        cookieLength: agentCookie?.length ?? 0,
-      });
-
       const url = request.nextUrl.clone();
       url.pathname = "/giris";
       return NextResponse.redirect(url);

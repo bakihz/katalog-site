@@ -1,12 +1,31 @@
 import Image from "next/image";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { verifyAgentCookie } from "@/lib/agentAuth";
+import { prisma } from "@/lib/prisma";
 
 export default async function GirisPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const params = await searchParams;
+  const [params, cookieStore] = await Promise.all([searchParams, cookies()]);
+  const agentId = await verifyAgentCookie(
+    cookieStore.get("agent_session")?.value,
+  );
+
+  if (agentId) {
+    const agent = await prisma.user.findUnique({
+      where: { id: agentId },
+      select: { isActive: true },
+    });
+
+    if (agent?.isActive) {
+      redirect("/panel");
+    }
+  }
+
   const hasError = params.error === "1";
   const isRateLimited = params.error === "rate";
 
@@ -83,7 +102,7 @@ export default async function GirisPage({
             {(hasError || isRateLimited) && (
               <p className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                 {isRateLimited
-                  ? "Çok fazla hatalı deneme yapıldı. Lütfen 15 dakika sonra tekrar deneyin."
+                  ? "Çok fazla hatalı giriş yapıldı. Lütfen 15 dakika sonra tekrar deneyin."
                   : "Kullanıcı adı veya şifre hatalı."}
               </p>
             )}

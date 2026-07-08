@@ -9,12 +9,12 @@ type AgentSettingsPageProps = {
 };
 
 const successMessages: Record<string, string> = {
-  profile: "Hesap bilgileri güncellendi.",
+  profile: "Kullanıcı adı güncellendi.",
   password: "Şifreniz güncellendi.",
 };
 
 const errorMessages: Record<string, string> = {
-  profile: "Hesap bilgileri güncellenemedi. Tüm alanları doldurun.",
+  profile: "Kullanıcı adı güncellenemedi. Tüm alanları doldurun.",
   password: "Mevcut şifre hatalı veya hesabınız aktif değil.",
   duplicate: "Bu kullanıcı adı başka bir temsilci tarafından kullanılıyor.",
   "new-password":
@@ -57,7 +57,7 @@ export default async function AgentSettingsPage({
       <PageHeader
         eyebrow="Hesap"
         title="Ayarlar"
-        description="Kendi temsilci hesabınızın profil bilgilerini ve şifresini buradan güncelleyebilirsiniz."
+        description="Kendi temsilci hesabınızın kullanıcı adını ve şifresini buradan güncelleyebilirsiniz."
         aside={
           <div className="grid grid-cols-2 gap-3 sm:min-w-80">
             <StatCard
@@ -97,8 +97,8 @@ export default async function AgentSettingsPage({
           <section className="rounded-[1.75rem] border border-[#17201c]/10 bg-white p-6 shadow-sm">
             <h3 className="text-lg font-bold">Profil Bilgileri</h3>
             <p className="mt-1 text-sm text-[#68746e]">
-              Ad soyad ve kullanıcı adı değişikliği için mevcut şifrenizi
-              girmeniz gerekir.
+              Kullanıcı adı değişikliği için mevcut şifrenizi girmeniz gerekir.
+              Ad soyad bilginizi yalnızca yönetici değiştirebilir.
             </p>
 
             <form
@@ -106,19 +106,6 @@ export default async function AgentSettingsPage({
               method="POST"
               className="mt-5 grid gap-3"
             >
-              <label>
-                <span className="mb-1.5 block text-sm font-semibold">
-                  Ad Soyad
-                </span>
-                <input
-                  type="text"
-                  name="name"
-                  required
-                  defaultValue={agent.name}
-                  className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm outline-none transition focus:border-[#173f32]/40 focus:bg-white"
-                />
-              </label>
-
               <label>
                 <span className="mb-1.5 block text-sm font-semibold">
                   Kullanıcı Adı
@@ -146,7 +133,7 @@ export default async function AgentSettingsPage({
               </label>
 
               <AppButton type="submit" size="lg" className="justify-self-start">
-                Profil Bilgilerini Kaydet
+                Kullanıcı Adını Kaydet
               </AppButton>
             </form>
           </section>

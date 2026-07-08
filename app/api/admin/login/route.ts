@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getExpectedSessionToken } from "@/lib/adminAuth";
+import {
+  adminSessionMaxAgeSeconds,
+  createAdminSessionToken,
+} from "@/lib/adminAuth";
+import { hashPassword, verifyPassword } from "@/lib/password";
+import { prisma } from "@/lib/prisma";
 import {
   getClientIp,
   isRateLimited,
@@ -38,10 +43,54 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  if (
-    username !== process.env.ADMIN_USERNAME ||
-    password !== process.env.ADMIN_PASSWORD
-  ) {
+  const adminUser = await prisma.user.findFirst({
+    where: { username, role: "admin" },
+  });
+  const envAdminMatches =
+    username === process.env.ADMIN_USERNAME &&
+    password === process.env.ADMIN_PASSWORD;
+
+  if (adminUser) {
+    const isValidDbAdmin =
+      adminUser.isActive && verifyPassword(password, adminUser.password);
+
+    if (!isValidDbAdmin) {
+      recordFailedAttempt(rateLimitKey, adminLoginRateLimit);
+      return NextResponse.redirect(`${baseUrl}/admin/login?error=1`, {
+        status: 303,
+      });
+    }
+  } else if (envAdminMatches) {
+    const existingUser = await prisma.user.findUnique({ where: { username } });
+
+    if (existingUser && existingUser.role !== "admin") {
+      recordFailedAttempt(rateLimitKey, adminLoginRateLimit);
+      return NextResponse.redirect(`${baseUrl}/admin/login?error=1`, {
+        status: 303,
+      });
+    }
+
+    if (existingUser) {
+      await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          password: hashPassword(password),
+          role: "admin",
+          isActive: true,
+        },
+      });
+    } else {
+      await prisma.user.create({
+        data: {
+          name: "Yönetici",
+          username,
+          password: hashPassword(password),
+          role: "admin",
+          isActive: true,
+        },
+      });
+    }
+  } else {
     recordFailedAttempt(rateLimitKey, adminLoginRateLimit);
     return NextResponse.redirect(`${baseUrl}/admin/login?error=1`, {
       status: 303,
@@ -49,7 +98,7 @@ export async function POST(req: NextRequest) {
   }
 
   resetRateLimit(rateLimitKey);
-  const token = await getExpectedSessionToken();
+  const token = await createAdminSessionToken(adminSessionMaxAgeSeconds);
   const response = NextResponse.redirect(`${baseUrl}/admin`, {
     status: 303,
   });
@@ -58,7 +107,7 @@ export async function POST(req: NextRequest) {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 60 * 60 * 24,
+    maxAge: adminSessionMaxAgeSeconds,
     path: "/",
   });
 

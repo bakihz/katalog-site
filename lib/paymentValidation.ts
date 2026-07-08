@@ -1,5 +1,6 @@
 const maxPaymentAmount = Number(process.env.PAYMENT_MAX_AMOUNT ?? 1_000_000);
 const maxExpiryYearOffset = 12;
+import { maskCardNumber } from "@/lib/paymentCard";
 
 type PaymentRequestBody = {
   amount?: unknown;
@@ -22,6 +23,7 @@ export type ValidatedPaymentInput = {
   cv2: string;
   expMonth: string;
   expYear: string;
+  cardMasked: string;
 };
 
 export function validatePaymentInput(
@@ -95,6 +97,7 @@ export function validatePaymentInput(
       cv2,
       expMonth,
       expYear,
+      cardMasked: maskCardNumber(pan) ?? "",
     },
   };
 }

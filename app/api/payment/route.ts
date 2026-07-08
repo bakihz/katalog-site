@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { generateNestpayHash } from "@/lib/nestpay";
 import { cookies } from "next/headers";
@@ -119,10 +120,12 @@ export async function POST(req: Request) {
 
         providerName: provider.name,
 
+        cardMasked: paymentInput.cardMasked,
+
         orderId,
 
         agentId,
-      },
+      } as unknown as Prisma.PaymentCreateInput,
     });
 
     // Build form fields first (without hash), then compute hash from them

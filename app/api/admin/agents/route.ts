@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { Prisma } from "@prisma/client";
+import { normalizeUserRole } from "@/lib/userRole";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -17,6 +18,7 @@ export async function POST(req: NextRequest) {
   const name = ((formData.get("name") as string) ?? "").trim();
   const username = ((formData.get("username") as string) ?? "").trim();
   const password = (formData.get("password") as string) ?? "";
+  const role = normalizeUserRole(formData.get("role"));
   const baseUrl = getBaseUrl(req);
 
   if (!name || !username || password.length < 8) {
@@ -29,7 +31,7 @@ export async function POST(req: NextRequest) {
 
   try {
     await prisma.user.create({
-      data: { name, username, password: hashed },
+      data: { name, username, password: hashed, role } as Prisma.UserCreateInput,
     });
   } catch (error) {
     if (

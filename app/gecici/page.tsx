@@ -1,5 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { verifyAgentCookie } from "@/lib/agentAuth";
+import { prisma } from "@/lib/prisma";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "https://www.laleedt.com.tr/gecici",
+  },
+};
 
 const contactDetails = [
   {
@@ -45,7 +55,20 @@ const contactDetails = [
   },
 ];
 
-export default function TemporaryPage() {
+export default async function TemporaryPage() {
+  const cookieStore = await cookies();
+  const agentId = await verifyAgentCookie(
+    cookieStore.get("agent_session")?.value,
+  );
+  const agent = agentId
+    ? await prisma.user.findUnique({
+        where: { id: agentId },
+        select: { isActive: true, name: true },
+      })
+    : null;
+  const isAgentLoggedIn = Boolean(agent?.isActive);
+  const agentLoginHref = isAgentLoggedIn ? "/panel" : "/giris";
+
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-[#f4f1ea] text-[#17201c] lg:h-screen lg:overflow-hidden">
       <div className="absolute inset-0 opacity-40 [background-image:radial-gradient(#809087_0.7px,transparent_0.7px)] [background-size:18px_18px]" />
@@ -77,10 +100,20 @@ export default function TemporaryPage() {
 
           <div className="flex items-center gap-2">
             <Link
-              href="/giris"
-              className="rounded-full bg-[#173f32] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white shadow-lg shadow-[#173f32]/15 transition hover:bg-[#10231d]"
+              href={agentLoginHref}
+              className="inline-flex items-center gap-2 rounded-full bg-[#173f32] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white shadow-lg shadow-[#173f32]/15 transition hover:bg-[#10231d]"
             >
-              Temsilci Girişi
+              {isAgentLoggedIn ? (
+                <>
+                  <span className="hidden max-w-36 truncate normal-case tracking-normal sm:inline">
+                    {agent?.name}
+                  </span>
+                  <span className="hidden opacity-60 sm:inline">•</span>
+                  <span>Panele Git</span>
+                </>
+              ) : (
+                "Temsilci Girişi"
+              )}
             </Link>
             <span className="hidden rounded-full border border-[#173f32]/15 bg-white/60 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#476057] backdrop-blur sm:inline-flex">
               Çok yakında

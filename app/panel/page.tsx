@@ -1,8 +1,10 @@
 import { cookies } from "next/headers";
 import { verifyAgentCookie } from "@/lib/agentAuth";
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
+import { getPaymentCardMasked } from "@/lib/paymentCard";
 import { SUCCESSFUL_PAYMENT_STATUSES } from "@/lib/paymentStatus";
 import { prisma } from "@/lib/prisma";
+import { canViewAllPayments } from "@/lib/userRole";
 import { AppButton, PageHeader, PaymentStatusBadge, StatCard } from "@/components/ui";
 import Link from "next/link";
 
@@ -16,23 +18,31 @@ export default async function PanelDashboardPage() {
 
   if (!agentId) return null;
 
+  const currentUser = await prisma.user.findUnique({ where: { id: agentId } });
+  const canViewAll = canViewAllPayments(currentUser);
+  const paymentScope = canViewAll ? {} : { agentId };
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const [totalPayments, paidPayments, todayPayments, recentPayments] =
     await Promise.all([
-      prisma.payment.count({ where: { agentId } }),
+      prisma.payment.count({ where: paymentScope }),
       prisma.payment.aggregate({
         _sum: { amount: true },
-        where: { agentId, status: { in: [...SUCCESSFUL_PAYMENT_STATUSES] } },
+        where: {
+          ...paymentScope,
+          status: { in: [...SUCCESSFUL_PAYMENT_STATUSES] },
+        },
       }),
       prisma.payment.count({
-        where: { agentId, createdAt: { gte: today } },
+        where: { ...paymentScope, createdAt: { gte: today } },
       }),
       prisma.payment.findMany({
-        where: { agentId },
+        where: paymentScope,
         orderBy: { createdAt: "desc" },
         take: 5,
+        include: { agent: { select: { name: true } } },
       }),
     ]);
 
@@ -60,9 +70,13 @@ export default async function PanelDashboardPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Dashboard"
-        title="Temsilci özeti"
-        description="Sadece size ait tahsilat kayıtları ve son işlemler burada görüntülenir."
+        eyebrow="Özet"
+        title={canViewAll ? "Finans özeti" : "Temsilci özeti"}
+        description={
+          canViewAll
+            ? "Tüm temsilcilerin tahsilat kayıtlarını ve son işlemlerini buradan takip edebilirsiniz."
+            : "Size ait tahsilat kayıtlarını ve son işlemleri buradan takip edebilirsiniz."
+        }
         actions={
           <AppButton href="/panel/odeme" size="lg">
             + Ödeme Al
@@ -88,7 +102,7 @@ export default async function PanelDashboardPage() {
           <div>
             <h2 className="text-xl font-bold">Son İşlemler</h2>
             <p className="mt-1 text-sm text-[#68746e]">
-              En son oluşturduğunuz tahsilat kayıtları.
+              Güncel tahsilat hareketleri.
             </p>
           </div>
           <AppButton href="/panel/islemler" variant="outline" size="md">
@@ -100,10 +114,20 @@ export default async function PanelDashboardPage() {
           <p className="p-6 text-sm text-[#68746e]">Henüz işlem bulunmuyor.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px]">
+            <table
+              className={`w-full ${canViewAll ? "min-w-[940px]" : "min-w-[820px]"}`}
+            >
               <thead className="bg-[#f8f6f1]">
                 <tr>
-                  {["Müşteri", "Tutar", "Durum", "Tarih", ""].map((head) => (
+                  {[
+                    "Firma / Cari",
+                    ...(canViewAll ? ["Temsilci"] : []),
+                    "Kart",
+                    "Tutar",
+                    "Durum",
+                    "Tarih",
+                    "",
+                  ].map((head) => (
                     <th
                       key={head}
                       className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-[#7a867f]"
@@ -120,7 +144,15 @@ export default async function PanelDashboardPage() {
                     className="border-t border-[#17201c]/8 align-middle"
                   >
                     <td className="px-6 py-4 text-sm font-semibold">
-                      {payment.customerName}
+                      {payment.companyName || payment.customerName}
+                    </td>
+                    {canViewAll && (
+                      <td className="px-6 py-4 text-sm font-semibold text-[#173f32]">
+                        {payment.agent?.name ?? "Genel"}
+                      </td>
+                    )}
+                    <td className="px-6 py-4 text-sm font-bold">
+                      {getPaymentCardMasked(payment) ?? "—"}
                     </td>
                     <td className="px-6 py-4 text-sm font-bold">
                       {formatCurrency(payment.amount)}
