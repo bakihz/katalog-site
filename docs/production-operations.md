@@ -145,18 +145,30 @@ sudo docker cp sqlserver:/var/opt/mssql/backup/katalog-YYYY-MM-DD.bak ./katalog-
 
 ## `.env` yedekleme
 
-`.env` dosyası repoya gönderilmez. İçinde DB, admin ve Ziraat bilgileri vardır.
+`.env` dosyası repoya gönderilmez. İçinde DB bağlantısı, oturum anahtarı ve bazı opsiyonel başlangıç/fallback bilgileri bulunur.
 
-Güvenli saklanması gerekenler:
+Zorunlu saklanması gerekenler:
 
 - `DATABASE_URL`
+- `SESSION_SECRET`
+
+Opsiyonel / fallback değişkenleri:
+
 - `ADMIN_USERNAME`
 - `ADMIN_PASSWORD`
-- `SESSION_SECRET`
 - `APP_URL`
 - `ZIRAAT_CLIENT_ID`
 - `ZIRAAT_STORE_KEY`
 - `ZIRAAT_GATEWAY_URL`
+- `PAYMENT_MAX_AMOUNT`
+- `PAYMENT_DEBUG_LOGS`
+
+Notlar:
+
+- Admin kullanıcısı veritabanında oluşturulduktan sonra `ADMIN_USERNAME` ve `ADMIN_PASSWORD` canlı giriş için ana kaynak değildir; DB'deki admin kullanıcı kullanılır.
+- Sanal POS bilgileri canlı kullanımda `/admin/providers` ekranından `PaymentProvider` tablosuna kaydedilir.
+- Ziraat/Nestpay env değerleri yalnızca ilk kurulum/seed veya geriye dönük uyumluluk için tutulabilir.
+- Store Key ve API şifresi WhatsApp, düz not veya commit içinde tutulmamalıdır.
 
 Öneri:
 

@@ -139,10 +139,18 @@ Gerekli değişkenler:
 
 ```env
 DATABASE_URL=
+SESSION_SECRET=
+```
+
+Opsiyonel / fallback değişkenleri:
+
+```env
 ADMIN_USERNAME=
 ADMIN_PASSWORD=
-SESSION_SECRET=
 APP_URL=
+PAYMENT_MAX_AMOUNT=
+PAYMENT_DEBUG_LOGS=
+ZIRAAT_CLIENT_ID=
 ```
 
 Notlar:
@@ -150,6 +158,7 @@ Notlar:
 - `APP_URL` canlı ortamda gerçek domain olmalıdır.
 - `SESSION_SECRET` en az 32 karakter olmalı ve gizli tutulmalıdır.
 - SQL Server bağlantısında yerel/test ortamında TLS hatası alınırsa `DATABASE_URL` içine `trustServerCertificate=true` eklenmesi gerekebilir.
+- Admin kullanıcısı veritabanında varsa giriş ve şifre değişimi DB'deki admin kullanıcı üzerinden çalışır. `ADMIN_USERNAME` / `ADMIN_PASSWORD` sadece ilk kurulum veya fallback için tutulabilir.
 - Sanal POS bilgileri canlı kullanımda admin panelden veritabanına kaydedilir; Store Key ve API şifresi repoya veya loglara yazılmamalıdır.
 - Admin şifresi güçlü olmalıdır.
 
@@ -460,10 +469,18 @@ Required variables:
 
 ```env
 DATABASE_URL=
+SESSION_SECRET=
+```
+
+Optional / fallback variables:
+
+```env
 ADMIN_USERNAME=
 ADMIN_PASSWORD=
-SESSION_SECRET=
 APP_URL=
+PAYMENT_MAX_AMOUNT=
+PAYMENT_DEBUG_LOGS=
+ZIRAAT_CLIENT_ID=
 ```
 
 Notes:
@@ -471,6 +488,7 @@ Notes:
 - `APP_URL` must match the production domain in production.
 - `SESSION_SECRET` must be at least 32 characters and kept secret.
 - If SQL Server TLS errors occur in local/test environments, `trustServerCertificate=true` may be required in `DATABASE_URL`.
+- If an admin user exists in the database, login and password changes use that DB admin account. `ADMIN_USERNAME` / `ADMIN_PASSWORD` are only needed for initial setup or fallback.
 - Virtual POS credentials are managed from the admin panel in production; Store Key and API password must never be committed or logged.
 - Admin credentials must be strong.
 

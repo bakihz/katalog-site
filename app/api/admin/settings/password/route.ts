@@ -1,6 +1,9 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { verifyAdminSessionToken } from "@/lib/adminAuth";
+import {
+  getAdminSessionUserId,
+  verifyAdminSessionToken,
+} from "@/lib/adminAuth";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 
@@ -20,6 +23,7 @@ export async function POST(req: NextRequest) {
   const baseUrl = getBaseUrl(req);
   const cookieStore = await cookies();
   const adminSession = cookieStore.get("admin_session")?.value;
+  const adminUserId = await getAdminSessionUserId(adminSession);
 
   if (!(await verifyAdminSessionToken(adminSession))) {
     return NextResponse.redirect(`${baseUrl}/admin/login`, { status: 303 });
@@ -45,10 +49,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const username = process.env.ADMIN_USERNAME;
-  const admin = username
-    ? await prisma.user.findFirst({ where: { username, role: "admin" } })
-    : null;
+  const envAdminUsername = process.env.ADMIN_USERNAME;
+  const admin = adminUserId
+    ? await prisma.user.findFirst({
+        where: { id: adminUserId, role: "admin" },
+      })
+    : envAdminUsername
+      ? await prisma.user.findFirst({
+          where: { username: envAdminUsername, role: "admin" },
+        })
+      : null;
 
   if (
     !admin ||
