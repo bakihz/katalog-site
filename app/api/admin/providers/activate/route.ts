@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isProviderReady } from "@/lib/paymentProviderAdmin";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -12,47 +13,45 @@ function getBaseUrl(req: NextRequest): string {
 }
 
 export async function POST(req: NextRequest) {
+  const baseUrl = getBaseUrl(req);
   const formData = await req.formData();
   const providerId = Number(formData.get("providerId"));
 
   if (!Number.isInteger(providerId) || providerId <= 0) {
-    return new Response("Geçerli bir sanal POS seçilmedi.", {
-      status: 400,
-    });
+    return NextResponse.redirect(
+      `${baseUrl}/admin/providers?error=activate-notfound`,
+      { status: 303 },
+    );
   }
 
   const provider = await prisma.paymentProvider.findUnique({
-    where: {
-      id: providerId,
-    },
+    where: { id: providerId },
   });
 
   if (!provider) {
-    return new Response("Seçilen sanal POS bulunamadı.", {
-      status: 404,
-    });
+    return NextResponse.redirect(
+      `${baseUrl}/admin/providers?error=activate-notfound`,
+      { status: 303 },
+    );
+  }
+
+  if (!isProviderReady(provider)) {
+    return NextResponse.redirect(
+      `${baseUrl}/admin/providers?error=activate-incomplete`,
+      { status: 303 },
+    );
   }
 
   await prisma.$transaction([
-    prisma.paymentProvider.updateMany({
-      data: {
-        isActive: false,
-      },
-    }),
+    prisma.paymentProvider.updateMany({ data: { isActive: false } }),
     prisma.paymentProvider.update({
-      where: {
-        id: provider.id,
-      },
-      data: {
-        isActive: true,
-      },
+      where: { id: provider.id },
+      data: { isActive: true },
     }),
   ]);
 
   revalidatePath("/admin");
   revalidatePath("/admin/providers");
 
-  return NextResponse.redirect(`${getBaseUrl(req)}/admin/providers`, {
-    status: 303,
-  });
+  return NextResponse.redirect(`${baseUrl}/admin/providers`, { status: 303 });
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isValidHttpUrl, readProviderFormValue } from "@/lib/paymentProviderAdmin";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -14,12 +15,12 @@ export async function POST(req: NextRequest) {
   const baseUrl = getBaseUrl(req);
   const formData = await req.formData();
 
-  const name = ((formData.get("name") as string) ?? "").trim();
-  const merchantId = ((formData.get("merchantId") as string) ?? "").trim();
-  const storeKey = ((formData.get("storeKey") as string) ?? "").trim();
-  const gatewayUrl = ((formData.get("gatewayUrl") as string) ?? "").trim();
-  const apiUser = ((formData.get("apiUser") as string) ?? "").trim();
-  const apiPassword = ((formData.get("apiPassword") as string) ?? "").trim();
+  const name = readProviderFormValue(formData, "name");
+  const merchantId = readProviderFormValue(formData, "merchantId");
+  const storeKey = readProviderFormValue(formData, "storeKey");
+  const gatewayUrl = readProviderFormValue(formData, "gatewayUrl");
+  const apiUser = readProviderFormValue(formData, "apiUser");
+  const apiPassword = readProviderFormValue(formData, "apiPassword");
 
   if (!name) {
     return NextResponse.redirect(
@@ -32,6 +33,13 @@ export async function POST(req: NextRequest) {
   if (existing) {
     return NextResponse.redirect(
       `${baseUrl}/admin/providers?error=create-duplicate`,
+      { status: 303 },
+    );
+  }
+
+  if (!isValidHttpUrl(gatewayUrl)) {
+    return NextResponse.redirect(
+      `${baseUrl}/admin/providers?error=create-gateway`,
       { status: 303 },
     );
   }

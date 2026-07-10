@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  isProviderReady,
+  isValidHttpUrl,
+  readProviderFormValue,
+} from "@/lib/paymentProviderAdmin";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -26,12 +31,12 @@ export async function POST(
   }
 
   const formData = await req.formData();
-  const name = ((formData.get("name") as string) ?? "").trim();
-  const merchantId = ((formData.get("merchantId") as string) ?? "").trim();
-  const storeKey = ((formData.get("storeKey") as string) ?? "").trim();
-  const gatewayUrl = ((formData.get("gatewayUrl") as string) ?? "").trim();
-  const apiUser = ((formData.get("apiUser") as string) ?? "").trim();
-  const apiPassword = ((formData.get("apiPassword") as string) ?? "").trim();
+  const name = readProviderFormValue(formData, "name");
+  const merchantId = readProviderFormValue(formData, "merchantId");
+  const storeKey = readProviderFormValue(formData, "storeKey");
+  const gatewayUrl = readProviderFormValue(formData, "gatewayUrl");
+  const apiUser = readProviderFormValue(formData, "apiUser");
+  const apiPassword = readProviderFormValue(formData, "apiPassword");
 
   if (!name) {
     return NextResponse.redirect(
@@ -51,12 +56,47 @@ export async function POST(
     );
   }
 
+  const duplicate = await prisma.paymentProvider.findFirst({
+    where: {
+      name,
+      NOT: { id: providerId },
+    },
+  });
+
+  if (duplicate) {
+    return NextResponse.redirect(
+      `${baseUrl}/admin/providers?error=update-duplicate`,
+      { status: 303 },
+    );
+  }
+
+  if (!isValidHttpUrl(gatewayUrl)) {
+    return NextResponse.redirect(
+      `${baseUrl}/admin/providers?error=update-gateway`,
+      { status: 303 },
+    );
+  }
+
+  const nextProvider = {
+    name,
+    merchantId: merchantId || null,
+    storeKey: storeKey || provider.storeKey,
+    gatewayUrl: gatewayUrl || null,
+  };
+
+  if (provider.isActive && !isProviderReady(nextProvider)) {
+    return NextResponse.redirect(
+      `${baseUrl}/admin/providers?error=update-active-incomplete`,
+      { status: 303 },
+    );
+  }
+
   await prisma.paymentProvider.update({
     where: { id: providerId },
     data: {
       name,
       merchantId: merchantId || null,
-      storeKey: storeKey || null,
+      ...(storeKey ? { storeKey } : {}),
       gatewayUrl: gatewayUrl || null,
       apiUser: apiUser || null,
       ...(apiPassword ? { apiPassword } : {}),

@@ -36,6 +36,13 @@ export async function POST(
     );
   }
 
+  if (provider.isActive) {
+    return NextResponse.redirect(
+      `${baseUrl}/admin/providers?error=delete-active`,
+      { status: 303 },
+    );
+  }
+
   await prisma.paymentProvider.delete({ where: { id: providerId } });
 
   return NextResponse.redirect(

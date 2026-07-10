@@ -1,5 +1,7 @@
+import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isProviderReady } from "@/lib/paymentProviderAdmin";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -18,23 +20,45 @@ export async function POST(
     }>;
   },
 ) {
-  const { id } = await context.params;
   const baseUrl = getBaseUrl(req);
+  const { id } = await context.params;
+  const providerId = Number(id);
 
-  await prisma.paymentProvider.updateMany({
-    data: {
-      isActive: false,
-    },
+  if (!Number.isInteger(providerId) || providerId <= 0) {
+    return NextResponse.redirect(
+      `${baseUrl}/admin/providers?error=activate-notfound`,
+      { status: 303 },
+    );
+  }
+
+  const provider = await prisma.paymentProvider.findUnique({
+    where: { id: providerId },
   });
 
-  await prisma.paymentProvider.update({
-    where: {
-      id: Number(id),
-    },
-    data: {
-      isActive: true,
-    },
-  });
+  if (!provider) {
+    return NextResponse.redirect(
+      `${baseUrl}/admin/providers?error=activate-notfound`,
+      { status: 303 },
+    );
+  }
 
-  return NextResponse.redirect(`${baseUrl}/admin/providers`);
+  if (!isProviderReady(provider)) {
+    return NextResponse.redirect(
+      `${baseUrl}/admin/providers?error=activate-incomplete`,
+      { status: 303 },
+    );
+  }
+
+  await prisma.$transaction([
+    prisma.paymentProvider.updateMany({ data: { isActive: false } }),
+    prisma.paymentProvider.update({
+      where: { id: provider.id },
+      data: { isActive: true },
+    }),
+  ]);
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/providers");
+
+  return NextResponse.redirect(`${baseUrl}/admin/providers`, { status: 303 });
 }
