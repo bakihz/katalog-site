@@ -44,6 +44,7 @@ model User {
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
   payments  Payment[]
+  adminAuditLogs AdminAuditLog[] @relation("AdminAuditActor")
 }
 
 model Payment {
@@ -92,4 +93,20 @@ model PaymentProvider {
   isActive    Boolean @default(false)
 
   createdAt   DateTime @default(now())
+}
+
+model AdminAuditLog {
+  id         Int      @id @default(autoincrement())
+
+  actorId    Int?
+  actor      User?    @relation("AdminAuditActor", fields: [actorId], references: [id])
+
+  action     String
+  entityType String
+  entityId   Int?
+  entityName String?
+  details    String?
+  ipAddress  String?
+
+  createdAt  DateTime @default(now())
 }

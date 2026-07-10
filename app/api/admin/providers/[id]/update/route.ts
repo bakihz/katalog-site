@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getChangedFields, writeAdminAuditLog } from "@/lib/adminAuditLog";
 import { prisma } from "@/lib/prisma";
 import {
   isProviderReady,
@@ -91,7 +92,20 @@ export async function POST(
     );
   }
 
-  await prisma.paymentProvider.update({
+  const beforeAudit = {
+    name: provider.name,
+    merchantId: provider.merchantId,
+    gatewayUrl: provider.gatewayUrl,
+    apiUser: provider.apiUser,
+  };
+  const afterAudit = {
+    name,
+    merchantId: merchantId || null,
+    gatewayUrl: gatewayUrl || null,
+    apiUser: apiUser || null,
+  };
+
+  const updatedProvider = await prisma.paymentProvider.update({
     where: { id: providerId },
     data: {
       name,
@@ -100,6 +114,20 @@ export async function POST(
       gatewayUrl: gatewayUrl || null,
       apiUser: apiUser || null,
       ...(apiPassword ? { apiPassword } : {}),
+    },
+  });
+
+  await writeAdminAuditLog(req, {
+    action: "payment_provider.update",
+    entityType: "payment_provider",
+    entityId: updatedProvider.id,
+    entityName: updatedProvider.name,
+    details: {
+      changedFields: getChangedFields(beforeAudit, afterAudit),
+      sensitiveFieldsChanged: {
+        storeKey: Boolean(storeKey),
+        apiPassword: Boolean(apiPassword),
+      },
     },
   });
 

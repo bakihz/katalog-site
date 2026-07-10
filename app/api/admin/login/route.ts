@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
   const baseUrl = getBaseUrl(req);
   const rateLimitKey = `admin-login:${getClientIp(req)}`;
   const rateLimit = isRateLimited(rateLimitKey, adminLoginRateLimit);
+  let adminUserId: number | null = null;
 
   if (rateLimit.limited) {
     return NextResponse.redirect(`${baseUrl}/admin/login?error=rate`, {
@@ -61,6 +62,8 @@ export async function POST(req: NextRequest) {
           status: 303,
         });
       }
+
+      adminUserId = adminUser.id;
     } else if (envAdminMatches) {
       const existingUser = await prisma.user.findUnique({ where: { username } });
 
@@ -72,7 +75,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (existingUser) {
-        await prisma.user.update({
+        const updatedAdmin = await prisma.user.update({
           where: { id: existingUser.id },
           data: {
             password: hashPassword(password),
@@ -80,8 +83,9 @@ export async function POST(req: NextRequest) {
             isActive: true,
           },
         });
+        adminUserId = updatedAdmin.id;
       } else {
-        await prisma.user.create({
+        const createdAdmin = await prisma.user.create({
           data: {
             name: "Yönetici",
             username,
@@ -90,6 +94,7 @@ export async function POST(req: NextRequest) {
             isActive: true,
           },
         });
+        adminUserId = createdAdmin.id;
       }
     } else {
       recordFailedAttempt(rateLimitKey, adminLoginRateLimit);
@@ -105,7 +110,10 @@ export async function POST(req: NextRequest) {
   }
 
   resetRateLimit(rateLimitKey);
-  const token = await createAdminSessionToken(adminSessionMaxAgeSeconds);
+  const token = await createAdminSessionToken(
+    adminSessionMaxAgeSeconds,
+    adminUserId,
+  );
   const response = NextResponse.redirect(`${baseUrl}/admin`, {
     status: 303,
   });

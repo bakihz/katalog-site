@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { writeAdminAuditLog } from "@/lib/adminAuditLog";
 import { prisma } from "@/lib/prisma";
 import { isValidHttpUrl, readProviderFormValue } from "@/lib/paymentProviderAdmin";
 
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  await prisma.paymentProvider.create({
+  const provider = await prisma.paymentProvider.create({
     data: {
       name,
       merchantId: merchantId || null,
@@ -53,6 +54,23 @@ export async function POST(req: NextRequest) {
       apiUser: apiUser || null,
       apiPassword: apiPassword || null,
       isActive: false,
+    },
+  });
+
+  await writeAdminAuditLog(req, {
+    action: "payment_provider.create",
+    entityType: "payment_provider",
+    entityId: provider.id,
+    entityName: provider.name,
+    details: {
+      createdFields: {
+        name: Boolean(name),
+        merchantId: Boolean(merchantId),
+        storeKey: Boolean(storeKey),
+        gatewayUrl: Boolean(gatewayUrl),
+        apiUser: Boolean(apiUser),
+        apiPassword: Boolean(apiPassword),
+      },
     },
   });
 

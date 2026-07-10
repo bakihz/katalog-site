@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
+import { writeAdminAuditLog } from "@/lib/adminAuditLog";
 import { prisma } from "@/lib/prisma";
 import { isProviderReady } from "@/lib/paymentProviderAdmin";
 
@@ -56,6 +57,17 @@ export async function POST(
       data: { isActive: true },
     }),
   ]);
+
+  await writeAdminAuditLog(req, {
+    action: "payment_provider.activate",
+    entityType: "payment_provider",
+    entityId: provider.id,
+    entityName: provider.name,
+    details: {
+      activatedProviderId: provider.id,
+      activatedProviderName: provider.name,
+    },
+  });
 
   revalidatePath("/admin");
   revalidatePath("/admin/providers");

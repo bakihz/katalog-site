@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { writeAdminAuditLog } from "@/lib/adminAuditLog";
 import { prisma } from "@/lib/prisma";
 
 function getBaseUrl(req: NextRequest): string {
@@ -44,6 +45,17 @@ export async function POST(
   }
 
   await prisma.paymentProvider.delete({ where: { id: providerId } });
+
+  await writeAdminAuditLog(req, {
+    action: "payment_provider.delete",
+    entityType: "payment_provider",
+    entityId: provider.id,
+    entityName: provider.name,
+    details: {
+      deletedProviderName: provider.name,
+      wasActive: provider.isActive,
+    },
+  });
 
   return NextResponse.redirect(
     `${baseUrl}/admin/providers?success=deleted`,
