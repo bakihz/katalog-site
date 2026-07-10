@@ -19,6 +19,7 @@ Lale EDT Gıda için geliştirilen Next.js tabanlı ürün kataloğu, geçici ka
 - Temsilciler `/giris` üzerinden giriş yapıp `/panel` altında kendi tahsilat işlemlerini yönetebilir.
 - Admin panel `/admin` altında ürün, temsilci, ödeme ve sanal POS yönetimi için kullanılır.
 - Ziraat / Nestpay 3D Pay sanal POS akışı çalışır durumdadır.
+- Sanal POS sağlayıcıları admin panelden eklenir, güncellenir, aktif edilir ve işlem kayıtları tutulur.
 - Başarılı ödemeler için dekont/PDF paylaşım akışı bulunur.
 - Ödeme durumları kullanıcı arayüzünde Türkçe gösterilir.
 - 1 saatten eski bekleyen ödemeler admin panelden “Süresi Doldu” durumuna alınabilir.
@@ -86,8 +87,20 @@ Lale EDT Gıda için geliştirilen Next.js tabanlı ürün kataloğu, geçici ka
   - `/api/payment/agent-success`
   - `/api/payment/agent-fail`
 - Aktif POS sağlayıcısı `PaymentProvider` tablosundan seçilir.
-- Hassas Ziraat bilgileri `.env` içinden okunur.
+- Sanal POS bilgileri admin paneldeki `/admin/providers` ekranından yönetilir.
+- `.env` tarafındaki Ziraat değişkenleri yalnızca başlangıç/geriye dönük uyumluluk amacıyla kullanılabilir; canlı kullanımda esas kaynak veritabanındaki `PaymentProvider` kaydıdır.
 - Kart bilgileri veritabanına kaydedilmez.
+
+### Sanal POS yönetimi ve güvenlik
+
+- Sanal POS sağlayıcıları `/admin/providers` ekranından eklenir ve düzenlenir.
+- POS aktif edilebilmesi için `POS adı`, `Client ID / Üye İşyeri No`, `Store Key` ve `Gateway URL` alanları dolu olmalıdır.
+- Eksik bilgisi olan POS aktif edilemez.
+- Aktif POS silinemez; önce başka bir hazır POS aktif edilmelidir.
+- Store Key ve API şifresi ekranda gösterilmez. Güncelleme formunda boş bırakılırsa mevcut değer korunur.
+- Store Key, API şifresi ve kart bilgileri audit log içine açık değer olarak yazılmaz.
+- POS ekleme, güncelleme, aktif etme ve silme işlemleri `AdminAuditLog` tablosuna kaydedilir.
+- Son POS işlem kayıtları `/admin/providers` sayfasının alt bölümünde görüntülenir.
 
 ### Ödeme durumları
 
@@ -116,6 +129,7 @@ Ana Prisma modelleri:
 - `User`: Temsilci kullanıcıları.
 - `Payment`: Ödeme / tahsilat kayıtları.
 - `PaymentProvider`: Sanal POS sağlayıcı kayıtları.
+- `AdminAuditLog`: Admin paneldeki kritik işlem kayıtları.
 
 ### Ortam değişkenleri
 
@@ -129,15 +143,14 @@ ADMIN_USERNAME=
 ADMIN_PASSWORD=
 SESSION_SECRET=
 APP_URL=
-ZIRAAT_CLIENT_ID=
-ZIRAAT_STORE_KEY=
-ZIRAAT_GATEWAY_URL=
 ```
 
 Notlar:
 
 - `APP_URL` canlı ortamda gerçek domain olmalıdır.
-- Ziraat / Nestpay bilgileri canlı sunucuda doğru ve gizli tutulmalıdır.
+- `SESSION_SECRET` en az 32 karakter olmalı ve gizli tutulmalıdır.
+- SQL Server bağlantısında yerel/test ortamında TLS hatası alınırsa `DATABASE_URL` içine `trustServerCertificate=true` eklenmesi gerekebilir.
+- Sanal POS bilgileri canlı kullanımda admin panelden veritabanına kaydedilir; Store Key ve API şifresi repoya veya loglara yazılmamalıdır.
 - Admin şifresi güçlü olmalıdır.
 
 ### Lokal geliştirme
@@ -196,11 +209,17 @@ Tipik canlı güncelleme akışı:
 ```bash
 git pull origin master
 npm install
+npx prisma generate
+npx prisma db push
 npm run build
 pm2 restart katalog-site
 pm2 save
 pm2 status
 ```
+
+Eğer bu güncellemede `prisma/schema.prisma` değiştiyse `npx prisma db push` adımı atlanmamalıdır. Örneğin `AdminAuditLog` gibi yeni tablolar canlı veritabanında oluşmadan uygulama ilgili sayfalarda hata verebilir.
+
+Windows ortamında `npx prisma generate` sırasında `query_engine-windows.dll.node` kilit hatası alınırsa çalışan `npm run dev` / Node süreçleri kapatılıp komut tekrar çalıştırılmalıdır.
 
 PM2 process adı bilinmiyorsa:
 
@@ -293,17 +312,19 @@ git push
 - `components/ui` klasörüyle ortak UI component'leri çıkarıldı.
 - `components/layout` klasörüyle admin/panel dashboard layout tekrarları birleştirildi.
 - `lib/format.ts` ile para, sayı ve tarih formatları merkezi hale getirildi.
+- Admin şifre değiştirme ekranı ve login rate limit eklendi.
+- Sanal POS sağlayıcı yönetimi DB/admin panel merkezli hale getirildi.
+- Sanal POS işlemleri için hassas veri içermeyen admin audit log sistemi eklendi.
 
 ### Bilinen notlar / sonraki işler
 
 - Tek login ve rol bazlı yönlendirme değerlendirilecek.
-- Admin şifre değiştirme ekranı eklenmeli.
-- Login denemeleri için rate limit eklenmeli.
 - Ödeme callback route'larında tekrar eden mantık servis katmanına taşınmalı.
 - Ürün import route'u ve eski ürün sayfaları lint açısından temizlenmeli.
 - Prisma `Payment.status` ileride enum yapısına taşınabilir.
 - Para alanları şu an `Float`; finansal hesaplar için ileride daha güvenli strateji değerlendirilmeli.
 - Admin ve temsilci yetkileri uzun vadede DB tabanlı role sistemiyle netleştirilmeli.
+- Canlı/veri yedekleme prosedürü disk takıldıktan sonra uygulanmalı.
 
 ---
 
@@ -321,6 +342,7 @@ This is a Next.js based product catalog, temporary landing page, agent collectio
 - Agents can log in from `/giris` and manage their own collection records under `/panel`.
 - Admin screens live under `/admin`.
 - Ziraat / Nestpay 3D Pay payment flow is working.
+- Virtual POS providers are managed from the admin panel and critical provider changes are audit logged.
 - Successful payments can generate/share receipt PDFs.
 - Payment statuses are displayed in Turkish through a centralized helper.
 - Old pending payments can be marked as expired from the admin payments page.
@@ -388,8 +410,20 @@ This is a Next.js based product catalog, temporary landing page, agent collectio
   - `/api/payment/agent-success`
   - `/api/payment/agent-fail`
 - The active POS provider is selected from the `PaymentProvider` table.
-- Sensitive Ziraat credentials are read from `.env`.
+- Virtual POS credentials are managed from `/admin/providers` and stored in the database.
+- Ziraat-related `.env` values may still exist for seeding/backward compatibility, but production payment flow should rely on the `PaymentProvider` database record.
 - Card details are not stored in the database.
+
+### Virtual POS management and security
+
+- Virtual POS providers are added and edited from `/admin/providers`.
+- A provider can only be activated when `POS name`, `Client ID / Merchant ID`, `Store Key` and `Gateway URL` are filled.
+- Providers with missing required data cannot be activated.
+- The active provider cannot be deleted; activate another ready provider first.
+- Store Key and API password are not displayed. Leaving these fields empty during update keeps the existing value.
+- Store Key, API password and card details are never written to audit logs as raw values.
+- Provider create, update, activate and delete actions are saved in the `AdminAuditLog` table.
+- Recent provider audit logs are shown at the bottom of `/admin/providers`.
 
 ### Payment statuses
 
@@ -416,6 +450,7 @@ Main Prisma models:
 - `User`: Agent users.
 - `Payment`: Payment / collection records.
 - `PaymentProvider`: Virtual POS provider records.
+- `AdminAuditLog`: Critical admin action audit records.
 
 ### Environment variables
 
@@ -429,15 +464,14 @@ ADMIN_USERNAME=
 ADMIN_PASSWORD=
 SESSION_SECRET=
 APP_URL=
-ZIRAAT_CLIENT_ID=
-ZIRAAT_STORE_KEY=
-ZIRAAT_GATEWAY_URL=
 ```
 
 Notes:
 
 - `APP_URL` must match the production domain in production.
-- Ziraat / Nestpay credentials must be configured securely on the server.
+- `SESSION_SECRET` must be at least 32 characters and kept secret.
+- If SQL Server TLS errors occur in local/test environments, `trustServerCertificate=true` may be required in `DATABASE_URL`.
+- Virtual POS credentials are managed from the admin panel in production; Store Key and API password must never be committed or logged.
 - Admin credentials must be strong.
 
 ### Local development
@@ -482,11 +516,17 @@ Typical production update flow:
 ```bash
 git pull origin master
 npm install
+npx prisma generate
+npx prisma db push
 npm run build
 pm2 restart katalog-site
 pm2 save
 pm2 status
 ```
+
+If `prisma/schema.prisma` changed in the update, do not skip `npx prisma db push`. New tables such as `AdminAuditLog` must exist in the production database before the related pages are opened.
+
+On Windows, if `npx prisma generate` fails because `query_engine-windows.dll.node` is locked, stop the running `npm run dev` / Node processes and run the command again.
 
 If PM2 process name is unknown:
 
@@ -556,14 +596,16 @@ git push
 - Shared UI components were added under `components/ui`.
 - Admin and agent dashboard layouts were unified under `components/layout`.
 - Currency, number and date formatting were centralized in `lib/format.ts`.
+- Admin password change and login rate limiting were added.
+- Virtual POS provider management was moved to database/admin panel based configuration.
+- Sensitive-data-safe admin audit logs were added for virtual POS provider actions.
 
 ### Known notes / next steps
 
 - Consider a single login flow with role-based redirects.
-- Add admin password change screen.
-- Add login rate limiting.
 - Move repeated payment callback logic into a service layer.
 - Clean up lint issues in product import and old product/original pages.
 - Consider moving `Payment.status` to a Prisma enum.
 - Consider a safer money representation than `Float`.
 - Move admin/agent authorization to a clearer DB-backed role model later.
+- Implement the production backup procedure after the backup disk is installed.
