@@ -57,7 +57,7 @@ function buildReceiptPdf(receipt: ReceiptData) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
   doc.setTextColor(16, 35, 29);
-  doc.text("LALE EDT", pageWidth / 2, y, { align: "center" });
+  doc.text("LALE EDT GIDA", pageWidth / 2, y, { align: "center" });
   y += 8;
   doc.setFontSize(13);
   doc.text("ODEME DEKONTU", pageWidth / 2, y, { align: "center" });
