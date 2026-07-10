@@ -10,8 +10,41 @@ type ProvidersPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
+type ProviderStatusInput = {
+  isActive: boolean;
+  ready: boolean;
+};
+
 function getFirstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function getGatewayHost(gatewayUrl: string | null) {
+  if (!gatewayUrl) {
+    return null;
+  }
+
+  try {
+    return new URL(gatewayUrl).host;
+  } catch {
+    return gatewayUrl;
+  }
+}
+
+function getProviderStatusLabel({ isActive, ready }: ProviderStatusInput) {
+  if (isActive) {
+    return "Aktif";
+  }
+
+  return ready ? "Hazır" : "Eksik";
+}
+
+function getProviderStatusClassName({ isActive, ready }: ProviderStatusInput) {
+  if (isActive) {
+    return "bg-emerald-100 text-emerald-700";
+  }
+
+  return ready ? "bg-slate-100 text-slate-700" : "bg-amber-100 text-amber-700";
 }
 
 const successMessages: Record<string, string> = {
@@ -44,6 +77,7 @@ const inputCls =
   "w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm outline-none transition focus:border-[#173f32]/40 focus:bg-white";
 
 const labelCls = "block text-xs font-semibold text-[#68746e] mb-1";
+const helperTextCls = "mt-1 text-xs leading-relaxed text-[#7a867f]";
 
 async function getProviders() {
   await ensureAllPaymentProviders();
@@ -57,6 +91,10 @@ export default async function ProvidersPage({
   const success = getFirstParam(params.success);
   const error = getFirstParam(params.error);
   const providers = await getProviders();
+  const activeProvider = providers.find((provider) => provider.isActive);
+  const readyProviderCount = providers.filter((provider) =>
+    isProviderReady(provider),
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -80,11 +118,48 @@ export default async function ProvidersPage({
         </div>
       )}
 
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="rounded-[1.5rem] border border-[#17201c]/10 bg-white p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#89938e]">
+            Aktif POS
+          </p>
+          <p className="mt-2 text-xl font-black text-[#17201c]">
+            {activeProvider?.name ?? "Seçilmedi"}
+          </p>
+          <p className="mt-1 text-sm text-[#68746e]">
+            {activeProvider
+              ? "Ödeme ekranı şu anda bu sağlayıcıyı kullanıyor."
+              : "Ödeme almadan önce hazır bir POS aktif edilmeli."}
+          </p>
+        </div>
+        <div className="rounded-[1.5rem] border border-[#17201c]/10 bg-white p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#89938e]">
+            Hazır POS
+          </p>
+          <p className="mt-2 text-xl font-black text-[#17201c]">
+            {readyProviderCount} / {providers.length}
+          </p>
+          <p className="mt-1 text-sm text-[#68746e]">
+            POS adı, Client ID, Store Key ve Gateway URL dolu olan kayıtlar
+            aktif edilebilir.
+          </p>
+        </div>
+        <div className="rounded-[1.5rem] border border-amber-200 bg-amber-50 p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">
+            Güvenlik Notu
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-amber-800">
+            Store Key ve API şifresi ekranda gösterilmez. Güncellemede boş
+            bırakırsan mevcut kayıt korunur.
+          </p>
+        </div>
+      </section>
+
       <section className="rounded-[1.75rem] border border-[#17201c]/10 bg-white p-6 shadow-sm">
         <h3 className="text-lg font-bold">Aktif Sağlayıcı</h3>
         <p className="mt-1 text-sm text-[#68746e]">
-          Ödeme ekranının kullanacağı sanal POS&apos;u seçin. Eksik bilgisi olan POS
-          aktif edilemez.
+          Ödeme ekranının kullanacağı sanal POS&apos;u seçin. Eksik bilgisi olan
+          POS aktif edilemez.
         </p>
 
         {providers.length === 0 ? (
@@ -102,6 +177,7 @@ export default async function ProvidersPage({
               {providers.map((provider) => {
                 const ready = isProviderReady(provider);
                 const missingFields = getProviderMissingFields(provider);
+                const gatewayHost = getGatewayHost(provider.gatewayUrl);
 
                 return (
                   <label
@@ -134,18 +210,23 @@ export default async function ProvidersPage({
                               : "Aktif edilebilir"
                             : `Eksik: ${missingFields.join(", ")}`}
                         </p>
+                        <p className="mt-1 text-xs text-[#89938e]">
+                          {provider.merchantId
+                            ? `Client ID: ${provider.merchantId}`
+                            : "Client ID yok"}
+                          {gatewayHost ? ` · ${gatewayHost}` : ""}
+                        </p>
                       </div>
                     </div>
                     <span
-                      className={`rounded-full px-3 py-1 text-xs font-bold ${
-                        provider.isActive
-                          ? "bg-emerald-100 text-emerald-700"
-                          : ready
-                            ? "bg-slate-100 text-slate-700"
-                            : "bg-amber-100 text-amber-700"
-                      }`}
+                      className={`rounded-full px-3 py-1 text-xs font-bold ${getProviderStatusClassName(
+                        { isActive: provider.isActive, ready },
+                      )}`}
                     >
-                      {provider.isActive ? "Aktif" : ready ? "Hazır" : "Eksik"}
+                      {getProviderStatusLabel({
+                        isActive: provider.isActive,
+                        ready,
+                      })}
                     </span>
                   </label>
                 );
@@ -183,15 +264,14 @@ export default async function ProvidersPage({
                 )}
               </div>
               <span
-                className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${
-                  provider.isActive
-                    ? "bg-emerald-100 text-emerald-700"
-                    : ready
-                      ? "bg-slate-100 text-slate-700"
-                      : "bg-amber-100 text-amber-700"
-                }`}
+                className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${getProviderStatusClassName(
+                  { isActive: provider.isActive, ready },
+                )}`}
               >
-                {provider.isActive ? "Aktif" : ready ? "Hazır" : "Eksik"}
+                {getProviderStatusLabel({
+                  isActive: provider.isActive,
+                  ready,
+                })}
               </span>
             </div>
 
@@ -228,6 +308,9 @@ export default async function ProvidersPage({
                     className={inputCls}
                     placeholder="Ziraat Sanal POS"
                   />
+                  <p className={helperTextCls}>
+                    Panelde ve ödeme kayıtlarında görünecek sağlayıcı adı.
+                  </p>
                 </div>
                 <div>
                   <label className={labelCls}>Client ID / Üye İşyeri No</label>
@@ -236,7 +319,11 @@ export default async function ProvidersPage({
                     defaultValue={provider.merchantId ?? ""}
                     className={inputCls}
                     placeholder="700100000"
+                    inputMode="numeric"
                   />
+                  <p className={helperTextCls}>
+                    Bankanın verdiği üye işyeri numarasıdır.
+                  </p>
                 </div>
                 <div>
                   <label className={labelCls}>
@@ -249,19 +336,28 @@ export default async function ProvidersPage({
                     name="storeKey"
                     type="password"
                     className={inputCls}
+                    autoComplete="new-password"
                     placeholder={
                       provider.storeKey ? "Kayıtlı store key mevcut" : "STOREKEY..."
                     }
                   />
+                  <p className={helperTextCls}>
+                    Hash doğrulaması için kullanılır. Boş bırakılırsa mevcut
+                    değer korunur.
+                  </p>
                 </div>
                 <div>
                   <label className={labelCls}>Gateway URL</label>
                   <input
                     name="gatewayUrl"
+                    type="url"
                     defaultValue={provider.gatewayUrl ?? ""}
                     className={inputCls}
                     placeholder="https://entegrasyon.asseco-see.com.tr/fim/est3Dgate"
                   />
+                  <p className={helperTextCls}>
+                    Müşterinin kart doğrulamasına yönleneceği banka adresi.
+                  </p>
                 </div>
                 <div>
                   <label className={labelCls}>API Kullanıcı</label>
@@ -270,7 +366,12 @@ export default async function ProvidersPage({
                     defaultValue={provider.apiUser ?? ""}
                     className={inputCls}
                     placeholder="APIUSER"
+                    autoComplete="off"
                   />
+                  <p className={helperTextCls}>
+                    Kullanılmıyorsa boş kalabilir; gerektiğinde bankanın verdiği
+                    değer yazılır.
+                  </p>
                 </div>
                 <div>
                   <label className={labelCls}>
@@ -283,8 +384,12 @@ export default async function ProvidersPage({
                     name="apiPassword"
                     type="password"
                     className={inputCls}
+                    autoComplete="new-password"
                     placeholder="••••••••"
                   />
+                  <p className={helperTextCls}>
+                    Boş bırakılırsa mevcut değer korunur.
+                  </p>
                 </div>
               </form>
 
@@ -330,6 +435,9 @@ export default async function ProvidersPage({
               className={inputCls}
               placeholder="Ziraat Sanal POS"
             />
+            <p className={helperTextCls}>
+              Örn: Ziraat Sanal POS, Halkbank Sanal POS.
+            </p>
           </div>
           <div>
             <label className={labelCls}>Client ID / Üye İşyeri No</label>
@@ -337,7 +445,9 @@ export default async function ProvidersPage({
               name="merchantId"
               className={inputCls}
               placeholder="700100000"
+              inputMode="numeric"
             />
+            <p className={helperTextCls}>POS aktif etmek için zorunludur.</p>
           </div>
           <div>
             <label className={labelCls}>Store Key</label>
@@ -346,15 +456,19 @@ export default async function ProvidersPage({
               type="password"
               className={inputCls}
               placeholder="STOREKEY..."
+              autoComplete="new-password"
             />
+            <p className={helperTextCls}>POS aktif etmek için zorunludur.</p>
           </div>
           <div>
             <label className={labelCls}>Gateway URL</label>
             <input
               name="gatewayUrl"
+              type="url"
               className={inputCls}
               placeholder="https://entegrasyon.asseco-see.com.tr/fim/est3Dgate"
             />
+            <p className={helperTextCls}>POS aktif etmek için zorunludur.</p>
           </div>
           <div>
             <label className={labelCls}>API Kullanıcı</label>
@@ -362,7 +476,9 @@ export default async function ProvidersPage({
               name="apiUser"
               className={inputCls}
               placeholder="APIUSER"
+              autoComplete="off"
             />
+            <p className={helperTextCls}>Bankaya göre opsiyonel olabilir.</p>
           </div>
           <div>
             <label className={labelCls}>API Şifresi</label>
@@ -371,7 +487,9 @@ export default async function ProvidersPage({
               type="password"
               className={inputCls}
               placeholder="••••••••"
+              autoComplete="new-password"
             />
+            <p className={helperTextCls}>Bankaya göre opsiyonel olabilir.</p>
           </div>
 
           <div className="lg:col-span-2">
