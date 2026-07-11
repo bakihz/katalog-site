@@ -1,6 +1,10 @@
 import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  ensureUniqueProductSlug,
+  slugifyProductText,
+} from "@/lib/adminProductText";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -13,39 +17,6 @@ function getBaseUrl(req: NextRequest): string {
 
 function readFormValue(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
-}
-
-function slugify(text: string) {
-  return text
-    .toLocaleLowerCase("tr-TR")
-    .replaceAll("ı", "i")
-    .replaceAll("ğ", "g")
-    .replaceAll("ü", "u")
-    .replaceAll("ş", "s")
-    .replaceAll("ö", "o")
-    .replaceAll("ç", "c")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-async function ensureUniqueSlug(slug: string, productId: number) {
-  const baseSlug = slug || `urun-${productId}`;
-  let candidate = baseSlug;
-  let suffix = 2;
-
-  while (
-    await prisma.product.findFirst({
-      where: {
-        slug: candidate,
-        NOT: { id: productId },
-      },
-    })
-  ) {
-    candidate = `${baseSlug}-${suffix}`;
-    suffix += 1;
-  }
-
-  return candidate;
 }
 
 export async function POST(
@@ -90,7 +61,10 @@ export async function POST(
     );
   }
 
-  const slug = await ensureUniqueSlug(slugify(slugInput || name), productId);
+  const slug = await ensureUniqueProductSlug(
+    slugifyProductText(slugInput || name),
+    productId,
+  );
 
   try {
     await prisma.product.update({

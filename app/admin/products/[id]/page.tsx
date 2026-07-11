@@ -31,11 +31,31 @@ function formatDate(date: Date | null) {
   }).format(date);
 }
 
+function getAlertMessage(success?: string, error?: string) {
+  if (error === "name") return "Katalog adı zorunludur.";
+  if (error === "suggestion") return "Ürün önerisi üretilirken hata oluştu.";
+  if (error === "no-suggestion") return "Uygulanacak öneri bulunamadı.";
+  if (error === "apply-suggestion") return "Ürün önerisi uygulanırken hata oluştu.";
+  if (error) return "Ürün işlemi sırasında hata oluştu.";
+  if (success === "suggestion-created") return "Ürün önerisi oluşturuldu.";
+  if (success === "suggestion-applied") return "Ürün önerisi katalog bilgilerine uygulandı.";
+  if (success) return "Ürün bilgileri güncellendi.";
+  return "";
+}
+
+function formatConfidence(value: number | null) {
+  if (value === null) {
+    return "-";
+  }
+
+  return `%${Math.round(value * 100)}`;
+}
+
 const inputCls =
   "w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm outline-none transition focus:border-[#173f32]/40 focus:bg-white";
 const textareaCls =
   "min-h-32 w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm outline-none transition focus:border-[#173f32]/40 focus:bg-white";
-const labelCls = "block text-xs font-semibold text-[#68746e] mb-1";
+const labelCls = "mb-1 block text-xs font-semibold text-[#68746e]";
 
 export default async function AdminProductDetailPage({
   params,
@@ -60,6 +80,8 @@ export default async function AdminProductDetailPage({
   const success = getFirstParam(query.success);
   const error = getFirstParam(query.error);
   const displayName = getDisplayName(product);
+  const alertMessage = getAlertMessage(success, error);
+  const hasSuggestion = Boolean(product.suggestedName);
 
   return (
     <div className="space-y-6">
@@ -69,7 +91,7 @@ export default async function AdminProductDetailPage({
         description="Logo'dan gelen ham veriyi müşteriye uygun katalog içeriğine dönüştür."
       />
 
-      {(success || error) && (
+      {alertMessage && (
         <div
           className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
             error
@@ -77,11 +99,7 @@ export default async function AdminProductDetailPage({
               : "border-emerald-200 bg-emerald-50 text-emerald-700"
           }`}
         >
-          {error === "name"
-            ? "Katalog adı zorunludur."
-            : error
-              ? "Ürün güncellenirken hata oluştu."
-              : "Ürün bilgileri güncellendi."}
+          {alertMessage}
         </div>
       )}
 
@@ -241,6 +259,110 @@ export default async function AdminProductDetailPage({
 
         <aside className="space-y-6">
           <section className="rounded-[1.75rem] border border-[#17201c]/10 bg-white p-6 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 className="text-lg font-bold">Katalog Önerisi</h3>
+                <p className="mt-1 text-sm text-[#68746e]">
+                  Şimdilik kural tabanlı çalışır. Ollama/OpenAI daha sonra bu
+                  bölüme bağlanabilir.
+                </p>
+              </div>
+              <form action={`/api/admin/products/${product.id}/suggest`} method="POST">
+                <AppButton type="submit" variant="outline">
+                  Öneri Üret
+                </AppButton>
+              </form>
+            </div>
+
+            {hasSuggestion ? (
+              <div className="mt-5 space-y-4">
+                <div className="grid grid-cols-2 gap-3 rounded-2xl bg-[#f8f6f1] p-4 text-xs">
+                  <div>
+                    <span className="font-semibold text-[#68746e]">Kaynak</span>
+                    <p className="mt-1 text-[#17201c]">
+                      {product.suggestionSource ?? "-"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-[#68746e]">Güven</span>
+                    <p className="mt-1 text-[#17201c]">
+                      {formatConfidence(product.suggestionConfidence)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-[#68746e]">Durum</span>
+                    <p className="mt-1 text-[#17201c]">
+                      {product.suggestionStatus === "applied"
+                        ? "Uygulandı"
+                        : "Taslak"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-[#68746e]">Tarih</span>
+                    <p className="mt-1 text-[#17201c]">
+                      {formatDate(product.suggestionGeneratedAt)}
+                    </p>
+                  </div>
+                </div>
+
+                <dl className="space-y-3 text-sm">
+                  <div>
+                    <dt className="font-semibold text-[#68746e]">Önerilen Ad</dt>
+                    <dd className="text-[#17201c]">
+                      {product.suggestedName ?? "-"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold text-[#68746e]">Kategori</dt>
+                    <dd className="text-[#17201c]">
+                      {product.suggestedCategory ?? "-"} /{" "}
+                      {product.suggestedSubCategory ?? "-"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold text-[#68746e]">Marka</dt>
+                    <dd className="text-[#17201c]">
+                      {product.suggestedBrand ?? "-"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold text-[#68746e]">Kısa Açıklama</dt>
+                    <dd className="text-[#17201c]">
+                      {product.suggestedShortDescription ?? "-"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold text-[#68746e]">Detay Açıklama</dt>
+                    <dd className="whitespace-pre-line text-[#17201c]">
+                      {product.suggestedDescription ?? "-"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold text-[#68746e]">Özellikler</dt>
+                    <dd className="whitespace-pre-line text-[#17201c]">
+                      {product.suggestedFeatures ?? "-"}
+                    </dd>
+                  </div>
+                </dl>
+
+                <form
+                  action={`/api/admin/products/${product.id}/apply-suggestion`}
+                  method="POST"
+                >
+                  <AppButton type="submit" size="lg">
+                    Öneriyi Katalog Bilgilerine Uygula
+                  </AppButton>
+                </form>
+              </div>
+            ) : (
+              <div className="mt-5 rounded-2xl border border-dashed border-[#17201c]/15 bg-[#f8f6f1] p-4 text-sm text-[#68746e]">
+                Bu ürün için henüz öneri üretilmedi. Önce Logo ham verisini
+                kontrol et, sonra öneri üretip çıkan taslağı elle onayla.
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-[1.75rem] border border-[#17201c]/10 bg-white p-6 shadow-sm">
             <h3 className="text-lg font-bold">Logo Ham Verisi</h3>
             <p className="mt-1 text-sm text-[#68746e]">
               Bu alanlar referans içindir. Katalog düzenlemesi Logo verisini
@@ -292,9 +414,7 @@ export default async function AdminProductDetailPage({
               </div>
               <div>
                 <dt className="font-semibold text-[#68746e]">KDV</dt>
-                <dd className="text-[#17201c]">
-                  {product.vatRate ?? "-"}
-                </dd>
+                <dd className="text-[#17201c]">{product.vatRate ?? "-"}</dd>
               </div>
               <div>
                 <dt className="font-semibold text-[#68746e]">Son Logo Güncelleme</dt>

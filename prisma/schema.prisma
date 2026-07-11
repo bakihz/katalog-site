@@ -54,6 +54,18 @@ model Product {
   webStockStatus String?
   sortOrder     Int     @default(0)
 
+  suggestedName String?
+  suggestedShortDescription String?
+  suggestedDescription String?
+  suggestedCategory String?
+  suggestedSubCategory String?
+  suggestedBrand String?
+  suggestedFeatures String?
+  suggestionConfidence Float?
+  suggestionSource String?
+  suggestionStatus String @default("none")
+  suggestionGeneratedAt DateTime?
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
