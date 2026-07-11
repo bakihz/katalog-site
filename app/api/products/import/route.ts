@@ -2,22 +2,88 @@ import { prisma } from "@/lib/prisma";
 import csv from "csv-parser";
 import { Readable } from "stream";
 
-type ProductCsvRow = {
-  stockCode?: string;
-  name?: string;
-  description?: string;
-  price?: string;
-  brand?: string;
-  category?: string;
-  subCategory?: string;
-  stockStatus?: string;
-  unit?: string;
-  imageUrl?: string;
+type CsvRow = Record<string, string | undefined>;
+
+type LogoProductRow = {
+  logoLogicalRef: number | null;
+  stockCode: string;
+  logoName: string;
+  storeName: string | null;
+  logoDescription2: string | null;
+  logoDescription3: string | null;
+  producerCode: string | null;
+  logoCategoryRaw: string | null;
+  logoSubCategoryRaw: string | null;
+  logoBrandRef: number | null;
+  logoUnitSetRef: number | null;
+  logoIsActive: boolean;
+  vatRate: number | null;
+  lastLogoModifiedAt: Date | null;
 };
+
+const logoImportColumns = [
+  "LOGICALREF",
+  "ACTIVE",
+  "CODE",
+  "NAME",
+  "NAME2",
+  "NAME3",
+  "NAME4",
+  "PRODUCERCODE",
+  "SPECODE2",
+  "SPECODE3",
+  "MARKREF",
+  "UNITSETREF",
+  "VAT",
+  "CAPIBLOCK_MODIFIEDDATE",
+];
+
+function normalizeHeader(key: string) {
+  return key.trim().replace(/^\uFEFF/, "").replace(/^"|"$/g, "").toUpperCase();
+}
+
+function normalizeCsvRow(row: CsvRow): CsvRow {
+  return Object.fromEntries(
+    Object.entries(row).map(([key, value]) => [normalizeHeader(key), value]),
+  );
+}
+
+function getCell(row: CsvRow, key: string) {
+  return String(row[normalizeHeader(key)] ?? "").trim();
+}
+
+function detectSeparator(buffer: Buffer) {
+  const firstLine =
+    buffer.toString("utf8", 0, Math.min(buffer.length, 4096)).split(/\r?\n/)[0] ??
+    "";
+  const semicolonCount = (firstLine.match(/;/g) ?? []).length;
+  const commaCount = (firstLine.match(/,/g) ?? []).length;
+
+  return semicolonCount > commaCount ? ";" : ",";
+}
+
+function parseNumber(value: string) {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = value.replace(",", ".");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseDate(value: string) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
 
 function slugify(text: string) {
   return text
-    .toLowerCase()
+    .toLocaleLowerCase("tr-TR")
     .replaceAll("ı", "i")
     .replaceAll("ğ", "g")
     .replaceAll("ü", "u")
@@ -28,112 +94,219 @@ function slugify(text: string) {
     .replace(/^-|-$/g, "");
 }
 
-export async function POST(req: Request) {
-  try {
-    const formData = await req.formData();
+function getImportMode(row: CsvRow) {
+  const upperKeys = Object.keys(row).map((key) => normalizeHeader(key));
+  const matchedLogoColumns = logoImportColumns.filter((column) =>
+    upperKeys.includes(column),
+  );
 
-    const file = formData.get("file") as File;
+  return matchedLogoColumns.length >= 4 ? "logo" : "legacy";
+}
 
-    if (!file) {
-      return Response.json(
-        {
-          success: false,
-          message: "Dosya yok",
-        },
-        {
-          status: 400,
-        },
-      );
+function normalizeLogoRow(row: CsvRow): LogoProductRow | null {
+  const stockCode = getCell(row, "CODE");
+  const logoName = getCell(row, "NAME");
+
+  if (!stockCode || !logoName || stockCode === "ÿ") {
+    return null;
+  }
+
+  const active = getCell(row, "ACTIVE");
+
+  return {
+    logoLogicalRef: parseNumber(getCell(row, "LOGICALREF")),
+    stockCode,
+    logoName,
+    storeName: getCell(row, "NAME2") || null,
+    logoDescription2: getCell(row, "NAME3") || null,
+    logoDescription3: getCell(row, "NAME4") || null,
+    producerCode: getCell(row, "PRODUCERCODE") || null,
+    logoCategoryRaw: getCell(row, "SPECODE2") || null,
+    logoSubCategoryRaw: getCell(row, "SPECODE3") || null,
+    logoBrandRef: parseNumber(getCell(row, "MARKREF")),
+    logoUnitSetRef: parseNumber(getCell(row, "UNITSETREF")),
+    logoIsActive: active !== "1",
+    vatRate: parseNumber(getCell(row, "VAT")),
+    lastLogoModifiedAt: parseDate(getCell(row, "CAPIBLOCK_MODIFIEDDATE")),
+  };
+}
+
+function getInitialCatalogName(item: LogoProductRow) {
+  return item.storeName || item.logoName || item.stockCode;
+}
+
+async function createUniqueSlug(baseText: string, stockCode: string) {
+  const baseSlug = slugify(baseText) || slugify(stockCode) || "urun";
+  let candidate = baseSlug;
+  let suffix = 2;
+
+  while (await prisma.product.findUnique({ where: { slug: candidate } })) {
+    candidate = `${baseSlug}-${suffix}`;
+    suffix += 1;
+  }
+
+  return candidate;
+}
+
+async function importLogoProducts(rows: CsvRow[]) {
+  let imported = 0;
+  let skipped = 0;
+
+  for (const row of rows) {
+    const item = normalizeLogoRow(row);
+
+    if (!item) {
+      skipped += 1;
+      continue;
     }
 
-    const bytes = await file.arrayBuffer();
-
-    const buffer = Buffer.from(bytes);
-
-    const results: ProductCsvRow[] = [];
-
-    await new Promise<void>((resolve, reject) => {
-      Readable.from(buffer)
-        .pipe(csv())
-        .on("data", (data: ProductCsvRow) => {
-          results.push(data);
-        })
-        .on("end", () => {
-          resolve();
-        })
-        .on("error", (err) => {
-          reject(err);
-        });
+    const existing = await prisma.product.findUnique({
+      where: { stockCode: item.stockCode },
     });
 
-    for (const item of results) {
-      await prisma.product.upsert({
-        where: {
-          stockCode: item.stockCode || "",
+    if (existing) {
+      await prisma.product.update({
+        where: { id: existing.id },
+        data: {
+          logoLogicalRef: item.logoLogicalRef,
+          logoName: item.logoName,
+          storeName: item.storeName,
+          logoDescription2: item.logoDescription2,
+          logoDescription3: item.logoDescription3,
+          producerCode: item.producerCode,
+          logoCategoryRaw: item.logoCategoryRaw,
+          logoSubCategoryRaw: item.logoSubCategoryRaw,
+          logoBrandRef: item.logoBrandRef,
+          logoUnitSetRef: item.logoUnitSetRef,
+          logoIsActive: item.logoIsActive,
+          vatRate: item.vatRate,
+          lastLogoModifiedAt: item.lastLogoModifiedAt,
+          lastLogoSyncAt: new Date(),
         },
+      });
+    } else {
+      const catalogName = getInitialCatalogName(item);
 
-        update: {
-          name: item.name || "",
-
-          slug: slugify(item.name || ""),
-
-          description: item.description || "",
-
-          price: Number(item.price || 0),
-
-          brand: item.brand || "",
-
-          category: item.category || "",
-
-          subCategory: item.subCategory || "",
-
-          stockStatus: item.stockStatus || "",
-
-          unit: item.unit || "",
-
-          imageUrl: item.imageUrl || "",
-        },
-
-        create: {
-          stockCode: item.stockCode || "",
-
-          name: item.name || "",
-
-          slug: slugify(item.name || ""),
-
-          description: item.description || "",
-
-          price: Number(item.price || 0),
-
-          brand: item.brand || "",
-
-          category: item.category || "",
-
-          subCategory: item.subCategory || "",
-
-          stockStatus: item.stockStatus || "",
-
-          unit: item.unit || "",
-
-          imageUrl: item.imageUrl || "",
+      await prisma.product.create({
+        data: {
+          logoLogicalRef: item.logoLogicalRef,
+          stockCode: item.stockCode,
+          logoName: item.logoName,
+          storeName: item.storeName,
+          logoDescription2: item.logoDescription2,
+          logoDescription3: item.logoDescription3,
+          producerCode: item.producerCode,
+          logoCategoryRaw: item.logoCategoryRaw,
+          logoSubCategoryRaw: item.logoSubCategoryRaw,
+          logoBrandRef: item.logoBrandRef,
+          logoUnitSetRef: item.logoUnitSetRef,
+          logoIsActive: item.logoIsActive,
+          vatRate: item.vatRate,
+          lastLogoModifiedAt: item.lastLogoModifiedAt,
+          lastLogoSyncAt: new Date(),
+          name: catalogName,
+          slug: await createUniqueSlug(catalogName, item.stockCode),
+          category: null,
+          subCategory: null,
+          brand: null,
+          showOnWebsite: false,
+          isFeatured: false,
+          stockStatus: item.logoIsActive ? "Logo aktif" : "Logo pasif",
+          webStockStatus: "Sorunuz",
         },
       });
     }
 
+    imported += 1;
+  }
+
+  return { imported, skipped };
+}
+
+async function readCsvRows(file: File) {
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+  const separator = detectSeparator(buffer);
+  const rows: CsvRow[] = [];
+
+  await new Promise<void>((resolve, reject) => {
+    Readable.from(buffer)
+      .pipe(
+        csv({
+          separator,
+          mapHeaders: ({ header }) => normalizeHeader(header),
+        }),
+      )
+      .on("data", (data: CsvRow) => {
+        rows.push(normalizeCsvRow(data));
+      })
+      .on("end", resolve)
+      .on("error", reject);
+  });
+
+  return rows;
+}
+
+export async function POST(req: Request) {
+  try {
+    const formData = await req.formData();
+    const file = formData.get("file") as File | null;
+
+    if (!file) {
+      return Response.json(
+        { success: false, message: "Dosya bulunamadı." },
+        { status: 400 },
+      );
+    }
+
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      return Response.json(
+        {
+          success: false,
+          message:
+            "Şimdilik yalnızca CSV destekleniyor. Excel dosyasını CSV olarak kaydedip tekrar yükleyin.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const rows = await readCsvRows(file);
+
+    if (rows.length === 0) {
+      return Response.json(
+        { success: false, message: "Dosyada okunacak satır bulunamadı." },
+        { status: 400 },
+      );
+    }
+
+    if (getImportMode(rows[0]) !== "logo") {
+      const detectedColumns = Object.keys(rows[0]).slice(0, 12).join(", ");
+
+      return Response.json(
+        {
+          success: false,
+          message: `Bu ekran artık Logo ürün CSV formatını bekliyor. En az CODE, NAME, ACTIVE ve LOGICALREF kolonları olmalı. Algılanan kolonlar: ${detectedColumns || "yok"}`,
+        },
+        { status: 400 },
+      );
+    }
+
+    const result = await importLogoProducts(rows);
+
     return Response.json({
       success: true,
-      count: results.length,
+      count: result.imported,
+      skipped: result.skipped,
     });
   } catch (error) {
-    console.error(error);
+    console.error("[ProductImportError]", error);
 
     return Response.json(
       {
         success: false,
+        message: "İçe aktarım sırasında hata oluştu.",
       },
-      {
-        status: 500,
-      },
+      { status: 500 },
     );
   }
 }

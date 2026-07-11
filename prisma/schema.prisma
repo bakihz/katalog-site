@@ -10,14 +10,31 @@ generator client {
 model Product {
   id            Int       @id @default(autoincrement())
 
+  logoLogicalRef Int?
+
   stockCode     String?   @unique
+
+  logoName      String?
+  storeName     String?
+  logoDescription2 String?
+  logoDescription3 String?
+  producerCode  String?
+  logoCategoryRaw String?
+  logoSubCategoryRaw String?
+  logoBrandRef  Int?
+  logoUnitSetRef Int?
+  logoIsActive  Boolean  @default(true)
+  lastLogoModifiedAt DateTime?
+  lastLogoSyncAt DateTime?
 
   name          String
   slug          String    @unique
 
+  shortDescription String?
   description   String?
 
   price         Float?
+  vatRate       Float?
 
   brand         String?
 
@@ -32,7 +49,13 @@ model Product {
 
   features      String?
 
+  showOnWebsite Boolean @default(false)
+  isFeatured    Boolean @default(false)
+  webStockStatus String?
+  sortOrder     Int     @default(0)
+
   createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model User {

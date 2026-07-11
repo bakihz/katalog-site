@@ -5,8 +5,9 @@ const adminNavLinks: DashboardNavLink[] = [
   { href: "/admin", label: "Özet", icon: "📊", exact: true },
   { href: "/admin/payments", label: "Ödemeler", icon: "💳" },
   { href: "/admin/agents", label: "Temsilciler", icon: "👥" },
-  { href: "/admin/providers", label: "Sanal POS", icon: "🏦" },
+  { href: "/admin/products", label: "Ürünler", icon: "🧾" },
   { href: "/admin/import", label: "Ürün Aktar", icon: "📦" },
+  { href: "/admin/providers", label: "Sanal POS", icon: "🏦" },
   { href: "/admin/settings", label: "Ayarlar", icon: "⚙️" },
 ];
 
