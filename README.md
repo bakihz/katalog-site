@@ -150,6 +150,10 @@ ADMIN_PASSWORD=
 APP_URL=
 PAYMENT_MAX_AMOUNT=
 PAYMENT_DEBUG_LOGS=
+OLLAMA_PRODUCT_SUGGESTIONS_ENABLED=
+OLLAMA_BASE_URL=
+OLLAMA_MODEL=
+OLLAMA_TIMEOUT_MS=
 ZIRAAT_CLIENT_ID=
 ```
 
@@ -627,3 +631,24 @@ git push
 - Consider a safer money representation than `Float`.
 - Move admin/agent authorization to a clearer DB-backed role model later.
 - Implement the production backup procedure after the backup disk is installed.
+## Ollama product suggestions
+
+Product catalog suggestions can optionally use Ollama. If Ollama is disabled or unavailable, the rule-based suggestion flow remains available.
+
+Example `.env`:
+
+```env
+OLLAMA_PRODUCT_SUGGESTIONS_ENABLED=true
+OLLAMA_BASE_URL=http://192.168.5.107:11434
+OLLAMA_MODEL=qwen3:14b
+OLLAMA_TIMEOUT_MS=120000
+```
+
+When Ollama runs on another office PC:
+
+- The Ollama PC must be powered on.
+- The model must be installed, for example: `ollama pull qwen3:14b`.
+- Ollama must listen on the LAN: `OLLAMA_HOST=0.0.0.0:11434`.
+- Windows Firewall must allow inbound TCP `11434` on the office network.
+- The project PC should receive a response from `curl http://OLLAMA_PC_IP:11434/api/tags`.
+- Do not expose this port to the public internet and do not configure router port forwarding for it.

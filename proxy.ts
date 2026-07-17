@@ -18,6 +18,11 @@ function isPublicAdminRoute(pathname: string) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (request.method === "POST" && request.headers.has("next-action")) {
+    const url = request.nextUrl.clone();
+    return NextResponse.redirect(url, { status: 303 });
+  }
+
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", pathname);
 

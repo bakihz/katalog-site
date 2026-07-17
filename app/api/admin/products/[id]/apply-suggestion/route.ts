@@ -57,19 +57,29 @@ export async function POST(
   );
 
   try {
+    const data = {
+      name: suggestedName,
+      slug,
+      shortDescription: getSuggestedValue(product.suggestedShortDescription),
+      description: getSuggestedValue(product.suggestedDescription),
+      category: getSuggestedValue(product.suggestedCategory),
+      subCategory: getSuggestedValue(product.suggestedSubCategory),
+      brand: getSuggestedValue(product.suggestedBrand),
+      features: getSuggestedValue(product.suggestedFeatures),
+      googleTaxonomyId: getSuggestedValue(
+        (product as { suggestedGoogleTaxonomyId?: string | null })
+          .suggestedGoogleTaxonomyId,
+      ),
+      googleTaxonomyPath: getSuggestedValue(
+        (product as { suggestedGoogleTaxonomyPath?: string | null })
+          .suggestedGoogleTaxonomyPath,
+      ),
+      suggestionStatus: "applied",
+    } as Prisma.ProductUpdateInput;
+
     await prisma.product.update({
       where: { id: productId },
-      data: {
-        name: suggestedName,
-        slug,
-        shortDescription: getSuggestedValue(product.suggestedShortDescription),
-        description: getSuggestedValue(product.suggestedDescription),
-        category: getSuggestedValue(product.suggestedCategory),
-        subCategory: getSuggestedValue(product.suggestedSubCategory),
-        brand: getSuggestedValue(product.suggestedBrand),
-        features: getSuggestedValue(product.suggestedFeatures),
-        suggestionStatus: "applied",
-      } satisfies Prisma.ProductUpdateInput,
+      data,
     });
   } catch (error) {
     console.error("[AdminProductApplySuggestionError]", error);

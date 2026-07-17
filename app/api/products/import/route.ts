@@ -1,4 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import {
+  resolveLogoBrandName,
+  resolveLogoUnitName,
+} from "@/lib/logoReferences";
 import csv from "csv-parser";
 import { Readable } from "stream";
 
@@ -16,6 +20,8 @@ type LogoProductRow = {
   logoSubCategoryRaw: string | null;
   logoBrandRef: number | null;
   logoUnitSetRef: number | null;
+  logoBrandName: string | null;
+  logoUnitName: string | null;
   logoIsActive: boolean;
   vatRate: number | null;
   lastLogoModifiedAt: Date | null;
@@ -125,6 +131,8 @@ function normalizeLogoRow(row: CsvRow): LogoProductRow | null {
     logoSubCategoryRaw: getCell(row, "SPECODE3") || null,
     logoBrandRef: parseNumber(getCell(row, "MARKREF")),
     logoUnitSetRef: parseNumber(getCell(row, "UNITSETREF")),
+    logoBrandName: null,
+    logoUnitName: null,
     logoIsActive: active !== "1",
     vatRate: parseNumber(getCell(row, "VAT")),
     lastLogoModifiedAt: parseDate(getCell(row, "CAPIBLOCK_MODIFIEDDATE")),
@@ -160,6 +168,9 @@ async function importLogoProducts(rows: CsvRow[]) {
       continue;
     }
 
+    const logoBrandName = await resolveLogoBrandName(item.logoBrandRef);
+    const logoUnitName = await resolveLogoUnitName(item.logoUnitSetRef);
+
     const existing = await prisma.product.findUnique({
       where: { stockCode: item.stockCode },
     });
@@ -178,11 +189,13 @@ async function importLogoProducts(rows: CsvRow[]) {
           logoSubCategoryRaw: item.logoSubCategoryRaw,
           logoBrandRef: item.logoBrandRef,
           logoUnitSetRef: item.logoUnitSetRef,
+          logoBrandName,
+          logoUnitName,
           logoIsActive: item.logoIsActive,
           vatRate: item.vatRate,
           lastLogoModifiedAt: item.lastLogoModifiedAt,
           lastLogoSyncAt: new Date(),
-        },
+        } as Parameters<typeof prisma.product.update>[0]["data"],
       });
     } else {
       const catalogName = getInitialCatalogName(item);
@@ -200,6 +213,8 @@ async function importLogoProducts(rows: CsvRow[]) {
           logoSubCategoryRaw: item.logoSubCategoryRaw,
           logoBrandRef: item.logoBrandRef,
           logoUnitSetRef: item.logoUnitSetRef,
+          logoBrandName,
+          logoUnitName,
           logoIsActive: item.logoIsActive,
           vatRate: item.vatRate,
           lastLogoModifiedAt: item.lastLogoModifiedAt,
@@ -208,12 +223,13 @@ async function importLogoProducts(rows: CsvRow[]) {
           slug: await createUniqueSlug(catalogName, item.stockCode),
           category: null,
           subCategory: null,
-          brand: null,
+          brand: logoBrandName,
+          unit: logoUnitName,
           showOnWebsite: false,
           isFeatured: false,
           stockStatus: item.logoIsActive ? "Logo aktif" : "Logo pasif",
           webStockStatus: "Sorunuz",
-        },
+        } as Parameters<typeof prisma.product.create>[0]["data"],
       });
     }
 

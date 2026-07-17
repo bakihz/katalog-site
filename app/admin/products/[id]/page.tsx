@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { isOllamaProductSuggestionEnabled } from "@/lib/ollamaProductSuggestions";
 import { AppButton, PageHeader } from "@/components/ui";
 
 type AdminProductDetailPageProps = {
@@ -34,6 +35,7 @@ function formatDate(date: Date | null) {
 function getAlertMessage(success?: string, error?: string) {
   if (error === "name") return "Katalog adı zorunludur.";
   if (error === "suggestion") return "Ürün önerisi üretilirken hata oluştu.";
+  if (error === "ollama-suggestion") return "Ollama önerisi alınamadı. Ollama çalışıyor mu ve env ayarları doğru mu kontrol edin.";
   if (error === "no-suggestion") return "Uygulanacak öneri bulunamadı.";
   if (error === "apply-suggestion") return "Ürün önerisi uygulanırken hata oluştu.";
   if (error) return "Ürün işlemi sırasında hata oluştu.";
@@ -82,6 +84,17 @@ export default async function AdminProductDetailPage({
   const displayName = getDisplayName(product);
   const alertMessage = getAlertMessage(success, error);
   const hasSuggestion = Boolean(product.suggestedName);
+  const isOllamaEnabled = isOllamaProductSuggestionEnabled();
+  const taxonomy = product as typeof product & {
+    googleTaxonomyId?: string | null;
+    googleTaxonomyPath?: string | null;
+    suggestedGoogleTaxonomyId?: string | null;
+    suggestedGoogleTaxonomyPath?: string | null;
+    suggestedSourceUrls?: string | null;
+    suggestedLearningNotes?: string | null;
+    logoBrandName?: string | null;
+    logoUnitName?: string | null;
+  };
 
   return (
     <div className="space-y-6">
@@ -263,15 +276,78 @@ export default async function AdminProductDetailPage({
               <div>
                 <h3 className="text-lg font-bold">Katalog Önerisi</h3>
                 <p className="mt-1 text-sm text-[#68746e]">
-                  Şimdilik kural tabanlı çalışır. Ollama/OpenAI daha sonra bu
-                  bölüme bağlanabilir.
+                  Kural tabanlı öneri hızlıdır. Ollama önerisi daha kaliteli
+                  sonuç hedefler ve yine taslak olarak kaydedilir.
                 </p>
               </div>
-              <form action={`/api/admin/products/${product.id}/suggest`} method="POST">
-                <AppButton type="submit" variant="outline">
-                  Öneri Üret
+              <div className="flex flex-col gap-2">
+                <form
+                  action={`/api/admin/products/${product.id}/suggest`}
+                  method="POST"
+                >
+                  <input type="hidden" name="engine" value="rule" />
+                  <AppButton type="submit" variant="outline">
+                    Kural Tabanlı Öner
+                  </AppButton>
+                </form>
+                <form
+                  action={`/api/admin/products/${product.id}/suggest`}
+                  method="POST"
+                >
+                  <input type="hidden" name="engine" value="ollama" />
+                  <AppButton
+                    type="submit"
+                    variant="secondary"
+                    disabled={!isOllamaEnabled}
+                    title={
+                      isOllamaEnabled
+                        ? "Ollama ile öneri üret"
+                        : "OLLAMA_PRODUCT_SUGGESTIONS_ENABLED=true olmalı"
+                    }
+                  >
+                    Ollama ile Öner
+                  </AppButton>
+                </form>
+              </div>
+            </div>
+
+            <form
+              action={`/api/admin/products/${product.id}/suggest`}
+              method="POST"
+              className="mt-4 rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] p-4"
+            >
+              <input type="hidden" name="engine" value="web-ollama" />
+              <label className="block text-xs font-semibold text-[#68746e]">
+                Web Kaynak URL&apos;leri
+              </label>
+              <textarea
+                name="sourceUrls"
+                rows={3}
+                placeholder="Her satıra bir kaynak URL yaz. En fazla 3 URL okunur."
+                className="mt-2 w-full rounded-2xl border border-[#17201c]/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#173f32]/40"
+              />
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <p className="text-xs leading-5 text-[#68746e]">
+                  Kaynaklar öneriye yardımcı olur; kalıcı sözlüğe otomatik
+                  yazılmaz.
+                </p>
+                <AppButton
+                  type="submit"
+                  variant="secondary"
+                  disabled={!isOllamaEnabled}
+                >
+                  Web Destekli Öner
                 </AppButton>
-              </form>
+              </div>
+            </form>
+
+            <div className="mt-4 rounded-2xl bg-[#f8f6f1] px-4 py-3 text-xs text-[#68746e]">
+              Ollama durumu:{" "}
+              <span className="font-semibold text-[#17201c]">
+                {isOllamaEnabled ? "Aktif" : "Kapalı"}
+              </span>
+              {!isOllamaEnabled &&
+                " — kullanmak için .env içinde OLLAMA_PRODUCT_SUGGESTIONS_ENABLED=true yap."}
             </div>
 
             {hasSuggestion ? (
@@ -306,6 +382,9 @@ export default async function AdminProductDetailPage({
                 </div>
 
                 <dl className="space-y-3 text-sm">
+                  <div className="rounded-xl bg-[#f8f6f1] px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#68746e]">
+                    Katalog Alanları
+                  </div>
                   <div>
                     <dt className="font-semibold text-[#68746e]">Önerilen Ad</dt>
                     <dd className="text-[#17201c]">
@@ -325,6 +404,41 @@ export default async function AdminProductDetailPage({
                       {product.suggestedBrand ?? "-"}
                     </dd>
                   </div>
+                  <div className="rounded-xl bg-[#f8f6f1] px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#68746e]">
+                    Google Taxonomy
+                  </div>
+                  <div>
+                    <dt className="font-semibold text-[#68746e]">
+                      Google Taxonomy
+                    </dt>
+                    <dd className="text-[#17201c]">
+                      {taxonomy.suggestedGoogleTaxonomyPath
+                        ? `${taxonomy.suggestedGoogleTaxonomyId ?? "-"} - ${
+                            taxonomy.suggestedGoogleTaxonomyPath
+                          }`
+                        : "-"}
+                    </dd>
+                  </div>
+                  {taxonomy.suggestedSourceUrls && (
+                    <div>
+                      <dt className="font-semibold text-[#68746e]">
+                        Web Kaynakları
+                      </dt>
+                      <dd className="whitespace-pre-line break-words text-[#17201c]">
+                        {taxonomy.suggestedSourceUrls}
+                      </dd>
+                    </div>
+                  )}
+                  {taxonomy.suggestedLearningNotes && (
+                    <div>
+                      <dt className="font-semibold text-[#68746e]">
+                        Öğrenme Notları
+                      </dt>
+                      <dd className="whitespace-pre-line text-[#17201c]">
+                        {taxonomy.suggestedLearningNotes}
+                      </dd>
+                    </div>
+                  )}
                   <div>
                     <dt className="font-semibold text-[#68746e]">Kısa Açıklama</dt>
                     <dd className="text-[#17201c]">
@@ -401,9 +515,29 @@ export default async function AdminProductDetailPage({
                 </dd>
               </div>
               <div>
+                <dt className="font-semibold text-[#68746e]">
+                  Google Taxonomy
+                </dt>
+                <dd className="text-[#17201c]">
+                  {taxonomy.googleTaxonomyPath
+                    ? `${taxonomy.googleTaxonomyId ?? "-"} - ${
+                        taxonomy.googleTaxonomyPath
+                      }`
+                    : "-"}
+                </dd>
+              </div>
+              <div>
                 <dt className="font-semibold text-[#68746e]">Logo Marka Ref</dt>
                 <dd className="text-[#17201c]">
                   {product.logoBrandRef ?? "-"}
+                  {taxonomy.logoBrandName ? ` / ${taxonomy.logoBrandName}` : ""}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-semibold text-[#68746e]">Logo Birim</dt>
+                <dd className="text-[#17201c]">
+                  {product.logoUnitSetRef ?? "-"}
+                  {taxonomy.logoUnitName ? ` / ${taxonomy.logoUnitName}` : ""}
                 </dd>
               </div>
               <div>

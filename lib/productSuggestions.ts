@@ -1,4 +1,6 @@
-type ProductSuggestionInput = {
+import { findBestGoogleTaxonomyCandidate } from "@/lib/googleTaxonomy";
+
+export type ProductSuggestionInput = {
   name: string;
   stockCode: string | null;
   logoName: string | null;
@@ -7,7 +9,10 @@ type ProductSuggestionInput = {
   logoDescription3: string | null;
   logoCategoryRaw: string | null;
   logoSubCategoryRaw: string | null;
+  logoBrandRef?: number | null;
+  logoBrandName?: string | null;
   producerCode: string | null;
+  logoUnitName?: string | null;
   brand: string | null;
   category: string | null;
   subCategory: string | null;
@@ -21,6 +26,10 @@ export type ProductSuggestion = {
   suggestedSubCategory: string | null;
   suggestedBrand: string | null;
   suggestedFeatures: string | null;
+  suggestedGoogleTaxonomyId: string | null;
+  suggestedGoogleTaxonomyPath: string | null;
+  suggestedSourceUrls?: string | null;
+  suggestedLearningNotes?: string | null;
   suggestionConfidence: number;
   suggestionSource: string;
 };
@@ -58,12 +67,53 @@ const brandLikeWords = new Set([
   "CALLEBAUT",
   "FO",
   "OVABEY",
+  "OVALETTE",
   "PURATOS",
   "ŞÖLEN",
   "TORKU",
   "ULKER",
   "ÜLKER",
 ]);
+
+const knownLogoBrandRefs = new Map<number, string>([[38, "Ovalette"]]);
+
+const knownBrandNames = [
+  "Alba",
+  "Altınmarka",
+  "Bakels",
+  "Callebaut",
+  "FO",
+  "Ovalette",
+  "Puratos",
+  "Ülker",
+];
+
+function inferKnownBrand(product: ProductSuggestionInput) {
+  if (product.logoBrandRef && knownLogoBrandRefs.has(product.logoBrandRef)) {
+    return knownLogoBrandRefs.get(product.logoBrandRef) ?? null;
+  }
+
+  if (product.logoBrandName) {
+    return normalizeTitle(product.logoBrandName);
+  }
+
+  const text = [
+    product.brand,
+    product.logoBrandName,
+    product.logoName,
+    product.storeName,
+    product.name,
+  ]
+    .map(cleanText)
+    .join(" ")
+    .toLocaleLowerCase("tr-TR");
+
+  return (
+    knownBrandNames.find((brand) =>
+      text.includes(brand.toLocaleLowerCase("tr-TR")),
+    ) ?? null
+  );
+}
 
 function cleanText(value: string | null | undefined) {
   return String(value ?? "")
@@ -81,12 +131,12 @@ function cleanText(value: string | null | undefined) {
 
 function normalizeUnitSpacing(value: string) {
   return value
-    .replace(/\b(\d+)\s*(kg|kğ|kilogram)\b/gi, "$1 KG")
-    .replace(/\b(\d+)\s*(gr|g|gram)\b/gi, "$1 GR")
-    .replace(/\b(\d+)\s*(lt|l|litre)\b/gi, "$1 LT")
-    .replace(/\b(\d+)\s*(ml|mililitre)\b/gi, "$1 ML")
-    .replace(/\b(\d+)\s*(cm|santim)\b/gi, "$1 CM")
-    .replace(/\b(\d+)\s*(adet|ad)\b/gi, "$1 Adet");
+    .replace(/\b(\d+(?:[,.]\d+)?)\s*(kg|kğ|kilogram)\b/gi, "$1 KG")
+    .replace(/\b(\d+(?:[,.]\d+)?)\s*(gr|g|gram)\b/gi, "$1 GR")
+    .replace(/\b(\d+(?:[,.]\d+)?)\s*(lt|l|litre)\b/gi, "$1 LT")
+    .replace(/\b(\d+(?:[,.]\d+)?)\s*(ml|mililitre)\b/gi, "$1 ML")
+    .replace(/\b(\d+(?:[,.]\d+)?)\s*(cm|santim)\b/gi, "$1 CM")
+    .replace(/\b(\d+(?:[,.]\d+)?)\s*(adet|ad)\b/gi, "$1 Adet");
 }
 
 function normalizeNumberSpacing(value: string) {
@@ -272,9 +322,12 @@ export function generateRuleBasedProductSuggestion(
     "İsimsiz Ürün";
   const suggestedCategory = pickCategory(product);
   const suggestedSubCategory = pickSubCategory(product, suggestedCategory);
-  const suggestedBrand = product.brand ? normalizeTitle(product.brand) : null;
+  const suggestedBrand =
+    (product.brand ? normalizeTitle(product.brand) : null) ||
+    inferKnownBrand(product);
   const suggestedFeatures = buildFeatures(product);
   const suggestedDescription = buildDescription(product, suggestedName);
+  const taxonomy = findBestGoogleTaxonomyCandidate(product);
 
   return {
     suggestedName,
@@ -286,6 +339,8 @@ export function generateRuleBasedProductSuggestion(
     suggestedSubCategory,
     suggestedBrand,
     suggestedFeatures,
+    suggestedGoogleTaxonomyId: taxonomy?.id ?? null,
+    suggestedGoogleTaxonomyPath: taxonomy?.path ?? null,
     suggestionConfidence: calculateConfidence(product),
     suggestionSource: "rule-based-v1",
   };

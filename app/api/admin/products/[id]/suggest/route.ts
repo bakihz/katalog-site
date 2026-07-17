@@ -1,7 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { generateOllamaProductSuggestion } from "@/lib/ollamaProductSuggestions";
 import { generateRuleBasedProductSuggestion } from "@/lib/productSuggestions";
+import { fetchWebResearchSources } from "@/lib/webResearch";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -10,6 +12,14 @@ function getBaseUrl(req: NextRequest): string {
     "localhost:3000";
   const protocol = req.headers.get("x-forwarded-proto") || "http";
   return `${protocol}://${host}`;
+}
+
+function limitText(value: string | null | undefined, maxLength: number) {
+  if (!value) return value ?? null;
+  const normalized = value.trim();
+  if (normalized.length <= maxLength) return normalized;
+
+  return `${normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
 }
 
 export async function POST(
@@ -35,20 +45,56 @@ export async function POST(
   }
 
   try {
-    const suggestion = generateRuleBasedProductSuggestion(product);
+    const formData = await req.formData();
+    const engine = String(formData.get("engine") ?? "rule");
+    const sourceUrls = String(formData.get("sourceUrls") ?? "");
+    const webSources =
+      engine === "web-ollama" ? await fetchWebResearchSources(sourceUrls) : [];
+    const suggestion =
+      engine === "ollama" || engine === "web-ollama"
+        ? await generateOllamaProductSuggestion(product, { webSources })
+        : generateRuleBasedProductSuggestion(product);
+    const safeSuggestion = {
+      ...suggestion,
+      suggestedName: limitText(suggestion.suggestedName, 250),
+      suggestedShortDescription: limitText(
+        suggestion.suggestedShortDescription,
+        1000,
+      ),
+      suggestedDescription: limitText(suggestion.suggestedDescription, 1000),
+      suggestedCategory: limitText(suggestion.suggestedCategory, 250),
+      suggestedSubCategory: limitText(suggestion.suggestedSubCategory, 250),
+      suggestedBrand: limitText(suggestion.suggestedBrand, 250),
+      suggestedFeatures: limitText(suggestion.suggestedFeatures, 1000),
+      suggestedGoogleTaxonomyId: limitText(
+        suggestion.suggestedGoogleTaxonomyId,
+        250,
+      ),
+      suggestedGoogleTaxonomyPath: limitText(
+        suggestion.suggestedGoogleTaxonomyPath,
+        1000,
+      ),
+      suggestedSourceUrls: limitText(suggestion.suggestedSourceUrls, 1000),
+      suggestedLearningNotes: limitText(suggestion.suggestedLearningNotes, 1000),
+      suggestionSource: limitText(suggestion.suggestionSource, 250),
+    };
 
     await prisma.product.update({
       where: { id: productId },
       data: {
-        ...suggestion,
+        ...safeSuggestion,
         suggestionStatus: "draft",
         suggestionGeneratedAt: new Date(),
-      } satisfies Prisma.ProductUpdateInput,
+      } as Prisma.ProductUpdateInput,
     });
   } catch (error) {
     console.error("[AdminProductSuggestError]", error);
     return NextResponse.redirect(
-      `${baseUrl}/admin/products/${productId}?error=suggestion`,
+      `${baseUrl}/admin/products/${productId}?error=${
+        error instanceof Error && error.message.includes("Ollama")
+          ? "ollama-suggestion"
+          : "suggestion"
+      }`,
       { status: 303 },
     );
   }

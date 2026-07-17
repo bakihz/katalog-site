@@ -23,6 +23,8 @@ model Product {
   logoSubCategoryRaw String?
   logoBrandRef  Int?
   logoUnitSetRef Int?
+  logoBrandName String?
+  logoUnitName String?
   logoIsActive  Boolean  @default(true)
   lastLogoModifiedAt DateTime?
   lastLogoSyncAt DateTime?
@@ -40,6 +42,8 @@ model Product {
 
   category      String?
   subCategory   String?
+  googleTaxonomyId String?
+  googleTaxonomyPath String?
 
   unit          String?
 
@@ -61,6 +65,10 @@ model Product {
   suggestedSubCategory String?
   suggestedBrand String?
   suggestedFeatures String?
+  suggestedGoogleTaxonomyId String?
+  suggestedGoogleTaxonomyPath String?
+  suggestedSourceUrls String?
+  suggestedLearningNotes String?
   suggestionConfidence Float?
   suggestionSource String?
   suggestionStatus String @default("none")
@@ -68,6 +76,28 @@ model Product {
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+model LogoBrandReference {
+  id          Int      @id @default(autoincrement())
+  logicalRef  Int      @unique
+  code        String?
+  name        String
+  isActive    Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+}
+
+model LogoUnitReference {
+  id          Int      @id @default(autoincrement())
+  unitSetRef  Int      @unique
+  setCode     String?
+  setName     String?
+  mainUnitCode String?
+  mainUnitName String?
+  isActive    Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
 }
 
 model User {
