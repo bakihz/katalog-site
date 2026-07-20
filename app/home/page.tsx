@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Prisma } from "@prisma/client";
 import { cookies } from "next/headers";
 import { verifyAgentCookie } from "@/lib/agentAuth";
 import { prisma } from "@/lib/prisma";
@@ -26,12 +27,38 @@ export const metadata: Metadata = {
   },
 };
 
+const catalogPageSize = 24;
+
+function buildCatalogHref({
+  category,
+  query,
+  page,
+}: {
+  category?: string;
+  query?: string;
+  page?: number;
+}) {
+  const params = new URLSearchParams();
+
+  if (category) params.set("kategori", category);
+  if (query) params.set("q", query);
+  if (page && page > 1) params.set("page", String(page));
+
+  const queryString = params.toString();
+  return queryString ? `/home?${queryString}` : "/home";
+}
+
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ kategori?: string; q?: string }>;
+  searchParams: Promise<{ kategori?: string; q?: string; page?: string }>;
 }) {
-  const { kategori, q } = await searchParams;
+  const { kategori: requestedCategory, q: requestedQuery, page: requestedPage } =
+    await searchParams;
+  const kategori = requestedCategory?.trim().slice(0, 120) || undefined;
+  const q = requestedQuery?.trim().slice(0, 100) || undefined;
+  const parsedPage = Number(requestedPage ?? "1");
+  const currentPage = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
   const cookieStore = await cookies();
   const agentId = await verifyAgentCookie(
@@ -46,41 +73,60 @@ export default async function HomePage({
   const isAgentLoggedIn = Boolean(agent?.isActive);
   const agentLoginHref = isAgentLoggedIn ? "/panel" : "/giris";
 
-  const rawProducts = await prisma.product.findMany({
-    orderBy: { name: "asc" },
-  });
+  const where: Prisma.ProductWhereInput = {
+    showOnWebsite: true,
+    ...(kategori ? { category: kategori } : {}),
+    ...(q
+      ? {
+          OR: [
+            { name: { contains: q } },
+            { brand: { contains: q } },
+          ],
+        }
+      : {}),
+  };
 
-  // showOnWebsite filtresini JS'te uygula (engine yeniden oluşturulana kadar)
-  const allProducts = rawProducts.filter((p) => p.showOnWebsite === true);
+  const [products, totalProducts, categoryRows] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        brand: true,
+        category: true,
+        subCategory: true,
+        imageUrl: true,
+        isFeatured: true,
+      },
+      orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
+      skip: (currentPage - 1) * catalogPageSize,
+      take: catalogPageSize,
+    }),
+    prisma.product.count({ where }),
+    prisma.product.findMany({
+      where: { showOnWebsite: true, category: { not: null } },
+      select: { category: true },
+      distinct: ["category"],
+      orderBy: { category: "asc" },
+    }),
+  ]);
 
-  // Unique categories
-  const categories = Array.from(
-    new Set(
-      allProducts
-        .map((p) => p.category)
-        .filter((c): c is string => Boolean(c)),
-    ),
-  ).sort();
-
-  // Filter
-  const filtered = allProducts.filter((p) => {
-    const matchCat = kategori ? p.category === kategori : true;
-    const matchQ = q
-      ? p.name.toLowerCase().includes(q.toLowerCase()) ||
-        (p.brand ?? "").toLowerCase().includes(q.toLowerCase())
-      : true;
-    return matchCat && matchQ;
-  });
+  const categories = categoryRows
+    .map((product) => product.category)
+    .filter((category): category is string => Boolean(category));
+  const totalPages = Math.max(1, Math.ceil(totalProducts / catalogPageSize));
+  const hasProducts = products.length > 0;
 
   return (
-    <div className="min-h-screen bg-[#f4f1ea] text-[#17201c]">
+    <div className="min-h-screen overflow-x-hidden bg-[#f4f1ea] text-[#17201c]">
       {/* Subtle dot pattern */}
       <div className="pointer-events-none fixed inset-0 opacity-30 [background-image:radial-gradient(#809087_0.7px,transparent_0.7px)] [background-size:18px_18px]" />
 
       {/* ── HEADER ── */}
       <header className="sticky top-0 z-40 border-b border-[#17201c]/10 bg-[#f4f1ea]/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 sm:px-10 lg:px-16">
-          <Link href="/home" className="flex items-center gap-3">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:px-10 lg:px-16">
+          <Link href="/home" className="flex min-w-0 items-center gap-3">
             <div className="relative size-11 shrink-0 overflow-hidden rounded-xl shadow-md">
               <Image
                 src="/logo.svg"
@@ -91,20 +137,20 @@ export default async function HomePage({
                 className="object-contain"
               />
             </div>
-            <div>
-              <p className="text-base font-bold tracking-tight leading-tight">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold leading-tight tracking-tight sm:text-base">
                 Lale EDT Gıda A.Ş.
               </p>
-              <p className="text-[11px] uppercase tracking-[0.22em] text-[#63736b]">
+              <p className="hidden text-[11px] uppercase tracking-[0.22em] text-[#63736b] sm:block">
                 Ürün kataloğu
               </p>
             </div>
           </Link>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <Link
               href={agentLoginHref}
-              className="inline-flex items-center gap-2 rounded-full bg-[#173f32] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white shadow-lg shadow-[#173f32]/15 transition hover:bg-[#10231d]"
+              className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-[#173f32] px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white shadow-lg shadow-[#173f32]/15 transition hover:bg-[#10231d] sm:px-4 sm:tracking-[0.14em]"
             >
               {isAgentLoggedIn ? (
                 <>
@@ -115,21 +161,24 @@ export default async function HomePage({
                   <span>Panele Git</span>
                 </>
               ) : (
-                "Temsilci Girişi"
+                <>
+                  <span className="sm:hidden">Giriş</span>
+                  <span className="hidden sm:inline">Temsilci Girişi</span>
+                </>
               )}
             </Link>
           </div>
         </div>
       </header>
 
-      <main className="relative mx-auto max-w-7xl px-6 py-10 sm:px-10 lg:px-16">
+      <main className="relative mx-auto max-w-7xl px-4 py-10 sm:px-10 lg:px-16">
         {/* ── HERO ── */}
         <section className="mb-12">
           <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#173f32]/8 px-4 py-2 text-sm font-semibold text-[#173f32]">
             <span className="size-2 rounded-full bg-[#c2853e]" />
             Ürün & Hizmet Kataloğu
           </p>
-          <h1 className="max-w-2xl text-4xl font-semibold leading-tight tracking-[-0.035em] sm:text-5xl">
+          <h1 className="max-w-2xl text-[2rem] font-semibold leading-tight tracking-[-0.035em] sm:text-5xl">
             Kaliteli Gıda,
             <br />
             <span className="text-[#c2853e]">Güvenilir Tedarik.</span>
@@ -170,9 +219,9 @@ export default async function HomePage({
 
           {/* Category pills */}
           {categories.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
               <Link
-                href={q ? `/home?q=${encodeURIComponent(q)}` : "/home"}
+                href={buildCatalogHref({ query: q })}
                 className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${
                   !kategori
                     ? "border-[#173f32] bg-[#173f32] text-white"
@@ -184,7 +233,7 @@ export default async function HomePage({
               {categories.map((cat) => (
                 <Link
                   key={cat}
-                  href={`/home?kategori=${encodeURIComponent(cat)}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+                  href={buildCatalogHref({ category: cat, query: q })}
                   className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${
                     kategori === cat
                       ? "border-[#173f32] bg-[#173f32] text-white"
@@ -200,15 +249,15 @@ export default async function HomePage({
 
         {/* ── PRODUCT COUNT ── */}
         <p className="mb-6 text-sm text-[#89938e]">
-          {filtered.length === 0
+          {totalProducts === 0
             ? "Ürün bulunamadı."
-            : `${filtered.length} ürün listeleniyor`}
+            : `${totalProducts} ürün arasından ${(currentPage - 1) * catalogPageSize + 1}-${Math.min(currentPage * catalogPageSize, totalProducts)} arası listeleniyor`}
         </p>
 
         {/* ── PRODUCT GRID ── */}
-        {filtered.length > 0 ? (
+        {hasProducts ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-5 lg:grid-cols-4 xl:grid-cols-5">
-            {filtered.map((product) => (
+            {products.map((product) => (
               <Link
                 key={product.id}
                 href={`/urun/${product.slug}`}
@@ -296,6 +345,49 @@ export default async function HomePage({
               Tüm ürünleri göster
             </Link>
           </div>
+        )}
+
+        {hasProducts && totalPages > 1 && (
+          <nav
+            aria-label="Katalog sayfaları"
+            className="mt-10 flex items-center justify-center gap-3"
+          >
+            {currentPage > 1 ? (
+              <Link
+                href={buildCatalogHref({
+                  category: kategori,
+                  query: q,
+                  page: currentPage - 1,
+                })}
+                className="rounded-full border border-[#17201c]/15 bg-white/70 px-4 py-2 text-xs font-semibold text-[#476057] transition hover:border-[#173f32]/40 hover:bg-white"
+              >
+                Önceki
+              </Link>
+            ) : (
+              <span className="rounded-full border border-[#17201c]/10 px-4 py-2 text-xs font-semibold text-[#aab4ae]">
+                Önceki
+              </span>
+            )}
+            <span className="text-xs font-semibold text-[#63736b]">
+              Sayfa {Math.min(currentPage, totalPages)} / {totalPages}
+            </span>
+            {currentPage < totalPages ? (
+              <Link
+                href={buildCatalogHref({
+                  category: kategori,
+                  query: q,
+                  page: currentPage + 1,
+                })}
+                className="rounded-full bg-[#173f32] px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#10231d]"
+              >
+                Sonraki
+              </Link>
+            ) : (
+              <span className="rounded-full bg-[#173f32]/20 px-4 py-2 text-xs font-semibold text-[#63736b]">
+                Sonraki
+              </span>
+            )}
+          </nav>
         )}
       </main>
 
