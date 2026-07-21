@@ -3,7 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateOllamaProductSuggestion } from "@/lib/ollamaProductSuggestions";
 import { generateRuleBasedProductSuggestion } from "@/lib/productSuggestions";
-import { fetchWebResearchSources } from "@/lib/webResearch";
+import {
+  discoverProductWebResearchSources,
+  fetchWebResearchSources,
+} from "@/lib/webResearch";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -48,8 +51,12 @@ export async function POST(
     const formData = await req.formData();
     const engine = String(formData.get("engine") ?? "rule");
     const sourceUrls = String(formData.get("sourceUrls") ?? "");
-    const webSources =
-      engine === "web-ollama" ? await fetchWebResearchSources(sourceUrls) : [];
+    const autoResearch = formData.get("autoResearch") === "true";
+    const webSources = autoResearch
+      ? await discoverProductWebResearchSources(product, sourceUrls)
+      : sourceUrls.trim()
+        ? await fetchWebResearchSources(sourceUrls)
+        : [];
     const suggestion =
       engine === "ollama" || engine === "web-ollama"
         ? await generateOllamaProductSuggestion(product, { webSources })
@@ -76,6 +83,8 @@ export async function POST(
       ),
       suggestedSourceUrls: limitText(suggestion.suggestedSourceUrls, 1000),
       suggestedLearningNotes: limitText(suggestion.suggestedLearningNotes, 1000),
+      suggestionVerificationStatus: suggestion.suggestionVerificationStatus ?? "review",
+      suggestionWarnings: limitText(suggestion.suggestionWarnings, 1000),
       suggestionSource: limitText(suggestion.suggestionSource, 250),
     };
 
@@ -93,7 +102,9 @@ export async function POST(
       `${baseUrl}/admin/products/${productId}?error=${
         error instanceof Error && error.message.includes("Ollama")
           ? "ollama-suggestion"
-          : "suggestion"
+          : error instanceof Error && error.message.includes("Brave Search")
+            ? "web-research"
+            : "suggestion"
       }`,
       { status: 303 },
     );

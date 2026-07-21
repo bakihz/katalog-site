@@ -12,6 +12,7 @@ import type {
   ProductSuggestionInput,
 } from "@/lib/productSuggestions";
 import type { WebResearchSource } from "@/lib/webResearch";
+import { normalizeCatalogCategory } from "@/lib/catalogCategories";
 
 type OllamaGenerateResponse = {
   response?: string;
@@ -258,6 +259,15 @@ function parseSuggestion({
     taxonomyId,
   );
   const knownBrand = getKnownBrandName(product);
+  const hasWebSources = webSources.length > 0;
+  const hasInternalVerification = Boolean(product.catalogVerificationNote?.trim());
+  const maximumConfidence = hasInternalVerification ? 0.9 : hasWebSources ? 0.7 : 0.75;
+  const verificationStatus = hasInternalVerification ? "ready" : "review";
+  const suggestionWarnings = hasInternalVerification
+    ? "İç doğrulama notu dikkate alındı. Yine de web kaynaklarındaki teknik ayrıntıları kontrol edin."
+    : hasWebSources
+      ? "Web kaynakları benzer bir ürüne ait olabilir. Ürün varyantı, raf ömrü, saklama koşulu ve teknik ayrıntıları onaylamadan yayınlamayın."
+      : "Bu taslak yalnız Logo verisine dayanır. Ürün varyantı ve teknik ayrıntıları onaylamadan yayınlamayın.";
 
   return {
     suggestedName,
@@ -265,7 +275,7 @@ function parseSuggestion({
       parsed.suggestedShortDescription,
     ),
     suggestedDescription: normalizeNullable(parsed.suggestedDescription),
-    suggestedCategory: titleCase(parsed.suggestedCategory),
+    suggestedCategory: normalizeCatalogCategory(titleCase(parsed.suggestedCategory)),
     suggestedSubCategory: titleCase(parsed.suggestedSubCategory),
     suggestedBrand: titleCase(parsed.suggestedBrand) ?? knownBrand,
     suggestedFeatures: normalizeMultiline(parsed.suggestedFeatures),
@@ -277,8 +287,10 @@ function parseSuggestion({
     suggestedLearningNotes: normalizeMultiline(parsed.suggestedLearningNotes),
     suggestionConfidence:
       Number.isFinite(confidence) && confidence >= 0 && confidence <= 1
-        ? confidence
-        : 0.7,
+        ? Math.min(confidence, maximumConfidence)
+        : Math.min(0.7, maximumConfidence),
+    suggestionVerificationStatus: verificationStatus,
+    suggestionWarnings,
     suggestionSource: webSources.length
       ? `ollama-web:${model}`
       : `ollama:${model}`,
@@ -318,7 +330,10 @@ function buildPrompt({
     "- Uydurma teknik özellik, fiyat, stok veya marka yazma.",
     "- Web kaynakları verildiyse bilgiyi birebir kopyalama; kaynakları özetleyip katalog diline çevir.",
     "- Web kaynağı ile Logo verisi çelişirse Logo verisini ve admin onayını esas al.",
-    "- Kalıcı sözlüğe eklenebilecek terim/kısaltma öğrenimleri varsa suggestedLearningNotes alanına kısa maddeler halinde yaz.",
+    "- İç doğrulama notu varsa kesin doğru kabul et; web kaynağı bununla çelişirse web bilgisini kullanma.",
+    "- İç doğrulama notu yokken web kaynakları eko/standart/premium gibi varyant bilgisi vermiyorsa ürün varyantı hakkında hüküm yazma.",
+    "- Web kaynakları teknik ayrıntılarda çelişiyorsa raf ömrü, saklama koşulu, sıcaklık ve kullanım şekli gibi tartışmalı bilgileri yazma.",
+    "- Kalıcı sözlüğe eklenebilecek yalnız terim/kısaltma/marka öğrenimleri varsa suggestedLearningNotes alanına kısa maddeler halinde yaz. Bu alana teknik özellik, kullanım, saklama veya raf ömrü yazma.",
     "",
     "İyi örnek:",
     JSON.stringify(
@@ -373,6 +388,7 @@ function buildPrompt({
         logoBrandRef: product.logoBrandRef,
         logoBrandName: product.logoBrandName,
         logoUnitName: product.logoUnitName,
+        catalogVerificationNote: product.catalogVerificationNote,
         producerCode: product.producerCode,
         currentBrand: product.brand,
         currentCategory: product.category,

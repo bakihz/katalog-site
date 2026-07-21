@@ -45,6 +45,7 @@ function getProductText(product: ProductSuggestionInput) {
     product.logoDescription3,
     product.logoCategoryRaw,
     product.logoSubCategoryRaw,
+    product.catalogVerificationNote,
   ]
     .filter(Boolean)
     .join(" ");
@@ -79,6 +80,12 @@ export function getProductKnowledgeHints(product: ProductSuggestionInput) {
 
   if (knownBrand) {
     hints.push(`Bilinen marka: ${knownBrand}.`);
+  }
+
+  if (product.catalogVerificationNote) {
+    hints.push(
+      `İç doğrulama notu (web bilgisinden üstündür): ${product.catalogVerificationNote}`,
+    );
   }
 
   for (const item of abbreviationHints) {

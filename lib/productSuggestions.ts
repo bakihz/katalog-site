@@ -13,6 +13,7 @@ export type ProductSuggestionInput = {
   logoBrandName?: string | null;
   producerCode: string | null;
   logoUnitName?: string | null;
+  catalogVerificationNote?: string | null;
   brand: string | null;
   category: string | null;
   subCategory: string | null;
@@ -30,6 +31,8 @@ export type ProductSuggestion = {
   suggestedGoogleTaxonomyPath: string | null;
   suggestedSourceUrls?: string | null;
   suggestedLearningNotes?: string | null;
+  suggestionVerificationStatus?: "ready" | "review";
+  suggestionWarnings?: string | null;
   suggestionConfidence: number;
   suggestionSource: string;
 };

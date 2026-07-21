@@ -52,6 +52,7 @@ model Product {
   imageUrl      String?
 
   features      String?
+  catalogVerificationNote String?
 
   showOnWebsite Boolean @default(false)
   isFeatured    Boolean @default(false)
@@ -69,6 +70,8 @@ model Product {
   suggestedGoogleTaxonomyPath String?
   suggestedSourceUrls String?
   suggestedLearningNotes String?
+  suggestionVerificationStatus String?
+  suggestionWarnings String?
   suggestionConfidence Float?
   suggestionSource String?
   suggestionStatus String @default("none")

@@ -5,6 +5,7 @@ import {
   ensureUniqueProductSlug,
   slugifyProductText,
 } from "@/lib/adminProductText";
+import { normalizeCatalogCategory } from "@/lib/catalogCategories";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -62,7 +63,7 @@ export async function POST(
       slug,
       shortDescription: getSuggestedValue(product.suggestedShortDescription),
       description: getSuggestedValue(product.suggestedDescription),
-      category: getSuggestedValue(product.suggestedCategory),
+      category: normalizeCatalogCategory(product.suggestedCategory),
       subCategory: getSuggestedValue(product.suggestedSubCategory),
       brand: getSuggestedValue(product.suggestedBrand),
       features: getSuggestedValue(product.suggestedFeatures),

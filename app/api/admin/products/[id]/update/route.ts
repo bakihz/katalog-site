@@ -5,6 +5,7 @@ import {
   ensureUniqueProductSlug,
   slugifyProductText,
 } from "@/lib/adminProductText";
+import { normalizeCatalogCategory } from "@/lib/catalogCategories";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -48,6 +49,7 @@ export async function POST(
   const description = readFormValue(formData, "description");
   const imageUrl = readFormValue(formData, "imageUrl");
   const features = readFormValue(formData, "features");
+  const catalogVerificationNote = readFormValue(formData, "catalogVerificationNote");
   const category = readFormValue(formData, "category");
   const subCategory = readFormValue(formData, "subCategory");
   const brand = readFormValue(formData, "brand");
@@ -76,7 +78,8 @@ export async function POST(
         description: description || null,
         imageUrl: imageUrl || null,
         features: features || null,
-        category: category || null,
+        catalogVerificationNote: catalogVerificationNote || null,
+        category: normalizeCatalogCategory(category),
         subCategory: subCategory || null,
         brand: brand || null,
         webStockStatus: webStockStatus || null,
