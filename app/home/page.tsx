@@ -31,16 +31,19 @@ const catalogPageSize = 24;
 
 function buildCatalogHref({
   category,
+  subcategory,
   query,
   page,
 }: {
   category?: string;
+  subcategory?: string;
   query?: string;
   page?: number;
 }) {
   const params = new URLSearchParams();
 
   if (category) params.set("kategori", category);
+  if (subcategory) params.set("altKategori", subcategory);
   if (query) params.set("q", query);
   if (page && page > 1) params.set("page", String(page));
 
@@ -51,16 +54,68 @@ function buildCatalogHref({
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ kategori?: string; q?: string; page?: string }>;
+  searchParams: Promise<{
+    kategori?: string;
+    altKategori?: string;
+    q?: string;
+    page?: string;
+  }>;
 }) {
-  const { kategori: requestedCategory, q: requestedQuery, page: requestedPage } =
-    await searchParams;
-  const kategori = requestedCategory?.trim().slice(0, 120) || undefined;
+  const {
+    kategori: requestedCategory,
+    altKategori: requestedSubcategory,
+    q: requestedQuery,
+    page: requestedPage,
+  } = await searchParams;
+  const categorySlug = requestedCategory?.trim().slice(0, 120) || undefined;
+  const subcategorySlug =
+    requestedSubcategory?.trim().slice(0, 120) || undefined;
   const q = requestedQuery?.trim().slice(0, 100) || undefined;
   const parsedPage = Number(requestedPage ?? "1");
   const currentPage = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
-  const cookieStore = await cookies();
+  const [cookieStore, categories] = await Promise.all([
+    cookies(),
+    prisma.catalogCategory.findMany({
+      where: {
+        isActive: true,
+        products: {
+          some: {
+            showOnWebsite: true,
+            logoIsActive: true,
+            OR: [
+              { catalogSubcategoryId: null },
+              { catalogSubcategory: { isActive: true } },
+            ],
+          },
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        subcategories: {
+          where: {
+            isActive: true,
+            products: {
+              some: { showOnWebsite: true, logoIsActive: true },
+            },
+          },
+          select: { id: true, name: true, slug: true },
+          orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        },
+      },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    }),
+  ]);
+  const selectedCategory = categorySlug
+    ? categories.find((category) => category.slug === categorySlug)
+    : undefined;
+  const selectedSubcategory = selectedCategory && subcategorySlug
+    ? selectedCategory.subcategories.find(
+        (subcategory) => subcategory.slug === subcategorySlug,
+      )
+    : undefined;
   const agentId = await verifyAgentCookie(
     cookieStore.get("agent_session")?.value,
   );
@@ -76,18 +131,34 @@ export default async function HomePage({
   const where: Prisma.ProductWhereInput = {
     showOnWebsite: true,
     logoIsActive: true,
-    ...(kategori ? { category: kategori } : {}),
-    ...(q
-      ? {
-          OR: [
-            { name: { contains: q } },
-            { brand: { contains: q } },
-          ],
-        }
-      : {}),
+    catalogCategory: { isActive: true },
+    AND: [
+      {
+        OR: [
+          { catalogSubcategoryId: null },
+          { catalogSubcategory: { isActive: true } },
+        ],
+      },
+      ...(categorySlug
+        ? [{ catalogCategoryId: selectedCategory?.id ?? -1 }]
+        : []),
+      ...(subcategorySlug
+        ? [{ catalogSubcategoryId: selectedSubcategory?.id ?? -1 }]
+        : []),
+      ...(q
+        ? [
+            {
+              OR: [
+                { name: { contains: q } },
+                { brand: { contains: q } },
+              ],
+            },
+          ]
+        : []),
+    ],
   };
 
-  const [products, totalProducts, categoryRows] = await Promise.all([
+  const [products, totalProducts] = await Promise.all([
     prisma.product.findMany({
       where,
       select: {
@@ -95,8 +166,8 @@ export default async function HomePage({
         slug: true,
         name: true,
         brand: true,
-        category: true,
-        subCategory: true,
+        catalogCategory: { select: { name: true, slug: true } },
+        catalogSubcategory: { select: { name: true, slug: true } },
         imageUrl: true,
         isFeatured: true,
       },
@@ -105,17 +176,7 @@ export default async function HomePage({
       take: catalogPageSize,
     }),
     prisma.product.count({ where }),
-    prisma.product.findMany({
-      where: { showOnWebsite: true, logoIsActive: true, category: { not: null } },
-      select: { category: true },
-      distinct: ["category"],
-      orderBy: { category: "asc" },
-    }),
   ]);
-
-  const categories = categoryRows
-    .map((product) => product.category)
-    .filter((category): category is string => Boolean(category));
   const totalPages = Math.max(1, Math.ceil(totalProducts / catalogPageSize));
   const hasProducts = products.length > 0;
 
@@ -194,8 +255,19 @@ export default async function HomePage({
         <section className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           {/* Search */}
           <form method="GET" className="relative w-full sm:max-w-xs">
-            {kategori && (
-              <input type="hidden" name="kategori" value={kategori} />
+            {selectedCategory && (
+              <input
+                type="hidden"
+                name="kategori"
+                value={selectedCategory.slug}
+              />
+            )}
+            {selectedSubcategory && (
+              <input
+                type="hidden"
+                name="altKategori"
+                value={selectedSubcategory.slug}
+              />
             )}
             <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#89938e]">
               <svg
@@ -224,29 +296,74 @@ export default async function HomePage({
               <Link
                 href={buildCatalogHref({ query: q })}
                 className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${
-                  !kategori
+                  !selectedCategory
                     ? "border-[#173f32] bg-[#173f32] text-white"
                     : "border-[#17201c]/15 bg-white/60 text-[#476057] hover:border-[#173f32]/40 hover:bg-white"
                 }`}
               >
                 Tümü
               </Link>
-              {categories.map((cat) => (
+              {categories.map((category) => (
                 <Link
-                  key={cat}
-                  href={buildCatalogHref({ category: cat, query: q })}
+                  key={category.id}
+                  href={buildCatalogHref({
+                    category: category.slug,
+                    query: q,
+                  })}
                   className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${
-                    kategori === cat
+                    selectedCategory?.id === category.id
                       ? "border-[#173f32] bg-[#173f32] text-white"
                       : "border-[#17201c]/15 bg-white/60 text-[#476057] hover:border-[#173f32]/40 hover:bg-white"
                   }`}
                 >
-                  {cat}
+                  {category.name}
                 </Link>
               ))}
             </div>
           )}
         </section>
+
+        {selectedCategory && selectedCategory.subcategories.length > 0 && (
+          <section className="mb-8 rounded-2xl border border-[#17201c]/10 bg-white/55 p-3 shadow-sm backdrop-blur sm:p-4">
+            <div className="flex items-center gap-3">
+              <span className="hidden shrink-0 text-xs font-bold uppercase tracking-[0.14em] text-[#89938e] sm:inline">
+                Alt kategoriler
+              </span>
+              <div className="-mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
+                <Link
+                  href={buildCatalogHref({
+                    category: selectedCategory.slug,
+                    query: q,
+                  })}
+                  className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
+                    !selectedSubcategory
+                      ? "border-[#c2853e] bg-[#c2853e] text-white"
+                      : "border-[#17201c]/15 bg-white text-[#476057] hover:border-[#c2853e]/50"
+                  }`}
+                >
+                  Tümü
+                </Link>
+                {selectedCategory.subcategories.map((subcategory) => (
+                  <Link
+                    key={subcategory.id}
+                    href={buildCatalogHref({
+                      category: selectedCategory.slug,
+                      subcategory: subcategory.slug,
+                      query: q,
+                    })}
+                    className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
+                      selectedSubcategory?.id === subcategory.id
+                        ? "border-[#c2853e] bg-[#c2853e] text-white"
+                        : "border-[#17201c]/15 bg-white text-[#476057] hover:border-[#c2853e]/50"
+                    }`}
+                  >
+                    {subcategory.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* ── PRODUCT COUNT ── */}
         <p className="mb-6 text-sm text-[#89938e]">
@@ -305,11 +422,11 @@ export default async function HomePage({
                   <p className="line-clamp-2 text-sm font-semibold leading-snug text-[#17201c]">
                     {product.name}
                   </p>
-                  {product.category && (
+                  {product.catalogCategory && (
                     <p className="mt-1 text-[11px] text-[#89938e]">
-                      {product.subCategory
-                        ? `${product.category} / ${product.subCategory}`
-                        : product.category}
+                      {product.catalogSubcategory
+                        ? `${product.catalogCategory.name} / ${product.catalogSubcategory.name}`
+                        : product.catalogCategory.name}
                     </p>
                   )}
                   <div className="mt-auto pt-3">
@@ -356,7 +473,8 @@ export default async function HomePage({
             {currentPage > 1 ? (
               <Link
                 href={buildCatalogHref({
-                  category: kategori,
+                  category: selectedCategory?.slug,
+                  subcategory: selectedSubcategory?.slug,
                   query: q,
                   page: currentPage - 1,
                 })}
@@ -375,7 +493,8 @@ export default async function HomePage({
             {currentPage < totalPages ? (
               <Link
                 href={buildCatalogHref({
-                  category: kategori,
+                  category: selectedCategory?.slug,
+                  subcategory: selectedSubcategory?.slug,
                   query: q,
                   page: currentPage + 1,
                 })}

@@ -14,14 +14,23 @@ type ProductPageProps = {
 
 const getPublishedProduct = cache(async (slug: string) =>
   prisma.product.findFirst({
-    where: { slug, showOnWebsite: true, logoIsActive: true },
+    where: {
+      slug,
+      showOnWebsite: true,
+      logoIsActive: true,
+      catalogCategory: { isActive: true },
+      OR: [
+        { catalogSubcategoryId: null },
+        { catalogSubcategory: { isActive: true } },
+      ],
+    },
     select: {
       name: true,
       slug: true,
       imageUrl: true,
       brand: true,
-      category: true,
-      subCategory: true,
+      catalogCategory: { select: { name: true, slug: true } },
+      catalogSubcategory: { select: { name: true, slug: true } },
       shortDescription: true,
       description: true,
       features: true,
@@ -75,7 +84,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
     cookies(),
   ]);
 
-  if (!product) {
+  if (!product?.catalogCategory) {
     notFound();
   }
 
@@ -92,8 +101,8 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
   const agentLoginHref = isAgentLoggedIn ? "/panel" : "/giris";
   const featureList = getFeatureList(product.features);
   const detailItems = [
-    { label: "Kategori", value: product.category },
-    { label: "Alt kategori", value: product.subCategory },
+    { label: "Kategori", value: product.catalogCategory.name },
+    { label: "Alt kategori", value: product.catalogSubcategory?.name },
     { label: "Birim", value: product.unit },
   ].filter((item): item is { label: string; value: string } => Boolean(item.value));
   const displayDescription = product.description ?? product.shortDescription;
@@ -186,11 +195,25 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
           </div>
 
           <div className="py-1">
-            {(product.category || product.subCategory) && (
-              <p className="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-[#c2853e]">
-                {[product.category, product.subCategory].filter(Boolean).join(" / ")}
-              </p>
-            )}
+            <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#c2853e]">
+              <Link
+                href={`/home?kategori=${encodeURIComponent(product.catalogCategory.slug)}`}
+                className="transition hover:text-[#173f32]"
+              >
+                {product.catalogCategory.name}
+              </Link>
+              {product.catalogSubcategory && (
+                <>
+                  <span className="text-[#c2853e]/45">/</span>
+                  <Link
+                    href={`/home?kategori=${encodeURIComponent(product.catalogCategory.slug)}&altKategori=${encodeURIComponent(product.catalogSubcategory.slug)}`}
+                    className="transition hover:text-[#173f32]"
+                  >
+                    {product.catalogSubcategory.name}
+                  </Link>
+                </>
+              )}
+            </div>
             {product.brand && (
               <p className="mb-2 text-sm font-semibold text-[#63736b]">{product.brand}</p>
             )}
