@@ -11,17 +11,19 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
-  const productId = Number(id);
+  const categoryId = Number((await params).id);
 
-  if (!Number.isInteger(productId) || productId <= 0) {
-    return NextResponse.json({ error: "Ürün bulunamadı." }, { status: 404 });
+  if (!Number.isInteger(categoryId) || categoryId <= 0) {
+    return NextResponse.json({ error: "Kategori bulunamadı." }, { status: 404 });
   }
 
-  const product = await prisma.product.findUnique({ where: { id: productId } });
+  const category = await prisma.catalogCategory.findUnique({
+    where: { id: categoryId },
+    select: { id: true },
+  });
 
-  if (!product) {
-    return NextResponse.json({ error: "Ürün bulunamadı." }, { status: 404 });
+  if (!category) {
+    return NextResponse.json({ error: "Kategori bulunamadı." }, { status: 404 });
   }
 
   const formData = await req.formData();
@@ -29,8 +31,8 @@ export async function POST(
 
   try {
     imageUrl = await savePublicImage(formData.get("image"), {
-      directory: "products",
-      filePrefix: `product-${productId}`,
+      directory: "categories",
+      filePrefix: `category-${categoryId}`,
     });
   } catch (error) {
     if (error instanceof PublicImageUploadError) {
@@ -40,9 +42,9 @@ export async function POST(
     throw error;
   }
 
-  await prisma.product.update({
-    where: { id: productId },
-    data: { imageUrl },
+  await prisma.catalogCategory.update({
+    where: { id: categoryId },
+    data: { homepageImageUrl: imageUrl },
   });
 
   return NextResponse.json({ imageUrl });

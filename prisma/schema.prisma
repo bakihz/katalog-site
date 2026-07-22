@@ -8,202 +8,207 @@ generator client {
 }
 
 model Product {
-  id            Int       @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   logoLogicalRef Int?
 
-  stockCode     String?   @unique
+  stockCode String? @unique
 
-  logoName      String?
-  storeName     String?
-  logoDescription2 String?
-  logoDescription3 String?
-  producerCode  String?
-  logoCategoryRaw String?
+  logoName           String?
+  storeName          String?
+  logoDescription2   String?
+  logoDescription3   String?
+  producerCode       String?
+  logoCategoryRaw    String?
   logoSubCategoryRaw String?
-  logoBrandRef  Int?
-  logoUnitSetRef Int?
-  logoBrandName String?
-  logoUnitName String?
-  logoIsActive  Boolean  @default(true)
+  logoBrandRef       Int?
+  logoUnitSetRef     Int?
+  logoBrandName      String?
+  logoUnitName       String?
+  logoIsActive       Boolean   @default(true)
   lastLogoModifiedAt DateTime?
-  lastLogoSyncAt DateTime?
+  lastLogoSyncAt     DateTime?
 
-  name          String
-  slug          String    @unique
+  name String
+  slug String @unique
 
   shortDescription String?
-  description   String?
+  description      String?
 
-  price         Float?
-  vatRate       Float?
+  price   Float?
+  vatRate Float?
 
-  brand         String?
+  brand String?
 
-  category      String?
-  subCategory   String?
-  googleTaxonomyId String?
+  category           String?
+  subCategory        String?
+  googleTaxonomyId   String?
   googleTaxonomyPath String?
 
-  unit          String?
+  unit String?
 
-  stockStatus   String?
+  stockStatus String?
 
-  imageUrl      String?
+  imageUrl String?
 
-  features      String?
+  features                String?
   catalogVerificationNote String?
 
-  catalogCategoryId Int?
-  catalogCategory CatalogCategory? @relation("ProductCatalogCategory", fields: [catalogCategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  catalogSubcategoryId Int?
-  catalogSubcategory CatalogSubcategory? @relation("ProductCatalogSubcategory", fields: [catalogSubcategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  categoryReviewStatus String @default("unassigned")
-  categorySuggestion String?
+  catalogCategoryId     Int?
+  catalogCategory       CatalogCategory?    @relation("ProductCatalogCategory", fields: [catalogCategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  catalogSubcategoryId  Int?
+  catalogSubcategory    CatalogSubcategory? @relation("ProductCatalogSubcategory", fields: [catalogSubcategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  categoryReviewStatus  String              @default("unassigned")
+  categorySuggestion    String?
   subCategorySuggestion String?
 
-  showOnWebsite Boolean @default(false)
-  isFeatured    Boolean @default(false)
+  showOnWebsite  Boolean @default(false)
+  isFeatured     Boolean @default(false)
   webStockStatus String?
-  sortOrder     Int     @default(0)
+  sortOrder      Int     @default(0)
 
-  suggestedName String?
-  suggestedShortDescription String?
-  suggestedDescription String?
-  suggestedCategory String?
-  suggestedSubCategory String?
-  suggestedBrand String?
-  suggestedFeatures String?
-  suggestedGoogleTaxonomyId String?
-  suggestedGoogleTaxonomyPath String?
-  suggestedSourceUrls String?
-  suggestedLearningNotes String?
+  suggestedName                String?
+  suggestedShortDescription    String?
+  suggestedDescription         String?
+  suggestedCategory            String?
+  suggestedSubCategory         String?
+  suggestedBrand               String?
+  suggestedFeatures            String?
+  suggestedGoogleTaxonomyId    String?
+  suggestedGoogleTaxonomyPath  String?
+  suggestedSourceUrls          String?
+  suggestedLearningNotes       String?
   suggestionVerificationStatus String?
-  suggestionWarnings String?
-  suggestionConfidence Float?
-  suggestionSource String?
-  suggestionStatus String @default("none")
-  suggestionGeneratedAt DateTime?
+  suggestionWarnings           String?
+  suggestionConfidence         Float?
+  suggestionSource             String?
+  suggestionStatus             String    @default("none")
+  suggestionGeneratedAt        DateTime?
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model CatalogCategory {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique @db.NVarChar(255)
-  slug        String   @unique @db.NVarChar(255)
-  sortOrder   Int      @default(0)
-  isActive    Boolean  @default(true)
-  subcategories CatalogSubcategory[]
-  products    Product[] @relation("ProductCatalogCategory")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                  Int                  @id @default(autoincrement())
+  name                String               @unique @db.NVarChar(255)
+  slug                String               @unique @db.NVarChar(255)
+  sortOrder           Int                  @default(0)
+  isActive            Boolean              @default(true)
+  showOnHomepage      Boolean              @default(false)
+  homepageSortOrder   Int                  @default(0)
+  homepageTitle       String?              @db.NVarChar(255)
+  homepageDescription String?              @db.NVarChar(400)
+  homepageImageUrl    String?              @db.NVarChar(1000)
+  subcategories       CatalogSubcategory[]
+  products            Product[]            @relation("ProductCatalogCategory")
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 }
 
 model CatalogSubcategory {
-  id          Int      @id @default(autoincrement())
-  categoryId  Int
-  category    CatalogCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  name        String   @db.NVarChar(255)
-  slug        String   @db.NVarChar(255)
-  sortOrder   Int      @default(0)
-  isActive    Boolean  @default(true)
-  products    Product[] @relation("ProductCatalogSubcategory")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         Int             @id @default(autoincrement())
+  categoryId Int
+  category   CatalogCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name       String          @db.NVarChar(255)
+  slug       String          @db.NVarChar(255)
+  sortOrder  Int             @default(0)
+  isActive   Boolean         @default(true)
+  products   Product[]       @relation("ProductCatalogSubcategory")
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
 
   @@unique([categoryId, name])
   @@unique([categoryId, slug])
 }
 
 model LogoBrandReference {
-  id          Int      @id @default(autoincrement())
-  logicalRef  Int      @unique
-  code        String?
-  name        String
-  isActive    Boolean  @default(true)
-  updatedAt   DateTime @updatedAt
-  createdAt   DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  logicalRef Int      @unique
+  code       String?
+  name       String
+  isActive   Boolean  @default(true)
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
 }
 
 model LogoUnitReference {
-  id          Int      @id @default(autoincrement())
-  unitSetRef  Int      @unique
-  setCode     String?
-  setName     String?
+  id           Int      @id @default(autoincrement())
+  unitSetRef   Int      @unique
+  setCode      String?
+  setName      String?
   mainUnitCode String?
   mainUnitName String?
-  isActive    Boolean  @default(true)
-  updatedAt   DateTime @updatedAt
-  createdAt   DateTime @default(now())
+  isActive     Boolean  @default(true)
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
 }
 
 model User {
-  id        Int       @id @default(autoincrement())
-  username  String    @unique
-  password  String
-  name      String
-  role      String    @default("agent")
-  isActive  Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  payments  Payment[]
+  id             Int             @id @default(autoincrement())
+  username       String          @unique
+  password       String
+  name           String
+  role           String          @default("agent")
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  payments       Payment[]
   adminAuditLogs AdminAuditLog[] @relation("AdminAuditActor")
 }
 
 model Payment {
-  id             Int       @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  customerName   String
+  customerName String
 
-  companyName    String?
+  companyName String?
 
-  description    String?
+  description String?
 
-  amount         Float
+  amount Float
 
-  status         String
+  status String
 
-  transactionId  String?
+  transactionId String?
 
-  cardMasked     String?
+  cardMasked String?
 
   providerName String?
 
   orderId String?
 
-  errorCode      String?
+  errorCode String?
 
-  errorMessage   String?
+  errorMessage String?
 
-  agentId        Int?
-  agent          User?     @relation(fields: [agentId], references: [id])
+  agentId Int?
+  agent   User? @relation(fields: [agentId], references: [id])
 
-  createdAt      DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 model PaymentProvider {
-  id          Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  name        String
+  name String
 
   apiUser     String?
   apiPassword String?
 
-  merchantId  String?
-  storeKey    String?
-  gatewayUrl  String?
+  merchantId String?
+  storeKey   String?
+  gatewayUrl String?
 
-  isActive    Boolean @default(false)
+  isActive Boolean @default(false)
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 model AdminAuditLog {
-  id         Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  actorId    Int?
-  actor      User?    @relation("AdminAuditActor", fields: [actorId], references: [id])
+  actorId Int?
+  actor   User? @relation("AdminAuditActor", fields: [actorId], references: [id])
 
   action     String
   entityType String
@@ -212,5 +217,34 @@ model AdminAuditLog {
   details    String?
   ipAddress  String?
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+}
+
+model SiteSettings {
+  id              Int      @id
+  companyName     String   @default("Lale EDT Gıda A.Ş.") @db.NVarChar(200)
+  primaryPhone    String   @default("0 (544) 303 33 66") @db.NVarChar(50)
+  secondaryPhone  String?  @db.NVarChar(50)
+  email           String   @default("info@laleedt.com.tr") @db.NVarChar(320)
+  address         String?  @db.NVarChar(500)
+  mapsUrl         String?  @db.NVarChar(1000)
+  whatsappPhone   String?  @db.NVarChar(50)
+  heroBadge       String   @default("Ürün & Hizmet Kataloğu") @db.NVarChar(120)
+  heroTitle       String   @default("Kaliteli Gıda,") @db.NVarChar(160)
+  heroHighlight   String   @default("Güvenilir Tedarik.") @db.NVarChar(160)
+  heroDescription String   @default("Tüm ürünlerimize göz atın. Detay ve fiyat bilgisi için temsilcimizle iletişime geçebilirsiniz.") @db.NVarChar(600)
+  showAgentLogin  Boolean  @default(true)
+  catalogPageSize Int      @default(24)
+  updatedAt       DateTime @updatedAt
+}
+
+model HomepageSection {
+  id                 Int      @id @default(autoincrement())
+  key                String   @unique @db.NVarChar(50)
+  label              String   @db.NVarChar(120)
+  contentTitle       String?  @db.NVarChar(200)
+  contentDescription String?  @db.NVarChar(600)
+  isVisible          Boolean  @default(true)
+  sortOrder          Int      @default(0)
+  updatedAt          DateTime @updatedAt
 }

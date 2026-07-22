@@ -4,7 +4,9 @@ import type { Metadata } from "next";
 import { Prisma } from "@prisma/client";
 import { cookies } from "next/headers";
 import { verifyAgentCookie } from "@/lib/agentAuth";
+import { getHomepageSections } from "@/lib/homepageSections";
 import { prisma } from "@/lib/prisma";
+import { getSiteSettings, getTelephoneHref } from "@/lib/siteSettings";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.laleedt.com.tr"),
@@ -26,8 +28,6 @@ export const metadata: Metadata = {
     apple: "/logo.svg",
   },
 };
-
-const catalogPageSize = 24;
 
 function buildCatalogHref({
   category,
@@ -74,7 +74,8 @@ export default async function HomePage({
   const parsedPage = Number(requestedPage ?? "1");
   const currentPage = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
-  const [cookieStore, categories] = await Promise.all([
+  const [cookieStore, categories, siteSettings, homepageSections] =
+    await Promise.all([
     cookies(),
     prisma.catalogCategory.findMany({
       where: {
@@ -94,6 +95,11 @@ export default async function HomePage({
         id: true,
         name: true,
         slug: true,
+        showOnHomepage: true,
+        homepageSortOrder: true,
+        homepageTitle: true,
+        homepageDescription: true,
+        homepageImageUrl: true,
         subcategories: {
           where: {
             isActive: true,
@@ -107,7 +113,23 @@ export default async function HomePage({
       },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     }),
+    getSiteSettings(),
+    getHomepageSections(),
   ]);
+  const homepageSectionMap = new Map(
+    homepageSections.map((section) => [section.key, section]),
+  );
+  const heroSection = homepageSectionMap.get("hero");
+  const categoryShowcaseSection = homepageSectionMap.get("categoryShowcase");
+  const catalogSection = homepageSectionMap.get("catalog");
+  const showcaseCategories = categories
+    .filter((category) => category.showOnHomepage)
+    .sort(
+      (left, right) =>
+        left.homepageSortOrder - right.homepageSortOrder ||
+        left.name.localeCompare(right.name, "tr"),
+    );
+  const catalogPageSize = siteSettings.catalogPageSize;
   const selectedCategory = categorySlug
     ? categories.find((category) => category.slug === categorySlug)
     : undefined;
@@ -201,7 +223,7 @@ export default async function HomePage({
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-bold leading-tight tracking-tight sm:text-base">
-                Lale EDT Gıda A.Ş.
+                {siteSettings.companyName}
               </p>
               <p className="hidden text-[11px] uppercase tracking-[0.22em] text-[#63736b] sm:block">
                 Ürün kataloğu
@@ -209,6 +231,7 @@ export default async function HomePage({
             </div>
           </Link>
 
+          {siteSettings.showAgentLogin && (
           <div className="flex shrink-0 items-center gap-2">
             <Link
               href={agentLoginHref}
@@ -230,27 +253,104 @@ export default async function HomePage({
               )}
             </Link>
           </div>
+          )}
         </div>
       </header>
 
-      <main className="relative mx-auto max-w-7xl px-4 py-10 sm:px-10 lg:px-16">
+      <main className="relative mx-auto flex max-w-7xl flex-col px-4 py-10 sm:px-10 lg:px-16">
         {/* ── HERO ── */}
-        <section className="mb-12">
+        {heroSection?.isVisible !== false && (
+        <section className="mb-12" style={{ order: heroSection?.sortOrder ?? 10 }}>
           <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#173f32]/8 px-4 py-2 text-sm font-semibold text-[#173f32]">
             <span className="size-2 rounded-full bg-[#c2853e]" />
-            Ürün & Hizmet Kataloğu
+            {siteSettings.heroBadge}
           </p>
           <h1 className="max-w-2xl text-[2rem] font-semibold leading-tight tracking-[-0.035em] sm:text-5xl">
-            Kaliteli Gıda,
+            {siteSettings.heroTitle}
             <br />
-            <span className="text-[#c2853e]">Güvenilir Tedarik.</span>
+            <span className="text-[#c2853e]">{siteSettings.heroHighlight}</span>
           </h1>
           <p className="mt-4 max-w-xl text-base leading-7 text-[#5d6963]">
-            Tüm ürünlerimize göz atın. Detay ve fiyat bilgisi için
-            temsilcimizle iletişime geçebilirsiniz.
+            {siteSettings.heroDescription}
           </p>
         </section>
+        )}
 
+        {categoryShowcaseSection?.isVisible === true &&
+          showcaseCategories.length > 0 && (
+          <section
+            className="mb-14"
+            style={{ order: categoryShowcaseSection?.sortOrder ?? 20 }}
+          >
+            <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div className="max-w-2xl">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#c2853e]">
+                  Ürün Grupları
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">
+                  {categoryShowcaseSection.contentTitle}
+                </h2>
+                {categoryShowcaseSection.contentDescription && (
+                  <p className="mt-2 text-sm leading-6 text-[#68746e] sm:text-base">
+                    {categoryShowcaseSection.contentDescription}
+                  </p>
+                )}
+              </div>
+              <Link
+                href="/home"
+                className="hidden shrink-0 text-sm font-bold text-[#173f32] transition hover:text-[#c2853e] sm:inline-flex"
+              >
+                Tüm kategoriler →
+              </Link>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {showcaseCategories.map((category) => (
+                <Link
+                  key={category.id}
+                  href={buildCatalogHref({ category: category.slug })}
+                  className="group relative min-h-64 overflow-hidden rounded-[1.75rem] bg-[#173f32] shadow-lg shadow-[#10231d]/10 transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+                >
+                  {category.homepageImageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={category.homepageImageUrl}
+                      alt={category.homepageTitle ?? category.name}
+                      className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgba(194,133,62,0.55),transparent_38%),linear-gradient(135deg,#173f32,#0d2920)]">
+                      <span className="absolute right-5 top-1 text-[8rem] font-black leading-none text-white/[0.06]">
+                        {(category.homepageTitle ?? category.name).charAt(0)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#081b15]/95 via-[#10231d]/30 to-transparent" />
+                  <div className="relative flex min-h-64 flex-col justify-end p-6 text-white">
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#e5b06e]">
+                      Kategori
+                    </p>
+                    <h3 className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.025em]">
+                      {category.homepageTitle ?? category.name}
+                    </h3>
+                    {category.homepageDescription && (
+                      <p className="mt-2 line-clamp-2 text-sm leading-6 text-white/70">
+                        {category.homepageDescription}
+                      </p>
+                    )}
+                    <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold">
+                      Ürünleri incele
+                      <span className="transition group-hover:translate-x-1">→</span>
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {catalogSection?.isVisible !== false && (
+        <div style={{ order: catalogSection?.sortOrder ?? 20 }}>
         {/* ── SEARCH + FILTERS ── */}
         <section className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           {/* Search */}
@@ -509,6 +609,8 @@ export default async function HomePage({
             )}
           </nav>
         )}
+        </div>
+        )}
       </main>
 
       {/* ── FOOTER ── */}
@@ -525,21 +627,21 @@ export default async function HomePage({
               />
             </div>
             <p className="text-xs font-semibold text-[#476057]">
-              Lale EDT Gıda A.Ş.
+              {siteSettings.companyName}
             </p>
           </div>
           <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-[#89938e]">
             <a
-              href="tel:+905443033366"
+              href={getTelephoneHref(siteSettings.primaryPhone)}
               className="transition hover:text-[#173f32]"
             >
-              0 (544) 303 33 66
+              {siteSettings.primaryPhone}
             </a>
             <a
-              href="mailto:info@laleedt.com.tr"
+              href={`mailto:${siteSettings.email}`}
               className="transition hover:text-[#173f32]"
             >
-              info@laleedt.com.tr
+              {siteSettings.email}
             </a>
             <span>© 2026 Tüm hakları saklıdır.</span>
           </div>

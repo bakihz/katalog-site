@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { verifyAgentCookie } from "@/lib/agentAuth";
 import { prisma } from "@/lib/prisma";
+import { getSiteSettings, getTelephoneHref } from "@/lib/siteSettings";
 
 export const metadata: Metadata = {
   alternates: {
@@ -11,12 +12,17 @@ export const metadata: Metadata = {
   },
 };
 
-const contactDetails = [
+function getContactDetails(
+  settings: Awaited<ReturnType<typeof getSiteSettings>>,
+) {
+  return [
   {
     label: "Telefon",
     links: [
-      { value: "0 (544) 303 33 66", href: "tel:+905443033366" },
-      { value: "0 (324) 234 10 17", href: "tel:+903242341017" },
+      { value: settings.primaryPhone, href: getTelephoneHref(settings.primaryPhone) },
+      ...(settings.secondaryPhone
+        ? [{ value: settings.secondaryPhone, href: getTelephoneHref(settings.secondaryPhone) }]
+        : []),
     ],
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -28,8 +34,8 @@ const contactDetails = [
     label: "E-posta",
     links: [
       {
-        value: "info@laleedt.com.tr",
-        href: "mailto:info@laleedt.com.tr",
+        value: settings.email,
+        href: `mailto:${settings.email}`,
       },
     ],
     icon: (
@@ -42,8 +48,8 @@ const contactDetails = [
     label: "Adres",
     links: [
       {
-        value: "Yalınayak, 102055 Sok No:2-10, 33240 Toroslar/Mersin",
-        href: "https://www.google.com/maps/search/?api=1&query=Lale%20EDT%20G%C4%B1da%2C%20Yal%C4%B1nayak%2C%20102055%20Sok%20No%3A2-10%2C%2033240%20Toroslar%2FMersin",
+        value: settings.address ?? "Adres bilgisi yakında eklenecek",
+        href: settings.mapsUrl ?? "#",
         external: true,
       },
     ],
@@ -53,10 +59,15 @@ const contactDetails = [
       </svg>
     ),
   },
-];
+  ];
+}
 
 export default async function TemporaryPage() {
-  const cookieStore = await cookies();
+  const [cookieStore, siteSettings] = await Promise.all([
+    cookies(),
+    getSiteSettings(),
+  ]);
+  const contactDetails = getContactDetails(siteSettings);
   const agentId = await verifyAgentCookie(
     cookieStore.get("agent_session")?.value,
   );
@@ -90,7 +101,7 @@ export default async function TemporaryPage() {
             </div>
             <div>
               <p className="text-lg font-bold tracking-tight">
-                Lale EDT Gıda A.Ş.
+                {siteSettings.companyName}
               </p>
               <p className="text-xs uppercase tracking-[0.22em] text-[#63736b]">
                 Ürün ve hizmet kataloğu
@@ -98,6 +109,7 @@ export default async function TemporaryPage() {
             </div>
           </div>
 
+          {siteSettings.showAgentLogin && (
           <div className="flex items-center gap-2">
             <Link
               href={agentLoginHref}
@@ -119,6 +131,7 @@ export default async function TemporaryPage() {
               Çok yakında
             </span>
           </div>
+          )}
         </header>
 
         <section className="grid flex-1 items-center gap-14 py-16 lg:min-h-0 lg:grid-cols-[1.15fr_0.85fr] lg:gap-12 lg:py-6 xl:py-8">
@@ -208,7 +221,7 @@ export default async function TemporaryPage() {
         </section>
 
         <footer className="flex flex-col gap-2 border-t border-[#17201c]/10 pt-6 text-xs text-[#718078] sm:flex-row sm:items-center sm:justify-between lg:pt-4">
-          <p>© 2026 Lale EDT Gıda A.Ş. Tüm hakları saklıdır.</p>
+          <p>© 2026 {siteSettings.companyName} Tüm hakları saklıdır.</p>
           <p>Yeni web sitemiz için geri sayım başladı.</p>
         </footer>
       </div>

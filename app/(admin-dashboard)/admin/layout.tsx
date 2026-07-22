@@ -8,6 +8,8 @@ const adminNavLinks: DashboardNavLink[] = [
   { href: "/admin/categories", label: "Kategoriler", icon: "🗂️" },
   { href: "/admin/import", label: "Ürün Aktar", icon: "📦" },
   { href: "/admin/providers", label: "Sanal POS", icon: "🏦" },
+  { href: "/admin/site-settings", label: "Site Yönetimi", icon: "🌐" },
+  { href: "/admin/homepage", label: "Ana Sayfa", icon: "🏠" },
   { href: "/admin/settings", label: "Ayarlar", icon: "⚙️" },
 ];
 
