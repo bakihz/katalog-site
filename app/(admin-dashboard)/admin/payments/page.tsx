@@ -127,7 +127,15 @@ export default async function PaymentsPage({
       </section>
 
       <section className="rounded-[1.75rem] border border-[#17201c]/10 bg-white p-5 shadow-sm">
-        <form className="grid gap-3 xl:grid-cols-[1fr_180px_220px_170px_170px_150px_auto_auto]">
+        <div>
+          <h2 className="text-base font-bold text-[#17201c]">Ödeme filtreleri</h2>
+          <p className="mt-1 text-sm text-[#68746e]">
+            Önce temel aramayı yapın; tarih ve liste ayarlarını gerektiğinde kullanın.
+          </p>
+        </div>
+
+        <form className="mt-5 space-y-4">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_minmax(11rem,0.65fr)_minmax(14rem,1fr)]">
           <label>
             <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-[#7a867f]">
               Ara
@@ -176,6 +184,10 @@ export default async function PaymentsPage({
             </select>
           </label>
 
+          </div>
+
+          <div className="grid gap-3 border-t border-[#17201c]/8 pt-4 sm:grid-cols-2 xl:grid-cols-[170px_170px_150px_minmax(1rem,1fr)_auto_auto]">
+
           <label>
             <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-[#7a867f]">
               Başlangıç
@@ -217,6 +229,8 @@ export default async function PaymentsPage({
             </select>
           </label>
 
+          <div className="hidden xl:block" aria-hidden="true" />
+
           <div className="flex items-end">
             <AppButton type="submit" size="lg" className="w-full">
               Filtrele
@@ -232,6 +246,7 @@ export default async function PaymentsPage({
             >
               Temizle
             </AppButton>
+          </div>
           </div>
         </form>
 

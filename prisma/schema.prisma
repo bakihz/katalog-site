@@ -54,6 +54,14 @@ model Product {
   features      String?
   catalogVerificationNote String?
 
+  catalogCategoryId Int?
+  catalogCategory CatalogCategory? @relation("ProductCatalogCategory", fields: [catalogCategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  catalogSubcategoryId Int?
+  catalogSubcategory CatalogSubcategory? @relation("ProductCatalogSubcategory", fields: [catalogSubcategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  categoryReviewStatus String @default("unassigned")
+  categorySuggestion String?
+  subCategorySuggestion String?
+
   showOnWebsite Boolean @default(false)
   isFeatured    Boolean @default(false)
   webStockStatus String?
@@ -79,6 +87,34 @@ model Product {
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+model CatalogCategory {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.NVarChar(255)
+  slug        String   @unique @db.NVarChar(255)
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  subcategories CatalogSubcategory[]
+  products    Product[] @relation("ProductCatalogCategory")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CatalogSubcategory {
+  id          Int      @id @default(autoincrement())
+  categoryId  Int
+  category    CatalogCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name        String   @db.NVarChar(255)
+  slug        String   @db.NVarChar(255)
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  products    Product[] @relation("ProductCatalogSubcategory")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([categoryId, name])
+  @@unique([categoryId, slug])
 }
 
 model LogoBrandReference {

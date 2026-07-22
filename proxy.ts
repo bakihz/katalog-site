@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyAdminSessionToken } from "@/lib/adminAuth";
+import {
+  adminSessionMaxAgeSeconds,
+  createAdminSessionToken,
+  getAdminSessionUserId,
+  verifyAdminSessionToken,
+} from "@/lib/adminAuth";
 import { verifyAgentCookie } from "@/lib/agentAuth";
 
 function isAdminRoute(pathname: string) {
@@ -13,6 +18,13 @@ function isAdminRoute(pathname: string) {
 
 function isPublicAdminRoute(pathname: string) {
   return pathname === "/admin/login" || pathname === "/api/admin/login";
+}
+
+function shouldRefreshAdminSession(request: NextRequest) {
+  return (
+    request.headers.get("next-router-prefetch") !== "1" &&
+    request.headers.get("purpose") !== "prefetch"
+  );
 }
 
 export async function proxy(request: NextRequest) {
@@ -44,6 +56,26 @@ export async function proxy(request: NextRequest) {
       res.cookies.delete("admin_session");
       return res;
     }
+
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+
+    if (shouldRefreshAdminSession(request)) {
+      const userId = await getAdminSessionUserId(sessionCookie);
+      const refreshedToken = await createAdminSessionToken(
+        adminSessionMaxAgeSeconds,
+        userId,
+      );
+
+      response.cookies.set("admin_session", refreshedToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: adminSessionMaxAgeSeconds,
+        path: "/",
+      });
+    }
+
+    return response;
   }
 
   if (pathname.startsWith("/panel")) {

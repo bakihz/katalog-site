@@ -168,12 +168,20 @@ async function importLogoProducts(rows: CsvRow[]) {
       continue;
     }
 
-    const logoBrandName = await resolveLogoBrandName(item.logoBrandRef);
-    const logoUnitName = await resolveLogoUnitName(item.logoUnitSetRef);
-
     const existing = await prisma.product.findUnique({
       where: { stockCode: item.stockCode },
     });
+
+    // Logo'da pasif olan yeni kayıtlar katalog veritabanına hiç alınmaz.
+    // Daha önce içe aktarılmış bir ürün sonradan pasife düşmüşse mevcut kayıt
+    // aşağıdaki güncelleme akışından geçerek katalogdan kaldırılır.
+    if (!item.logoIsActive && !existing) {
+      skipped += 1;
+      continue;
+    }
+
+    const logoBrandName = await resolveLogoBrandName(item.logoBrandRef);
+    const logoUnitName = await resolveLogoUnitName(item.logoUnitSetRef);
 
     if (existing) {
       await prisma.product.update({
@@ -192,6 +200,9 @@ async function importLogoProducts(rows: CsvRow[]) {
           logoBrandName,
           logoUnitName,
           logoIsActive: item.logoIsActive,
+          showOnWebsite: item.logoIsActive ? undefined : false,
+          isFeatured: item.logoIsActive ? undefined : false,
+          stockStatus: item.logoIsActive ? "Logo aktif" : "Logo pasif",
           vatRate: item.vatRate,
           lastLogoModifiedAt: item.lastLogoModifiedAt,
           lastLogoSyncAt: new Date(),

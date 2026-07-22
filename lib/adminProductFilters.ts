@@ -4,6 +4,7 @@ export const defaultAdminProductPageSize = 25;
 export type AdminProductFilterParams = {
   q?: string;
   visibility?: string;
+  logoStatus?: string;
   quality?: string;
   page?: string;
   pageSize?: string;
@@ -12,7 +13,17 @@ export type AdminProductFilterParams = {
 export type AdminProductFilters = {
   q: string;
   visibility: "all" | "visible" | "hidden";
-  quality: "all" | "missing-image" | "missing-category" | "missing-name";
+  logoStatus: "active" | "inactive" | "all";
+  quality:
+    | "all"
+    | "missing-image"
+    | "missing-category"
+    | "missing-name"
+    | "missing-description"
+    | "category-review"
+    | "suggestion-pending"
+    | "incomplete"
+    | "ready-to-publish";
   page: number;
   pageSize: (typeof adminProductPageSizeOptions)[number];
 };
@@ -34,6 +45,7 @@ export function parseAdminProductFilters(
     getValue("pageSize") ?? defaultAdminProductPageSize,
   );
   const visibility = getValue("visibility");
+  const logoStatus = getValue("logoStatus");
   const quality = getValue("quality");
 
   const pageSize = adminProductPageSizeOptions.includes(
@@ -46,10 +58,17 @@ export function parseAdminProductFilters(
     q: (getValue("q") ?? "").trim(),
     visibility:
       visibility === "visible" || visibility === "hidden" ? visibility : "all",
+    logoStatus:
+      logoStatus === "inactive" || logoStatus === "all" ? logoStatus : "active",
     quality:
       quality === "missing-image" ||
       quality === "missing-category" ||
-      quality === "missing-name"
+      quality === "missing-name" ||
+      quality === "missing-description" ||
+      quality === "category-review" ||
+      quality === "suggestion-pending" ||
+      quality === "incomplete" ||
+      quality === "ready-to-publish"
         ? quality
         : "all",
     page: Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1,
@@ -65,6 +84,7 @@ export function buildAdminProductsQueryString(
   const values: AdminProductFilterParams = {
     q: filters.q,
     visibility: filters.visibility,
+    logoStatus: filters.logoStatus,
     quality: filters.quality,
     page: String(filters.page),
     pageSize: String(filters.pageSize),

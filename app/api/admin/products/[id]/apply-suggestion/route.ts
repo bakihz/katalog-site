@@ -5,7 +5,7 @@ import {
   ensureUniqueProductSlug,
   slugifyProductText,
 } from "@/lib/adminProductText";
-import { normalizeCatalogCategory } from "@/lib/catalogCategories";
+import { matchCatalogCategorySuggestion } from "@/lib/catalogCategoryMatching";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -58,13 +58,31 @@ export async function POST(
   );
 
   try {
+    const categories = await prisma.catalogCategory.findMany({
+      where: { isActive: true },
+      include: { subcategories: { where: { isActive: true } } },
+    });
+    const categoryMatch = matchCatalogCategorySuggestion({
+      categories,
+      suggestedCategory: product.suggestedCategory,
+      suggestedSubCategory: product.suggestedSubCategory,
+    });
     const data = {
       name: suggestedName,
       slug,
       shortDescription: getSuggestedValue(product.suggestedShortDescription),
       description: getSuggestedValue(product.suggestedDescription),
-      category: normalizeCatalogCategory(product.suggestedCategory),
-      subCategory: getSuggestedValue(product.suggestedSubCategory),
+      category: categoryMatch.category?.name ?? null,
+      subCategory: categoryMatch.subcategory?.name ?? null,
+      catalogCategory: categoryMatch.category
+        ? { connect: { id: categoryMatch.category.id } }
+        : { disconnect: true },
+      catalogSubcategory: categoryMatch.subcategory
+        ? { connect: { id: categoryMatch.subcategory.id } }
+        : { disconnect: true },
+      categoryReviewStatus: categoryMatch.status,
+      categorySuggestion: categoryMatch.categorySuggestion,
+      subCategorySuggestion: categoryMatch.subCategorySuggestion,
       brand: getSuggestedValue(product.suggestedBrand),
       features: getSuggestedValue(product.suggestedFeatures),
       googleTaxonomyId: getSuggestedValue(

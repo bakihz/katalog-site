@@ -1,4 +1,3 @@
-import { headers } from "next/headers";
 import { DashboardNavLink, DashboardShell } from "@/components/layout";
 
 const adminNavLinks: DashboardNavLink[] = [
@@ -6,6 +5,7 @@ const adminNavLinks: DashboardNavLink[] = [
   { href: "/admin/payments", label: "Ödemeler", icon: "💳" },
   { href: "/admin/agents", label: "Temsilciler", icon: "👥" },
   { href: "/admin/products", label: "Ürünler", icon: "🧾" },
+  { href: "/admin/categories", label: "Kategoriler", icon: "🗂️" },
   { href: "/admin/import", label: "Ürün Aktar", icon: "📦" },
   { href: "/admin/providers", label: "Sanal POS", icon: "🏦" },
   { href: "/admin/settings", label: "Ayarlar", icon: "⚙️" },
@@ -16,13 +16,6 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const headersList = await headers();
-  const pathname = headersList.get("x-pathname") ?? "";
-
-  if (pathname === "/admin/login") {
-    return <>{children}</>;
-  }
-
   return (
     <DashboardShell
       navLinks={adminNavLinks}

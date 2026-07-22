@@ -75,6 +75,7 @@ export default async function HomePage({
 
   const where: Prisma.ProductWhereInput = {
     showOnWebsite: true,
+    logoIsActive: true,
     ...(kategori ? { category: kategori } : {}),
     ...(q
       ? {
@@ -105,7 +106,7 @@ export default async function HomePage({
     }),
     prisma.product.count({ where }),
     prisma.product.findMany({
-      where: { showOnWebsite: true, category: { not: null } },
+      where: { showOnWebsite: true, logoIsActive: true, category: { not: null } },
       select: { category: true },
       distinct: ["category"],
       orderBy: { category: "asc" },

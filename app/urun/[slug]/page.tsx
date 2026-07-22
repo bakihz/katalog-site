@@ -14,7 +14,7 @@ type ProductPageProps = {
 
 const getPublishedProduct = cache(async (slug: string) =>
   prisma.product.findFirst({
-    where: { slug, showOnWebsite: true },
+    where: { slug, showOnWebsite: true, logoIsActive: true },
     select: {
       name: true,
       slug: true,

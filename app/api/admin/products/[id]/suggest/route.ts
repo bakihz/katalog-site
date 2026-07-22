@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { matchCatalogCategorySuggestion } from "@/lib/catalogCategoryMatching";
 import { generateOllamaProductSuggestion } from "@/lib/ollamaProductSuggestions";
 import { generateRuleBasedProductSuggestion } from "@/lib/productSuggestions";
 import {
@@ -61,6 +62,15 @@ export async function POST(
       engine === "ollama" || engine === "web-ollama"
         ? await generateOllamaProductSuggestion(product, { webSources })
         : generateRuleBasedProductSuggestion(product);
+    const categories = await prisma.catalogCategory.findMany({
+      where: { isActive: true },
+      include: { subcategories: { where: { isActive: true } } },
+    });
+    const categoryMatch = matchCatalogCategorySuggestion({
+      categories,
+      suggestedCategory: suggestion.suggestedCategory,
+      suggestedSubCategory: suggestion.suggestedSubCategory,
+    });
     const safeSuggestion = {
       ...suggestion,
       suggestedName: limitText(suggestion.suggestedName, 250),
@@ -93,6 +103,9 @@ export async function POST(
       data: {
         ...safeSuggestion,
         suggestionStatus: "draft",
+        categoryReviewStatus: categoryMatch.status,
+        categorySuggestion: categoryMatch.categorySuggestion,
+        subCategorySuggestion: categoryMatch.subCategorySuggestion,
         suggestionGeneratedAt: new Date(),
       } as Prisma.ProductUpdateInput,
     });

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { isOllamaProductSuggestionEnabled } from "@/lib/ollamaProductSuggestions";
 import { isBraveWebResearchEnabled } from "@/lib/webResearch";
 import { ProductImageUpload } from "@/components/admin/product-image-upload";
+import { ProductCategoryFields } from "@/components/admin/product-category-fields";
 import { AppButton, PageHeader } from "@/components/ui";
 
 type AdminProductDetailPageProps = {
@@ -41,6 +42,7 @@ function getAlertMessage(success?: string, error?: string) {
   if (error === "web-research") return "Web kaynakları aranırken hata oluştu. Brave Search ayarını ve bağlantıyı kontrol edin.";
   if (error === "no-suggestion") return "Uygulanacak öneri bulunamadı.";
   if (error === "apply-suggestion") return "Ürün önerisi uygulanırken hata oluştu.";
+  if (error === "category") return "Seçilen kategori veya alt kategori artık aktif değil. Lütfen yeniden seçin.";
   if (error) return "Ürün işlemi sırasında hata oluştu.";
   if (success === "suggestion-created") return "Ürün önerisi oluşturuldu.";
   if (success === "suggestion-applied") return "Ürün önerisi katalog bilgilerine uygulandı.";
@@ -68,6 +70,12 @@ function getVerificationLabel(value: string | null) {
   return value === "ready" ? "İç notla destekli" : "Doğrulama gerekli";
 }
 
+function getCategoryReviewLabel(value: string | null) {
+  if (value === "assigned") return "Onayli kategoriyle eslesti";
+  if (value === "review") return "Kategori incelemesi gerekiyor";
+  return "Kategori atanmadi";
+}
+
 const inputCls =
   "w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm outline-none transition focus:border-[#173f32]/40 focus:bg-white";
 const textareaCls =
@@ -85,9 +93,22 @@ export default async function AdminProductDetailPage({
     notFound();
   }
 
-  const product = await prisma.product.findUnique({
-    where: { id: productId },
-  });
+  const [product, categories] = await Promise.all([
+    prisma.product.findUnique({ where: { id: productId } }),
+    prisma.catalogCategory.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        subcategories: {
+          where: { isActive: true },
+          select: { id: true, name: true },
+          orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        },
+      },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    }),
+  ]);
 
   if (!product) {
     notFound();
@@ -164,24 +185,13 @@ export default async function AdminProductDetailPage({
                 placeholder="urun-linki"
               />
             </div>
-            <div>
-              <label className={labelCls}>Kategori</label>
-              <input
-                name="category"
-                defaultValue={product.category ?? ""}
-                className={inputCls}
-                placeholder={product.logoCategoryRaw || "Kategori"}
-              />
-            </div>
-            <div>
-              <label className={labelCls}>Alt Kategori</label>
-              <input
-                name="subCategory"
-                defaultValue={product.subCategory ?? ""}
-                className={inputCls}
-                placeholder={product.logoSubCategoryRaw || "Alt kategori"}
-              />
-            </div>
+            <ProductCategoryFields
+              categories={categories}
+              initialCategoryId={product.catalogCategoryId}
+              initialSubcategoryId={product.catalogSubcategoryId}
+              inputClassName={inputCls}
+              labelClassName={labelCls}
+            />
             <div>
               <label className={labelCls}>Marka</label>
               <input
@@ -266,11 +276,17 @@ export default async function AdminProductDetailPage({
             </div>
 
             <div className="flex flex-col justify-end gap-3">
+              {!product.logoIsActive && (
+                <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold leading-5 text-rose-700">
+                  Bu ürün Logo’da pasif. Tekrar aktif edilene kadar katalogda gösterilemez.
+                </p>
+              )}
               <label className="flex items-center gap-3 rounded-2xl bg-[#f8f6f1] px-4 py-3 text-sm font-semibold text-[#17201c]">
                 <input
                   name="showOnWebsite"
                   type="checkbox"
-                  defaultChecked={product.showOnWebsite}
+                  defaultChecked={product.logoIsActive && product.showOnWebsite}
+                  disabled={!product.logoIsActive}
                   className="h-4 w-4 accent-[#173f32]"
                 />
                 Katalogda göster
@@ -452,6 +468,21 @@ export default async function AdminProductDetailPage({
                       {product.suggestedCategory ?? "-"} /{" "}
                       {product.suggestedSubCategory ?? "-"}
                     </dd>
+                    <dd className="mt-1 text-xs font-semibold text-[#476057]">
+                      {getCategoryReviewLabel(product.categoryReviewStatus)}
+                    </dd>
+                    {product.categoryReviewStatus === "review" &&
+                      product.categorySuggestion && (
+                        <dd className="mt-3">
+                          <AppButton
+                            href={`/admin/categories#suggestion-${product.id}`}
+                            size="sm"
+                            variant="outline"
+                          >
+                            Kategori Adayını Düzenle
+                          </AppButton>
+                        </dd>
+                      )}
                   </div>
                   <div>
                     <dt className="font-semibold text-[#68746e]">Marka</dt>

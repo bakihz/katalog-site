@@ -1,5 +1,5 @@
 const adminSessionMessagePrefix = "admin_authenticated";
-export const adminSessionMaxAgeSeconds = 60 * 60;
+export const adminSessionMaxAgeSeconds = 30 * 60;
 
 async function signAdminSession(message: string): Promise<string> {
   const secret = getAdminSessionSecret();

@@ -27,8 +27,8 @@ export function PageHeader({
           : "rounded-[2rem] border border-[#17201c]/10 bg-white p-6 shadow-xl shadow-[#10231d]/10 md:p-8"
       }
     >
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-        <div className="max-w-2xl">
+      <div className="flex min-w-0 flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0 max-w-2xl">
           <p
             className={
               isHero
@@ -61,7 +61,7 @@ export function PageHeader({
         </div>
 
         {(actions || aside) && (
-          <div className="shrink-0">{actions ?? aside}</div>
+          <div className="max-w-full shrink-0">{actions ?? aside}</div>
         )}
       </div>
     </section>

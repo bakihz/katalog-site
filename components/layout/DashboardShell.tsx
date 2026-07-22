@@ -81,7 +81,7 @@ export function DashboardShell({
         </div>
       </aside>
 
-      <div className="lg:pl-72">
+      <div className="min-w-0 lg:pl-72">
         <header className="sticky top-0 z-20 border-b border-[#17201c]/10 bg-[#f5f3ee]/90 px-4 py-4 backdrop-blur md:px-8 lg:px-10">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex items-center justify-between gap-4">
@@ -121,7 +121,7 @@ export function DashboardShell({
           </div>
         </header>
 
-        <main className="min-h-[calc(100vh-88px)] px-4 py-6 md:px-8 lg:px-10">
+        <main className="min-h-[calc(100vh-88px)] min-w-0 overflow-x-hidden px-4 py-6 md:px-8 lg:px-10">
           {children}
         </main>
       </div>

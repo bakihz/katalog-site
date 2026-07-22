@@ -5,7 +5,6 @@ import {
   ensureUniqueProductSlug,
   slugifyProductText,
 } from "@/lib/adminProductText";
-import { normalizeCatalogCategory } from "@/lib/catalogCategories";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -50,8 +49,8 @@ export async function POST(
   const imageUrl = readFormValue(formData, "imageUrl");
   const features = readFormValue(formData, "features");
   const catalogVerificationNote = readFormValue(formData, "catalogVerificationNote");
-  const category = readFormValue(formData, "category");
-  const subCategory = readFormValue(formData, "subCategory");
+  const catalogCategoryId = Number(readFormValue(formData, "catalogCategoryId"));
+  const catalogSubcategoryId = Number(readFormValue(formData, "catalogSubcategoryId"));
   const brand = readFormValue(formData, "brand");
   const webStockStatus = readFormValue(formData, "webStockStatus");
   const sortOrder = Number(readFormValue(formData, "sortOrder") || 0);
@@ -68,6 +67,30 @@ export async function POST(
     productId,
   );
 
+  const category =
+    Number.isInteger(catalogCategoryId) && catalogCategoryId > 0
+      ? await prisma.catalogCategory.findFirst({
+          where: { id: catalogCategoryId, isActive: true },
+        })
+      : null;
+  const subcategory =
+    Number.isInteger(catalogSubcategoryId) && catalogSubcategoryId > 0
+      ? await prisma.catalogSubcategory.findFirst({
+          where: {
+            id: catalogSubcategoryId,
+            categoryId: category?.id ?? -1,
+            isActive: true,
+          },
+        })
+      : null;
+
+  if ((catalogCategoryId > 0 && !category) || (catalogSubcategoryId > 0 && !subcategory)) {
+    return NextResponse.redirect(
+      `${baseUrl}/admin/products/${productId}?error=category`,
+      { status: 303 },
+    );
+  }
+
   try {
     await prisma.product.update({
       where: { id: productId },
@@ -79,13 +102,20 @@ export async function POST(
         imageUrl: imageUrl || null,
         features: features || null,
         catalogVerificationNote: catalogVerificationNote || null,
-        category: normalizeCatalogCategory(category),
-        subCategory: subCategory || null,
+        category: category?.name ?? null,
+        subCategory: subcategory?.name ?? null,
+        catalogCategory: category
+          ? { connect: { id: category.id } }
+          : { disconnect: true },
+        catalogSubcategory: subcategory
+          ? { connect: { id: subcategory.id } }
+          : { disconnect: true },
+        categoryReviewStatus: category ? "assigned" : "unassigned",
         brand: brand || null,
         webStockStatus: webStockStatus || null,
         sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
-        showOnWebsite: formData.get("showOnWebsite") === "on",
-        isFeatured: formData.get("isFeatured") === "on",
+        showOnWebsite: product.logoIsActive && formData.get("showOnWebsite") === "on",
+        isFeatured: product.logoIsActive && formData.get("isFeatured") === "on",
       } satisfies Prisma.ProductUpdateInput,
     });
   } catch (error) {
