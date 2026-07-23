@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { CategoryCard } from "@/components/catalog/category-card";
-import { getPublicCategories } from "@/lib/publicCatalog";
+import { getPublicCategorySummaries } from "@/lib/publicCatalog";
 
 export const metadata: Metadata = {
   title: "Ürün Kategorileri | Lale EDT Gıda",
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CatalogCategoriesPage() {
-  const categories = await getPublicCategories();
+  const categories = await getPublicCategorySummaries();
 
   return (
     <>

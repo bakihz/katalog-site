@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { CatalogShell } from "@/components/catalog/catalog-shell";
 import { CategoryCard } from "@/components/catalog/category-card";
 import { getHomepageSections } from "@/lib/homepageSections";
-import { getPublicCategories } from "@/lib/publicCatalog";
+import { getPublicCategorySummaries } from "@/lib/publicCatalog";
 import { getSiteSettings } from "@/lib/siteSettings";
 
 export const metadata: Metadata = {
@@ -59,7 +59,7 @@ export default async function HomePage({
   const [siteSettings, homepageSections, categories] = await Promise.all([
     getSiteSettings(),
     getHomepageSections(),
-    getPublicCategories(),
+    getPublicCategorySummaries(),
   ]);
   const sectionMap = new Map(
     homepageSections.map((section) => [section.key, section]),

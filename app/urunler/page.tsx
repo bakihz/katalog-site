@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { CatalogShell } from "@/components/catalog/catalog-shell";
 import { ProductListing } from "@/components/catalog/product-listing";
-import { getPublicCategories } from "@/lib/publicCatalog";
+import { getPublicCategoryBySlug } from "@/lib/publicCatalog";
 
 export default async function AllProductsPage({
   searchParams,
@@ -14,9 +14,8 @@ export default async function AllProductsPage({
   }>;
 }) {
   const filters = await searchParams;
-  const categories = filters.kategori ? await getPublicCategories() : [];
   const category = filters.kategori
-    ? categories.find((item) => item.slug === filters.kategori)
+    ? await getPublicCategoryBySlug(filters.kategori)
     : undefined;
 
   if (filters.kategori && !category) notFound();

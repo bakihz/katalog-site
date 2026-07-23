@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CategoryCard } from "@/components/catalog/category-card";
-import { getPublicCategories } from "@/lib/publicCatalog";
+import { getPublicCategoryBySlug } from "@/lib/publicCatalog";
 
 export default async function CatalogSubcategoriesPage({
   params,
@@ -9,8 +9,7 @@ export default async function CatalogSubcategoriesPage({
   params: Promise<{ categorySlug: string }>;
 }) {
   const { categorySlug } = await params;
-  const categories = await getPublicCategories();
-  const category = categories.find((item) => item.slug === categorySlug);
+  const category = await getPublicCategoryBySlug(categorySlug);
 
   if (!category) notFound();
 

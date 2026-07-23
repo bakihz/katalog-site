@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { ProductListing } from "@/components/catalog/product-listing";
-import { getPublicCategories } from "@/lib/publicCatalog";
+import { getPublicCategoryBySlug } from "@/lib/publicCatalog";
 
 export default async function SubcategoryProductsPage({
   params,
@@ -9,9 +9,9 @@ export default async function SubcategoryProductsPage({
   params: Promise<{ categorySlug: string; subcategorySlug: string }>;
   searchParams: Promise<{ q?: string; page?: string }>;
 }) {
-  const [{ categorySlug, subcategorySlug }, filters, categories] =
-    await Promise.all([params, searchParams, getPublicCategories()]);
-  const category = categories.find((item) => item.slug === categorySlug);
+  const [{ categorySlug, subcategorySlug }, filters] =
+    await Promise.all([params, searchParams]);
+  const category = await getPublicCategoryBySlug(categorySlug);
   const subcategory = category?.subcategories.find(
     (item) => item.slug === subcategorySlug,
   );

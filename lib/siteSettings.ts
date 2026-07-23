@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
 export const defaultSiteSettings = {
@@ -36,7 +37,7 @@ export type PublicSiteSettings = {
   catalogPageSize: number;
 };
 
-export async function getSiteSettings(): Promise<PublicSiteSettings> {
+export const getSiteSettings = cache(async function getSiteSettings(): Promise<PublicSiteSettings> {
   const settings = await prisma.siteSettings.findUnique({ where: { id: 1 } });
 
   return settings ?? {
@@ -46,7 +47,7 @@ export async function getSiteSettings(): Promise<PublicSiteSettings> {
     mapsUrl: defaultSiteSettings.mapsUrl,
     whatsappPhone: defaultSiteSettings.whatsappPhone,
   };
-}
+});
 
 export function getTelephoneHref(phone: string) {
   const digits = phone.replace(/\D/g, "");

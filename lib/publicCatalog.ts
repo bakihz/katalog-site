@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
 export const publicProductBaseWhere: Prisma.ProductWhereInput = {
@@ -20,9 +21,35 @@ const publishedProductRelationWhere: Prisma.ProductWhereInput = {
   ],
 };
 
-export function getPublicCategories() {
+export const getPublicCategorySummaries = cache(function getPublicCategorySummaries() {
   return prisma.catalogCategory.findMany({
     where: {
+      isActive: true,
+      products: { some: publishedProductRelationWhere },
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      showOnHomepage: true,
+      homepageSortOrder: true,
+      homepageTitle: true,
+      homepageDescription: true,
+      homepageImageUrl: true,
+      _count: {
+        select: { products: { where: publishedProductRelationWhere } },
+      },
+    },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+  });
+});
+
+export const getPublicCategoryBySlug = cache(function getPublicCategoryBySlug(
+  slug: string,
+) {
+  return prisma.catalogCategory.findFirst({
+    where: {
+      slug,
       isActive: true,
       products: { some: publishedProductRelationWhere },
     },
@@ -60,10 +87,13 @@ export function getPublicCategories() {
         select: { products: { where: publishedProductRelationWhere } },
       },
     },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
-}
+});
 
-export type PublicCatalogCategory = Awaited<
-  ReturnType<typeof getPublicCategories>
+export type PublicCatalogCategorySummary = Awaited<
+  ReturnType<typeof getPublicCategorySummaries>
 >[number];
+
+export type PublicCatalogCategory = NonNullable<
+  Awaited<ReturnType<typeof getPublicCategoryBySlug>>
+>;
