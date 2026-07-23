@@ -197,7 +197,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
           <div className="py-1">
             <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#c2853e]">
               <Link
-                href={`/home?kategori=${encodeURIComponent(product.catalogCategory.slug)}`}
+                href={`/katalog/${encodeURIComponent(product.catalogCategory.slug)}`}
                 className="transition hover:text-[#173f32]"
               >
                 {product.catalogCategory.name}
@@ -206,7 +206,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
                 <>
                   <span className="text-[#c2853e]/45">/</span>
                   <Link
-                    href={`/home?kategori=${encodeURIComponent(product.catalogCategory.slug)}&altKategori=${encodeURIComponent(product.catalogSubcategory.slug)}`}
+                    href={`/katalog/${encodeURIComponent(product.catalogCategory.slug)}/${encodeURIComponent(product.catalogSubcategory.slug)}`}
                     className="transition hover:text-[#173f32]"
                   >
                     {product.catalogSubcategory.name}
