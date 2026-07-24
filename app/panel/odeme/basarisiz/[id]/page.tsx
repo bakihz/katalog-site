@@ -9,15 +9,12 @@ import { prisma } from "@/lib/prisma";
 import { canViewAllPayments } from "@/lib/userRole";
 import { normalizePaymentFailureMessage } from "@/lib/paymentFailure";
 import { AppButton, PaymentStatusBadge } from "@/components/ui";
+import { getFirstSearchParam } from "@/lib/searchParams";
 
 type FailedPaymentPageProps = {
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
-
-function getFirstParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
 
 export default async function FailedPaymentPage({
   params,
@@ -45,11 +42,13 @@ export default async function FailedPaymentPage({
     errorMessage?: string | null;
   };
   const errorMessage = normalizePaymentFailureMessage(
-    getFirstParam(queryParams.err) ??
+    getFirstSearchParam(queryParams.err) ??
       paymentWithFailure.errorMessage,
   );
   const errorCode =
-    getFirstParam(queryParams.code) ?? paymentWithFailure.errorCode ?? undefined;
+    getFirstSearchParam(queryParams.code) ??
+    paymentWithFailure.errorCode ??
+    undefined;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">

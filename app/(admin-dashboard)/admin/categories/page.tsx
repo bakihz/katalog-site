@@ -1,13 +1,10 @@
 import { AppButton, PageHeader } from "@/components/ui";
 import { prisma } from "@/lib/prisma";
+import { getFirstSearchParam } from "@/lib/searchParams";
 
 type AdminCategoriesPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
-
-function getFirstParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
 
 function getAlertMessage(success?: string, error?: string) {
   if (error === "suggestion-not-found") return "Kategori önerisi bulunamadı veya daha önce işlendi.";
@@ -52,8 +49,11 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
     }),
     searchParams,
   ]);
-  const message = getAlertMessage(getFirstParam(params.success), getFirstParam(params.error));
-  const isError = Boolean(getFirstParam(params.error));
+  const message = getAlertMessage(
+    getFirstSearchParam(params.success),
+    getFirstSearchParam(params.error),
+  );
+  const isError = Boolean(getFirstSearchParam(params.error));
 
   return (
     <div className="space-y-6">

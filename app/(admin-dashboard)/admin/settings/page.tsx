@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/ui";
+import { getFirstSearchParam } from "@/lib/searchParams";
 
 type AdminSettingsPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -15,16 +16,12 @@ const errorMessages: Record<string, string> = {
   missing: "Tüm alanları doldurun.",
 };
 
-function getFirstParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
 export default async function AdminSettingsPage({
   searchParams,
 }: AdminSettingsPageProps) {
   const params = await searchParams;
-  const success = getFirstParam(params.success);
-  const error = getFirstParam(params.error);
+  const success = getFirstSearchParam(params.success);
+  const error = getFirstSearchParam(params.error);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">

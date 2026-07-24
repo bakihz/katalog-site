@@ -1,14 +1,10 @@
+import { getRequestBaseUrl } from "@/lib/requestUrl";
 import { NextRequest, NextResponse } from "next/server";
 import { getChangedFields, writeAdminAuditLog } from "@/lib/adminAuditLog";
 import { prisma } from "@/lib/prisma";
 import { defaultSiteSettings } from "@/lib/siteSettings";
 
 const pageSizes = new Set([12, 24, 36, 48]);
-
-function getBaseUrl(req: NextRequest) {
-  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "localhost:3000";
-  return `${req.headers.get("x-forwarded-proto") || "http"}://${host}`;
-}
 
 function readText(formData: FormData, name: string, maxLength: number) {
   return String(formData.get(name) ?? "").trim().slice(0, maxLength);
@@ -30,7 +26,7 @@ function isSafeHttpUrl(value: string | null) {
 }
 
 export async function POST(req: NextRequest) {
-  const baseUrl = getBaseUrl(req);
+  const baseUrl = getRequestBaseUrl(req);
   const formData = await req.formData();
   const requestedPageSize = Number(formData.get("catalogPageSize"));
   const data = {

@@ -1,3 +1,4 @@
+import { getRequestBaseUrl } from "@/lib/requestUrl";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyNestpayResponseHash } from "@/lib/nestpay";
@@ -10,17 +11,10 @@ import {
   ZIRAAT_PROVIDER_NAME,
 } from "@/lib/paymentProviders";
 
-function getBaseUrl(req: NextRequest): string {
-  const host =
-    req.headers.get("x-forwarded-host") ||
-    req.headers.get("host") ||
-    "localhost:3000";
-  const protocol = req.headers.get("x-forwarded-proto") || "http";
-  return `${protocol}://${host}`;
-}
+
 
 export async function POST(req: NextRequest) {
-  const baseUrl = getBaseUrl(req);
+  const baseUrl = getRequestBaseUrl(req);
 
   try {
     const decodedRequest = req.clone();

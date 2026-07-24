@@ -1,3 +1,4 @@
+import { getRequestBaseUrl } from "@/lib/requestUrl";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
@@ -14,20 +15,11 @@ const agentLoginRateLimit = {
   windowMs: 15 * 60 * 1000,
 };
 
-function getBaseUrl(req: NextRequest): string {
-  const host =
-    req.headers.get("x-forwarded-host") ||
-    req.headers.get("host") ||
-    "localhost:3000";
-  const protocol = req.headers.get("x-forwarded-proto") || "http";
-  return `${protocol}://${host}`;
-}
-
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const username = ((formData.get("username") as string) ?? "").trim();
   const password = (formData.get("password") as string) ?? "";
-  const baseUrl = getBaseUrl(req);
+  const baseUrl = getRequestBaseUrl(req);
   const rateLimitKey = `agent-login:${getClientIp(req)}:${username.toLowerCase()}`;
   const rateLimit = isRateLimited(rateLimitKey, agentLoginRateLimit);
 

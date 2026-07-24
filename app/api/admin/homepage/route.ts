@@ -1,12 +1,8 @@
+import { getRequestBaseUrl } from "@/lib/requestUrl";
 import { NextRequest, NextResponse } from "next/server";
 import { writeAdminAuditLog } from "@/lib/adminAuditLog";
 import { homepageSectionDefinitions } from "@/lib/homepageSections";
 import { prisma } from "@/lib/prisma";
-
-function getBaseUrl(req: NextRequest) {
-  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "localhost:3000";
-  return `${req.headers.get("x-forwarded-proto") || "http"}://${host}`;
-}
 
 function readText(formData: FormData, name: string, maxLength: number) {
   return String(formData.get(name) ?? "").trim().slice(0, maxLength);
@@ -29,7 +25,7 @@ function isSafeImageUrl(value: string | null) {
 }
 
 export async function POST(req: NextRequest) {
-  const baseUrl = getBaseUrl(req);
+  const baseUrl = getRequestBaseUrl(req);
   const formData = await req.formData();
   const requestedSections = homepageSectionDefinitions.map((definition) => {
     const requestedOrder = Number(formData.get(`${definition.key}Order`));

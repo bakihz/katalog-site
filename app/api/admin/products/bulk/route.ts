@@ -1,17 +1,10 @@
+import { getRequestBaseUrl } from "@/lib/requestUrl";
 import { NextRequest, NextResponse } from "next/server";
 import { writeAdminAuditLog } from "@/lib/adminAuditLog";
 import { prisma } from "@/lib/prisma";
 import { readyToPublishProductWhere } from "@/lib/productCatalogReadiness";
 
 type BulkAction = "assign-category" | "publish" | "hide";
-
-function getBaseUrl(req: NextRequest) {
-  const host =
-    req.headers.get("x-forwarded-host") ||
-    req.headers.get("host") ||
-    "localhost:3000";
-  return `${req.headers.get("x-forwarded-proto") || "http"}://${host}`;
-}
 
 function readProductIds(formData: FormData) {
   return Array.from(
@@ -25,7 +18,7 @@ function readProductIds(formData: FormData) {
 }
 
 function getReturnUrl(req: NextRequest, formData: FormData) {
-  const baseUrl = getBaseUrl(req);
+  const baseUrl = getRequestBaseUrl(req);
   const requested = String(formData.get("returnTo") ?? "");
   const url = new URL(requested || "/admin/products", baseUrl);
 

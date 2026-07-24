@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { getFirstSearchParam } from "@/lib/searchParams";
 
 export const adminPaymentPageSizeOptions = [25, 50, 100] as const;
 export const defaultAdminPaymentPageSize = 25;
@@ -24,17 +25,14 @@ export type AdminPaymentFilters = {
   where: Prisma.PaymentWhereInput;
 };
 
-export function getFirstParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
 export function parseAdminPaymentFilters(
   params: Record<string, string | string[] | undefined> | URLSearchParams,
 ): AdminPaymentFilters {
   const getParam =
     params instanceof URLSearchParams
       ? (key: keyof AdminPaymentFilterParams) => params.get(key) ?? undefined
-      : (key: keyof AdminPaymentFilterParams) => getFirstParam(params[key]);
+      : (key: keyof AdminPaymentFilterParams) =>
+          getFirstSearchParam(params[key]);
 
   const query = (getParam("q") ?? "").trim();
   const status = (getParam("status") ?? "").trim();

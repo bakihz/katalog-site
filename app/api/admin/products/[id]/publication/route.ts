@@ -1,3 +1,4 @@
+import { getRequestBaseUrl } from "@/lib/requestUrl";
 import { NextRequest, NextResponse } from "next/server";
 import { writeAdminAuditLog } from "@/lib/adminAuditLog";
 import {
@@ -7,22 +8,13 @@ import {
 } from "@/lib/productCatalogReadiness";
 import { prisma } from "@/lib/prisma";
 
-function getBaseUrl(req: NextRequest) {
-  const host =
-    req.headers.get("x-forwarded-host") ||
-    req.headers.get("host") ||
-    "localhost:3000";
-  const protocol = req.headers.get("x-forwarded-proto") || "http";
-  return `${protocol}://${host}`;
-}
-
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   const productId = Number(id);
-  const baseUrl = getBaseUrl(req);
+  const baseUrl = getRequestBaseUrl(req);
 
   if (!Number.isInteger(productId) || productId <= 0) {
     return NextResponse.redirect(`${baseUrl}/admin/products?error=not-found`, {

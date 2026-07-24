@@ -1,3 +1,4 @@
+import { getRequestBaseUrl } from "@/lib/requestUrl";
 import { NextRequest, NextResponse } from "next/server";
 import { writeAdminAuditLog } from "@/lib/adminAuditLog";
 import {
@@ -7,13 +8,8 @@ import {
 } from "@/lib/catalogCategoryAdmin";
 import { prisma } from "@/lib/prisma";
 
-function getBaseUrl(req: NextRequest) {
-  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "localhost:3000";
-  return `${req.headers.get("x-forwarded-proto") || "http"}://${host}`;
-}
-
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const baseUrl = getBaseUrl(req);
+  const baseUrl = getRequestBaseUrl(req);
   const categoryId = Number((await params).id);
   const category = Number.isInteger(categoryId) && categoryId > 0
     ? await prisma.catalogCategory.findUnique({ where: { id: categoryId } })

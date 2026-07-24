@@ -19,20 +19,17 @@ import {
   ProductBulkCheckbox,
   ProductBulkSelection,
 } from "@/components/admin/product-bulk-selection";
+import { getFirstSearchParam } from "@/lib/searchParams";
 
 type AdminProductsPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-function getFirstParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
 function getBulkAlert(params: Record<string, string | string[] | undefined>) {
-  const success = getFirstParam(params.bulkSuccess);
-  const error = getFirstParam(params.bulkError);
-  const updated = Number(getFirstParam(params.updated) ?? 0);
-  const skipped = Number(getFirstParam(params.skipped) ?? 0);
+  const success = getFirstSearchParam(params.bulkSuccess);
+  const error = getFirstSearchParam(params.bulkError);
+  const updated = Number(getFirstSearchParam(params.updated) ?? 0);
+  const skipped = Number(getFirstSearchParam(params.skipped) ?? 0);
   const suffix = skipped > 0 ? ` ${skipped} ürün koşulları karşılamadığı için atlandı.` : "";
 
   if (error === "selection") return { type: "error", message: "Toplu işlem için en az bir ürün seçmelisiniz." };

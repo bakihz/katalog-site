@@ -1,3 +1,4 @@
+import { getRequestBaseUrl } from "@/lib/requestUrl";
 import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -8,15 +9,6 @@ import {
   discoverProductWebResearchSources,
   fetchWebResearchSources,
 } from "@/lib/webResearch";
-
-function getBaseUrl(req: NextRequest): string {
-  const host =
-    req.headers.get("x-forwarded-host") ||
-    req.headers.get("host") ||
-    "localhost:3000";
-  const protocol = req.headers.get("x-forwarded-proto") || "http";
-  return `${protocol}://${host}`;
-}
 
 function limitText(value: string | null | undefined, maxLength: number) {
   if (!value) return value ?? null;
@@ -32,7 +24,7 @@ export async function POST(
 ) {
   const { id } = await params;
   const productId = Number(id);
-  const baseUrl = getBaseUrl(req);
+  const baseUrl = getRequestBaseUrl(req);
 
   if (!Number.isInteger(productId) || productId <= 0) {
     return NextResponse.redirect(`${baseUrl}/admin/products?error=not-found`, {

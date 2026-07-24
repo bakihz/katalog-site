@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/ui";
 import { getSiteSettings } from "@/lib/siteSettings";
+import { getFirstSearchParam } from "@/lib/searchParams";
 
 type SiteSettingsPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -8,10 +9,6 @@ type SiteSettingsPageProps = {
 const inputClassName =
   "w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm outline-none transition focus:border-[#173f32]/40 focus:bg-white";
 
-function getFirstParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
 export default async function SiteSettingsPage({
   searchParams,
 }: SiteSettingsPageProps) {
@@ -19,8 +16,8 @@ export default async function SiteSettingsPage({
     getSiteSettings(),
     searchParams,
   ]);
-  const success = getFirstParam(params.success);
-  const error = getFirstParam(params.error);
+  const success = getFirstSearchParam(params.success);
+  const error = getFirstSearchParam(params.error);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">

@@ -1,19 +1,13 @@
+import { getRequestBaseUrl } from "@/lib/requestUrl";
 import { NextRequest, NextResponse } from "next/server";
 import { writeAdminAuditLog } from "@/lib/adminAuditLog";
 import { prisma } from "@/lib/prisma";
 import { isValidHttpUrl, readProviderFormValue } from "@/lib/paymentProviderAdmin";
 
-function getBaseUrl(req: NextRequest): string {
-  const host =
-    req.headers.get("x-forwarded-host") ||
-    req.headers.get("host") ||
-    "localhost:3000";
-  const protocol = req.headers.get("x-forwarded-proto") || "http";
-  return `${protocol}://${host}`;
-}
+
 
 export async function POST(req: NextRequest) {
-  const baseUrl = getBaseUrl(req);
+  const baseUrl = getRequestBaseUrl(req);
   const formData = await req.formData();
 
   const name = readProviderFormValue(formData, "name");

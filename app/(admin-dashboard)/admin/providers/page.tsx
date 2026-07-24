@@ -5,6 +5,7 @@ import {
   isProviderReady,
 } from "@/lib/paymentProviderAdmin";
 import { AppButton, PageHeader } from "@/components/ui";
+import { getFirstSearchParam } from "@/lib/searchParams";
 
 type ProvidersPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -21,10 +22,6 @@ const actionLabels: Record<string, string> = {
   "payment_provider.activate": "Sanal POS aktif edildi",
   "payment_provider.delete": "Sanal POS silindi",
 };
-
-function getFirstParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
 
 function getGatewayHost(gatewayUrl: string | null) {
   if (!gatewayUrl) {
@@ -163,8 +160,8 @@ export default async function ProvidersPage({
   searchParams,
 }: ProvidersPageProps) {
   const params = await searchParams;
-  const success = getFirstParam(params.success);
-  const error = getFirstParam(params.error);
+  const success = getFirstSearchParam(params.success);
+  const error = getFirstSearchParam(params.error);
   const providers = await getProviders();
   const auditLogs = await getRecentProviderAuditLogs();
   const activeProvider = providers.find((provider) => provider.isActive);

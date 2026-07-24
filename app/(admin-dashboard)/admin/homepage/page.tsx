@@ -3,14 +3,11 @@ import { CategoryShowcaseItem } from "@/components/admin/category-showcase-item"
 import { PageHeader } from "@/components/ui";
 import { getHomepageSections } from "@/lib/homepageSections";
 import { prisma } from "@/lib/prisma";
+import { getFirstSearchParam } from "@/lib/searchParams";
 
 type HomepageAdminPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
-
-function getFirstParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
 
 export default async function HomepageAdminPage({
   searchParams,
@@ -63,8 +60,8 @@ export default async function HomepageAdminPage({
     }),
     searchParams,
   ]);
-  const success = getFirstParam(params.success);
-  const error = getFirstParam(params.error);
+  const success = getFirstSearchParam(params.success);
+  const error = getFirstSearchParam(params.error);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">

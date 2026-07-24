@@ -1,3 +1,4 @@
+import { getRequestBaseUrl } from "@/lib/requestUrl";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import {
@@ -7,20 +8,8 @@ import {
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 
-function getBaseUrl(req: NextRequest): string {
-  const requestUrl = new URL(req.url);
-  const host =
-    req.headers.get("x-forwarded-host") ||
-    req.headers.get("host") ||
-    requestUrl.host;
-  const protocol =
-    req.headers.get("x-forwarded-proto") ||
-    requestUrl.protocol.replace(":", "");
-  return `${protocol}://${host}`;
-}
-
 export async function POST(req: NextRequest) {
-  const baseUrl = getBaseUrl(req);
+  const baseUrl = getRequestBaseUrl(req);
   const cookieStore = await cookies();
   const adminSession = cookieStore.get("admin_session")?.value;
   const adminUserId = await getAdminSessionUserId(adminSession);

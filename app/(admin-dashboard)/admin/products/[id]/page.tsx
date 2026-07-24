@@ -4,21 +4,19 @@ import { isOllamaProductSuggestionEnabled } from "@/lib/ollamaProductSuggestions
 import { isBraveWebResearchEnabled } from "@/lib/webResearch";
 import { ProductImageUpload } from "@/components/admin/product-image-upload";
 import { ProductCategoryFields } from "@/components/admin/product-category-fields";
+import { ProductLogoRawData } from "@/components/admin/product-logo-raw-data";
+import { ProductPublicationPanel } from "@/components/admin/product-publication-panel";
 import { AppButton, PageHeader } from "@/components/ui";
 import {
   getCatalogReadiness,
   getEffectivePublicationStatus,
-  getPublicationStatusLabel,
 } from "@/lib/productCatalogReadiness";
+import { getFirstSearchParam } from "@/lib/searchParams";
 
 type AdminProductDetailPageProps = {
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
-
-function getFirstParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
 
 function getDisplayName(product: {
   name: string;
@@ -132,8 +130,8 @@ export default async function AdminProductDetailPage({
   }
 
   const query = await searchParams;
-  const success = getFirstParam(query.success);
-  const error = getFirstParam(query.error);
+  const success = getFirstSearchParam(query.success);
+  const error = getFirstSearchParam(query.error);
   const displayName = getDisplayName(product);
   const alertMessage = getAlertMessage(success, error);
   const hasSuggestion = Boolean(product.suggestedName);
@@ -172,111 +170,13 @@ export default async function AdminProductDetailPage({
         </div>
       )}
 
-      <section className="rounded-[1.75rem] border border-[#17201c]/10 bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#89938e]">
-              Yayın Kontrolü
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <h2 className="text-xl font-black text-[#17201c]">
-                {getPublicationStatusLabel(publicationStatus)}
-              </h2>
-              {!product.logoIsActive && (
-                <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-bold text-rose-700">
-                  Logo pasif — sitede görünmez
-                </span>
-              )}
-              {publicationStatus === "published" && product.logoIsActive && (
-                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
-                  Müşteriye açık
-                </span>
-              )}
-            </div>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#68746e]">
-              Zorunlu koşullar tamamlanmadan ürün yayınlanamaz. Uyarılar yayını
-              engellemez ancak içerik kalitesini geliştirmek için dikkate alınmalıdır.
-            </p>
-            {product.publishedAt && (
-              <p className="mt-2 text-xs font-semibold text-[#89938e]">
-                İlk yayın: {formatDate(product.publishedAt)}
-              </p>
-            )}
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {publicationStatus !== "draft" && (
-              <form action={`/api/admin/products/${product.id}/publication`} method="POST">
-                <input type="hidden" name="status" value="draft" />
-                <AppButton type="submit" variant="outline" size="sm">
-                  Taslağa Al
-                </AppButton>
-              </form>
-            )}
-            {publicationStatus !== "review" && (
-              <form action={`/api/admin/products/${product.id}/publication`} method="POST">
-                <input type="hidden" name="status" value="review" />
-                <AppButton type="submit" variant="outline" size="sm">
-                  İncelemeye Gönder
-                </AppButton>
-              </form>
-            )}
-            {publicationStatus !== "published" && (
-              <form action={`/api/admin/products/${product.id}/publication`} method="POST">
-                <input type="hidden" name="status" value="published" />
-                <AppButton type="submit" size="sm" disabled={!readiness.isReady}>
-                  Yayına Al
-                </AppButton>
-              </form>
-            )}
-            {publicationStatus !== "archived" && (
-              <form action={`/api/admin/products/${product.id}/publication`} method="POST">
-                <input type="hidden" name="status" value="archived" />
-                <AppButton type="submit" variant="secondary" size="sm">
-                  Arşivle
-                </AppButton>
-              </form>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-5 grid gap-4 border-t border-[#17201c]/10 pt-5 lg:grid-cols-2">
-          <div className="rounded-2xl bg-[#f8f6f1] p-4">
-            <p className="text-sm font-bold text-[#17201c]">
-              Zorunlu kontroller
-            </p>
-            {readiness.blockers.length === 0 ? (
-              <p className="mt-3 text-sm font-semibold text-emerald-700">
-                ✓ Ürün yayına hazır.
-              </p>
-            ) : (
-              <ul className="mt-3 grid gap-2 text-sm text-rose-700 sm:grid-cols-2">
-                {readiness.blockers.map((blocker) => (
-                  <li key={blocker} className="font-semibold">
-                    ✕ {blocker}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <div className="rounded-2xl bg-amber-50 p-4">
-            <p className="text-sm font-bold text-[#17201c]">
-              Kalite önerileri
-            </p>
-            {readiness.warnings.length === 0 ? (
-              <p className="mt-3 text-sm font-semibold text-emerald-700">
-                ✓ Ek kalite uyarısı bulunmuyor.
-              </p>
-            ) : (
-              <ul className="mt-3 grid gap-2 text-sm text-amber-800 sm:grid-cols-2">
-                {readiness.warnings.map((warning) => (
-                  <li key={warning}>• {warning}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      </section>
+      <ProductPublicationPanel
+        productId={product.id}
+        logoIsActive={product.logoIsActive}
+        publishedAt={product.publishedAt}
+        status={publicationStatus}
+        readiness={readiness}
+      />
 
       <div className="grid gap-6 xl:grid-cols-[1fr_0.75fr]">
         <section className="rounded-[1.75rem] border border-[#17201c]/10 bg-white p-6 shadow-sm">
@@ -686,94 +586,7 @@ export default async function AdminProductDetailPage({
             )}
           </section>
 
-          <section className="rounded-[1.75rem] border border-[#17201c]/10 bg-white p-6 shadow-sm">
-            <h3 className="text-lg font-bold">Logo Ham Verisi</h3>
-            <p className="mt-1 text-sm text-[#68746e]">
-              Bu alanlar referans içindir. Katalog düzenlemesi Logo verisini
-              değiştirmez.
-            </p>
-            <dl className="mt-5 space-y-3 text-sm">
-              <div>
-                <dt className="font-semibold text-[#68746e]">Stok Kodu</dt>
-                <dd className="text-[#17201c]">{product.stockCode ?? "-"}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-[#68746e]">Logo Ürün Adı</dt>
-                <dd className="text-[#17201c]">{product.logoName ?? "-"}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-[#68746e]">Mağaza Adı / NAME2</dt>
-                <dd className="text-[#17201c]">{product.storeName ?? "-"}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-[#68746e]">Açıklama 2 / NAME3</dt>
-                <dd className="text-[#17201c]">
-                  {product.logoDescription2 ?? "-"}
-                </dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-[#68746e]">Açıklama 3 / NAME4</dt>
-                <dd className="text-[#17201c]">
-                  {product.logoDescription3 ?? "-"}
-                </dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-[#68746e]">Logo Kategori</dt>
-                <dd className="text-[#17201c]">
-                  {product.logoCategoryRaw ?? "-"} /{" "}
-                  {product.logoSubCategoryRaw ?? "-"}
-                </dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-[#68746e]">
-                  Google Taxonomy
-                </dt>
-                <dd className="text-[#17201c]">
-                  {taxonomy.googleTaxonomyPath
-                    ? `${taxonomy.googleTaxonomyId ?? "-"} - ${
-                        taxonomy.googleTaxonomyPath
-                      }`
-                    : "-"}
-                </dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-[#68746e]">Logo Marka Ref</dt>
-                <dd className="text-[#17201c]">
-                  {product.logoBrandRef ?? "-"}
-                  {taxonomy.logoBrandName ? ` / ${taxonomy.logoBrandName}` : ""}
-                </dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-[#68746e]">Logo Birim</dt>
-                <dd className="text-[#17201c]">
-                  {product.logoUnitSetRef ?? "-"}
-                  {taxonomy.logoUnitName ? ` / ${taxonomy.logoUnitName}` : ""}
-                </dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-[#68746e]">Logo Durumu</dt>
-                <dd className="text-[#17201c]">
-                  {product.logoIsActive ? "Aktif" : "Pasif"}
-                </dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-[#68746e]">KDV</dt>
-                <dd className="text-[#17201c]">{product.vatRate ?? "-"}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-[#68746e]">Son Logo Güncelleme</dt>
-                <dd className="text-[#17201c]">
-                  {formatDate(product.lastLogoModifiedAt)}
-                </dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-[#68746e]">Son Import</dt>
-                <dd className="text-[#17201c]">
-                  {formatDate(product.lastLogoSyncAt)}
-                </dd>
-              </div>
-            </dl>
-          </section>
+          <ProductLogoRawData product={product} />
 
           <section className="rounded-[1.75rem] border border-amber-200 bg-amber-50 p-6 shadow-sm">
             <h3 className="text-lg font-bold text-amber-900">

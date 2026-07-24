@@ -3,6 +3,7 @@ import { getUserRole, getUserRoleLabel, userRoleOptions } from "@/lib/userRole";
 import { prisma } from "@/lib/prisma";
 import { AppButton, PageHeader, StatCard } from "@/components/ui";
 import Link from "next/link";
+import { getFirstSearchParam } from "@/lib/searchParams";
 
 type AdminAgentsPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -27,16 +28,12 @@ const errorMessages: Record<string, string> = {
   "not-found": "Temsilci bulunamadı.",
 };
 
-function getFirstParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
 export default async function AdminAgentsPage({
   searchParams,
 }: AdminAgentsPageProps) {
   const params = await searchParams;
-  const success = getFirstParam(params.success);
-  const error = getFirstParam(params.error);
+  const success = getFirstSearchParam(params.success);
+  const error = getFirstSearchParam(params.error);
 
   const agents = await prisma.user.findMany({
     orderBy: { id: "asc" },

@@ -1,17 +1,9 @@
+import { getRequestBaseUrl } from "@/lib/requestUrl";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { writeAdminAuditLog } from "@/lib/adminAuditLog";
 import { prisma } from "@/lib/prisma";
 import { isProviderReady } from "@/lib/paymentProviderAdmin";
-
-function getBaseUrl(req: NextRequest): string {
-  const host =
-    req.headers.get("x-forwarded-host") ||
-    req.headers.get("host") ||
-    "localhost:3000";
-  const protocol = req.headers.get("x-forwarded-proto") || "http";
-  return `${protocol}://${host}`;
-}
 
 export async function POST(
   req: NextRequest,
@@ -21,7 +13,7 @@ export async function POST(
     }>;
   },
 ) {
-  const baseUrl = getBaseUrl(req);
+  const baseUrl = getRequestBaseUrl(req);
   const { id } = await context.params;
   const providerId = Number(id);
 

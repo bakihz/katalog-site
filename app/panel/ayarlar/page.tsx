@@ -3,6 +3,7 @@ import { verifyAgentCookie } from "@/lib/agentAuth";
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { AppButton, PageHeader, StatCard } from "@/components/ui";
+import { getFirstSearchParam } from "@/lib/searchParams";
 
 type AgentSettingsPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -20,10 +21,6 @@ const errorMessages: Record<string, string> = {
   "new-password":
     "Yeni şifre en az 8 karakter olmalı ve tekrar alanıyla aynı olmalı.",
 };
-
-function getFirstParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
 
 export default async function AgentSettingsPage({
   searchParams,
@@ -49,8 +46,8 @@ export default async function AgentSettingsPage({
 
   if (!agent) return null;
 
-  const success = getFirstParam(params.success);
-  const error = getFirstParam(params.error);
+  const success = getFirstSearchParam(params.success);
+  const error = getFirstSearchParam(params.error);
 
   return (
     <div className="space-y-6">

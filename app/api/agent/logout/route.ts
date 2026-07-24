@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getRequestBaseUrl } from "@/lib/requestUrl";
 
 export async function POST(req: NextRequest) {
-  const host =
-    req.headers.get("x-forwarded-host") ||
-    req.headers.get("host") ||
-    "localhost:3000";
-  const protocol = req.headers.get("x-forwarded-proto") || "http";
-  const url = `${protocol}://${host}/giris`;
+  const url = `${getRequestBaseUrl(req)}/giris`;
 
   const response = NextResponse.redirect(url, {
     status: 303,

@@ -1,3 +1,5 @@
+import { getFirstSearchParam } from "@/lib/searchParams";
+
 export const adminProductPageSizeOptions = [25, 50, 100] as const;
 export const defaultAdminProductPageSize = 25;
 
@@ -35,17 +37,14 @@ export type AdminProductFilters = {
   pageSize: (typeof adminProductPageSizeOptions)[number];
 };
 
-function getFirstParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
 export function parseAdminProductFilters(
   params: URLSearchParams | Record<string, string | string[] | undefined>,
 ): AdminProductFilters {
   const getValue =
     params instanceof URLSearchParams
       ? (key: keyof AdminProductFilterParams) => params.get(key) ?? undefined
-      : (key: keyof AdminProductFilterParams) => getFirstParam(params[key]);
+      : (key: keyof AdminProductFilterParams) =>
+          getFirstSearchParam(params[key]);
 
   const requestedPage = Number(getValue("page") ?? 1);
   const requestedPageSize = Number(

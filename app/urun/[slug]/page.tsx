@@ -1,13 +1,13 @@
 /* eslint-disable @next/next/no-img-element */
 import { cache } from "react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { verifyAgentCookie } from "@/lib/agentAuth";
 import { prisma } from "@/lib/prisma";
 import { CatalogHeader } from "@/components/catalog/catalog-header";
+import { CatalogFooter } from "@/components/catalog/catalog-footer";
 import { getSiteSettings } from "@/lib/siteSettings";
 
 type ProductPageProps = {
@@ -255,34 +255,13 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
         )}
       </main>
 
-      <footer
-        id="iletisim"
-        className="relative mt-8 border-t border-[#17201c]/10 bg-[#f4f1ea]/80"
-      >
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-10 lg:px-16">
-          <div className="flex items-center gap-3">
-            <div className="relative size-8 shrink-0 overflow-hidden rounded-lg">
-              <Image
-                src="/logo.svg"
-                alt="Lale EDT logo"
-                fill
-                sizes="32px"
-                className="object-contain"
-              />
-            </div>
-            <p className="text-xs font-semibold text-[#476057]">Lale EDT Gıda A.Ş.</p>
-          </div>
-          <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-[#89938e]">
-            <a href="tel:+905443033366" className="transition hover:text-[#173f32]">
-              0 (544) 303 33 66
-            </a>
-            <a href="mailto:info@laleedt.com.tr" className="transition hover:text-[#173f32]">
-              info@laleedt.com.tr
-            </a>
-            <span>© 2026 Tüm hakları saklıdır.</span>
-          </div>
-        </div>
-      </footer>
+      <CatalogFooter
+        companyName={siteSettings.companyName}
+        primaryPhone={siteSettings.primaryPhone}
+        email={siteSettings.email}
+        address={siteSettings.address}
+        mapsUrl={siteSettings.mapsUrl}
+      />
     </div>
   );
 }

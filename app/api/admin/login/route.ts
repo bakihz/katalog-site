@@ -1,3 +1,4 @@
+import { getRequestBaseUrl } from "@/lib/requestUrl";
 import { NextRequest, NextResponse } from "next/server";
 import {
   adminSessionMaxAgeSeconds,
@@ -17,20 +18,11 @@ const adminLoginRateLimit = {
   windowMs: 15 * 60 * 1000,
 };
 
-function getBaseUrl(req: NextRequest): string {
-  const host =
-    req.headers.get("x-forwarded-host") ||
-    req.headers.get("host") ||
-    "localhost:3000";
-  const protocol = req.headers.get("x-forwarded-proto") || "http";
-  return `${protocol}://${host}`;
-}
-
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const username = ((formData.get("username") as string) ?? "").trim();
   const password = ((formData.get("password") as string) ?? "").trim();
-  const baseUrl = getBaseUrl(req);
+  const baseUrl = getRequestBaseUrl(req);
   const rateLimitKey = `admin-login:${getClientIp(req)}`;
   const rateLimit = isRateLimited(rateLimitKey, adminLoginRateLimit);
   let adminUserId: number | null = null;
