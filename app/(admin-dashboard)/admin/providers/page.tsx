@@ -1,107 +1,16 @@
-import { prisma } from "@/lib/prisma";
+import { PageHeader } from "@/components/ui";
+import { ProviderActivation } from "@/components/admin/payment-providers/provider-activation";
+import { ProviderAuditLog } from "@/components/admin/payment-providers/provider-audit-log";
+import { ProviderCreate } from "@/components/admin/payment-providers/provider-create";
+import { ProviderEditor } from "@/components/admin/payment-providers/provider-editor";
+import { ProviderOverview } from "@/components/admin/payment-providers/provider-overview";
 import { ensureAllPaymentProviders } from "@/lib/paymentProviders";
-import {
-  getProviderMissingFields,
-  isProviderReady,
-} from "@/lib/paymentProviderAdmin";
-import { AppButton, PageHeader } from "@/components/ui";
+import { prisma } from "@/lib/prisma";
 import { getFirstSearchParam } from "@/lib/searchParams";
 
 type ProvidersPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
-
-type ProviderStatusInput = {
-  isActive: boolean;
-  ready: boolean;
-};
-
-const actionLabels: Record<string, string> = {
-  "payment_provider.create": "Sanal POS eklendi",
-  "payment_provider.update": "Sanal POS güncellendi",
-  "payment_provider.activate": "Sanal POS aktif edildi",
-  "payment_provider.delete": "Sanal POS silindi",
-};
-
-function getGatewayHost(gatewayUrl: string | null) {
-  if (!gatewayUrl) {
-    return null;
-  }
-
-  try {
-    return new URL(gatewayUrl).host;
-  } catch {
-    return gatewayUrl;
-  }
-}
-
-function getProviderStatusLabel({ isActive, ready }: ProviderStatusInput) {
-  if (isActive) {
-    return "Aktif";
-  }
-
-  return ready ? "Hazır" : "Eksik";
-}
-
-function getProviderStatusClassName({ isActive, ready }: ProviderStatusInput) {
-  if (isActive) {
-    return "bg-emerald-100 text-emerald-700";
-  }
-
-  return ready ? "bg-slate-100 text-slate-700" : "bg-amber-100 text-amber-700";
-}
-
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("tr-TR", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
-function formatAuditDetails(details: string | null) {
-  if (!details) {
-    return "Detay yok";
-  }
-
-  try {
-    const parsed = JSON.parse(details) as {
-      changedFields?: string[];
-      sensitiveFieldsChanged?: Record<string, boolean>;
-      createdFields?: Record<string, boolean>;
-    };
-    const parts: string[] = [];
-
-    if (parsed.changedFields?.length) {
-      parts.push(`Değişen alanlar: ${parsed.changedFields.join(", ")}`);
-    }
-
-    if (parsed.sensitiveFieldsChanged) {
-      const sensitiveChanges = Object.entries(parsed.sensitiveFieldsChanged)
-        .filter(([, changed]) => changed)
-        .map(([field]) => field);
-
-      if (sensitiveChanges.length) {
-        parts.push(
-          `Hassas alan güncellendi: ${sensitiveChanges.join(", ")}`,
-        );
-      }
-    }
-
-    if (parsed.createdFields) {
-      const filledFields = Object.entries(parsed.createdFields)
-        .filter(([, filled]) => filled)
-        .map(([field]) => field);
-
-      if (filledFields.length) {
-        parts.push(`Dolu oluşturulan alanlar: ${filledFields.join(", ")}`);
-      }
-    }
-
-    return parts.length ? parts.join(" · ") : "Detay yok";
-  } catch {
-    return "Detay okunamadı";
-  }
-}
 
 const successMessages: Record<string, string> = {
   created: "Sanal POS eklendi.",
@@ -129,31 +38,25 @@ const errorMessages: Record<string, string> = {
   "delete-notfound": "Sanal POS bulunamadı.",
 };
 
-const inputCls =
-  "w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm outline-none transition focus:border-[#173f32]/40 focus:bg-white";
-
-const labelCls = "block text-xs font-semibold text-[#68746e] mb-1";
-const helperTextCls = "mt-1 text-xs leading-relaxed text-[#7a867f]";
-
-async function getProviders() {
+async function getProvidersPageData() {
   await ensureAllPaymentProviders();
-  return prisma.paymentProvider.findMany({ orderBy: { id: "asc" } });
-}
 
-async function getRecentProviderAuditLogs() {
-  return prisma.adminAuditLog.findMany({
-    where: { entityType: "payment_provider" },
-    orderBy: { createdAt: "desc" },
-    take: 20,
-    include: {
-      actor: {
-        select: {
-          name: true,
-          username: true,
+  return Promise.all([
+    prisma.paymentProvider.findMany({ orderBy: { id: "asc" } }),
+    prisma.adminAuditLog.findMany({
+      where: { entityType: "payment_provider" },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      include: {
+        actor: {
+          select: {
+            name: true,
+            username: true,
+          },
         },
       },
-    },
-  });
+    }),
+  ]);
 }
 
 export default async function ProvidersPage({
@@ -162,12 +65,7 @@ export default async function ProvidersPage({
   const params = await searchParams;
   const success = getFirstSearchParam(params.success);
   const error = getFirstSearchParam(params.error);
-  const providers = await getProviders();
-  const auditLogs = await getRecentProviderAuditLogs();
-  const activeProvider = providers.find((provider) => provider.isActive);
-  const readyProviderCount = providers.filter((provider) =>
-    isProviderReady(provider),
-  ).length;
+  const [providers, auditLogs] = await getProvidersPageData();
 
   return (
     <div className="space-y-6">
@@ -191,447 +89,15 @@ export default async function ProvidersPage({
         </div>
       )}
 
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-[1.5rem] border border-[#17201c]/10 bg-white p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#89938e]">
-            Aktif POS
-          </p>
-          <p className="mt-2 text-xl font-black text-[#17201c]">
-            {activeProvider?.name ?? "Seçilmedi"}
-          </p>
-          <p className="mt-1 text-sm text-[#68746e]">
-            {activeProvider
-              ? "Ödeme ekranı şu anda bu sağlayıcıyı kullanıyor."
-              : "Ödeme almadan önce hazır bir POS aktif edilmeli."}
-          </p>
-        </div>
-        <div className="rounded-[1.5rem] border border-[#17201c]/10 bg-white p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#89938e]">
-            Hazır POS
-          </p>
-          <p className="mt-2 text-xl font-black text-[#17201c]">
-            {readyProviderCount} / {providers.length}
-          </p>
-          <p className="mt-1 text-sm text-[#68746e]">
-            POS adı, Client ID, Store Key ve Gateway URL dolu olan kayıtlar
-            aktif edilebilir.
-          </p>
-        </div>
-        <div className="rounded-[1.5rem] border border-amber-200 bg-amber-50 p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">
-            Güvenlik Notu
-          </p>
-          <p className="mt-2 text-sm leading-relaxed text-amber-800">
-            Store Key ve API şifresi ekranda gösterilmez. Güncellemede boş
-            bırakırsan mevcut kayıt korunur.
-          </p>
-        </div>
-      </section>
+      <ProviderOverview providers={providers} />
+      <ProviderActivation providers={providers} />
 
-      <section className="rounded-[1.75rem] border border-[#17201c]/10 bg-white p-6 shadow-sm">
-        <h3 className="text-lg font-bold">Aktif Sağlayıcı</h3>
-        <p className="mt-1 text-sm text-[#68746e]">
-          Ödeme ekranının kullanacağı sanal POS&apos;u seçin. Eksik bilgisi olan
-          POS aktif edilemez.
-        </p>
+      {providers.map((provider) => (
+        <ProviderEditor key={provider.id} provider={provider} />
+      ))}
 
-        {providers.length === 0 ? (
-          <div className="mt-4 rounded-[1.75rem] border border-dashed border-[#17201c]/20 bg-[#fcfbf8] p-8 text-sm text-[#68746e]">
-            Henüz POS sağlayıcısı tanımlanmamış.
-          </div>
-        ) : (
-          <form
-            action="/api/admin/providers/activate"
-            method="POST"
-            className="mt-4"
-          >
-            <fieldset className="space-y-3">
-              <legend className="sr-only">Sanal POS seçimi</legend>
-              {providers.map((provider) => {
-                const ready = isProviderReady(provider);
-                const missingFields = getProviderMissingFields(provider);
-                const gatewayHost = getGatewayHost(provider.gatewayUrl);
-
-                return (
-                  <label
-                    key={provider.id}
-                    className={`flex cursor-pointer items-center justify-between gap-4 rounded-2xl border px-5 py-4 transition ${
-                      provider.isActive
-                        ? "border-emerald-300 bg-emerald-50"
-                        : ready
-                          ? "border-[#17201c]/10 bg-[#fcfbf8] hover:border-[#173f32]/30"
-                          : "border-amber-200 bg-amber-50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        name="providerId"
-                        value={provider.id}
-                        defaultChecked={provider.isActive}
-                        disabled={!ready}
-                        className="h-4 w-4 accent-[#173f32] disabled:cursor-not-allowed"
-                      />
-                      <div>
-                        <p className="text-base font-bold text-[#17201c]">
-                          {provider.name}
-                        </p>
-                        <p className="text-sm text-[#68746e]">
-                          {ready
-                            ? provider.isActive
-                              ? "Aktif sağlayıcı"
-                              : "Aktif edilebilir"
-                            : `Eksik: ${missingFields.join(", ")}`}
-                        </p>
-                        <p className="mt-1 text-xs text-[#89938e]">
-                          {provider.merchantId
-                            ? `Client ID: ${provider.merchantId}`
-                            : "Client ID yok"}
-                          {gatewayHost ? ` · ${gatewayHost}` : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-bold ${getProviderStatusClassName(
-                        { isActive: provider.isActive, ready },
-                      )}`}
-                    >
-                      {getProviderStatusLabel({
-                        isActive: provider.isActive,
-                        ready,
-                      })}
-                    </span>
-                  </label>
-                );
-              })}
-            </fieldset>
-            <AppButton type="submit" className="mt-4">
-              Sanal POS&apos;u Güncelle
-            </AppButton>
-          </form>
-        )}
-      </section>
-
-      {providers.map((provider) => {
-        const ready = isProviderReady(provider);
-        const missingFields = getProviderMissingFields(provider);
-        const editFormId = `provider-edit-${provider.id}`;
-
-        return (
-          <section
-            key={provider.id}
-            className="rounded-[1.75rem] border border-[#17201c]/10 bg-white p-6 shadow-sm"
-          >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h3 className="text-lg font-bold">{provider.name}</h3>
-                <p className="text-sm text-[#68746e]">
-                  {provider.merchantId
-                    ? `Client ID: ${provider.merchantId}`
-                    : "Client ID girilmemiş"}
-                </p>
-                {!ready && (
-                  <p className="mt-1 text-sm font-semibold text-amber-700">
-                    Eksik alanlar: {missingFields.join(", ")}
-                  </p>
-                )}
-              </div>
-              <span
-                className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${getProviderStatusClassName(
-                  { isActive: provider.isActive, ready },
-                )}`}
-              >
-                {getProviderStatusLabel({
-                  isActive: provider.isActive,
-                  ready,
-                })}
-              </span>
-            </div>
-
-            <details className="group mt-4">
-              <summary className="inline-flex cursor-pointer list-none items-center gap-2 rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-2.5 text-sm font-semibold text-[#17201c] transition hover:bg-[#f0ece4] [&::-webkit-details-marker]:hidden">
-                <span>Değiştir</span>
-                <svg
-                  className="h-4 w-4 transition group-open:rotate-180"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </summary>
-
-              <form
-                id={editFormId}
-                action={`/api/admin/providers/${provider.id}/update`}
-                method="POST"
-                className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2"
-              >
-                <div>
-                  <label className={labelCls}>Ad</label>
-                  <input
-                    name="name"
-                    required
-                    defaultValue={provider.name}
-                    className={inputCls}
-                    placeholder="Ziraat Sanal POS"
-                  />
-                  <p className={helperTextCls}>
-                    Panelde ve ödeme kayıtlarında görünecek sağlayıcı adı.
-                  </p>
-                </div>
-                <div>
-                  <label className={labelCls}>Client ID / Üye İşyeri No</label>
-                  <input
-                    name="merchantId"
-                    defaultValue={provider.merchantId ?? ""}
-                    className={inputCls}
-                    placeholder="700100000"
-                    inputMode="numeric"
-                  />
-                  <p className={helperTextCls}>
-                    Bankanın verdiği üye işyeri numarasıdır.
-                  </p>
-                </div>
-                <div>
-                  <label className={labelCls}>
-                    Store Key{" "}
-                    <span className="font-normal text-[#89938e]">
-                      (boş bırakırsan değişmez)
-                    </span>
-                  </label>
-                  <input
-                    name="storeKey"
-                    type="password"
-                    className={inputCls}
-                    autoComplete="new-password"
-                    placeholder={
-                      provider.storeKey ? "Kayıtlı store key mevcut" : "STOREKEY..."
-                    }
-                  />
-                  <p className={helperTextCls}>
-                    Hash doğrulaması için kullanılır. Boş bırakılırsa mevcut
-                    değer korunur.
-                  </p>
-                </div>
-                <div>
-                  <label className={labelCls}>Gateway URL</label>
-                  <input
-                    name="gatewayUrl"
-                    type="url"
-                    defaultValue={provider.gatewayUrl ?? ""}
-                    className={inputCls}
-                    placeholder="https://entegrasyon.asseco-see.com.tr/fim/est3Dgate"
-                  />
-                  <p className={helperTextCls}>
-                    Müşterinin kart doğrulamasına yönleneceği banka adresi.
-                  </p>
-                </div>
-                <div>
-                  <label className={labelCls}>API Kullanıcı</label>
-                  <input
-                    name="apiUser"
-                    defaultValue={provider.apiUser ?? ""}
-                    className={inputCls}
-                    placeholder="APIUSER"
-                    autoComplete="off"
-                  />
-                  <p className={helperTextCls}>
-                    Kullanılmıyorsa boş kalabilir; gerektiğinde bankanın verdiği
-                    değer yazılır.
-                  </p>
-                </div>
-                <div>
-                  <label className={labelCls}>
-                    API Şifresi{" "}
-                    <span className="font-normal text-[#89938e]">
-                      (boş bırakırsan değişmez)
-                    </span>
-                  </label>
-                  <input
-                    name="apiPassword"
-                    type="password"
-                    className={inputCls}
-                    autoComplete="new-password"
-                    placeholder="••••••••"
-                  />
-                  <p className={helperTextCls}>
-                    Boş bırakılırsa mevcut değer korunur.
-                  </p>
-                </div>
-              </form>
-
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <AppButton type="submit" form={editFormId}>
-                  Kaydet
-                </AppButton>
-                <form
-                  action={`/api/admin/providers/${provider.id}/delete`}
-                  method="POST"
-                >
-                  <button
-                    type="submit"
-                    disabled={provider.isActive}
-                    className="rounded-2xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {provider.isActive ? "Aktif POS Silinemez" : "Sil"}
-                  </button>
-                </form>
-              </div>
-            </details>
-          </section>
-        );
-      })}
-
-      <section className="rounded-[1.75rem] border border-[#17201c]/10 bg-white p-6 shadow-sm">
-        <h3 className="text-lg font-bold">Sanal POS Ekle</h3>
-        <p className="mt-1 text-sm text-[#68746e]">
-          Yeni bir sanal POS sağlayıcısı tanımlayın. Eklenen POS pasif başlar;
-          bilgileri tamamlandıktan sonra aktif edilebilir.
-        </p>
-
-        <form
-          action="/api/admin/providers/create"
-          method="POST"
-          className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2"
-        >
-          <div>
-            <label className={labelCls}>Ad</label>
-            <input
-              name="name"
-              required
-              className={inputCls}
-              placeholder="Ziraat Sanal POS"
-            />
-            <p className={helperTextCls}>
-              Örn: Ziraat Sanal POS, Halkbank Sanal POS.
-            </p>
-          </div>
-          <div>
-            <label className={labelCls}>Client ID / Üye İşyeri No</label>
-            <input
-              name="merchantId"
-              className={inputCls}
-              placeholder="700100000"
-              inputMode="numeric"
-            />
-            <p className={helperTextCls}>POS aktif etmek için zorunludur.</p>
-          </div>
-          <div>
-            <label className={labelCls}>Store Key</label>
-            <input
-              name="storeKey"
-              type="password"
-              className={inputCls}
-              placeholder="STOREKEY..."
-              autoComplete="new-password"
-            />
-            <p className={helperTextCls}>POS aktif etmek için zorunludur.</p>
-          </div>
-          <div>
-            <label className={labelCls}>Gateway URL</label>
-            <input
-              name="gatewayUrl"
-              type="url"
-              className={inputCls}
-              placeholder="https://entegrasyon.asseco-see.com.tr/fim/est3Dgate"
-            />
-            <p className={helperTextCls}>POS aktif etmek için zorunludur.</p>
-          </div>
-          <div>
-            <label className={labelCls}>API Kullanıcı</label>
-            <input
-              name="apiUser"
-              className={inputCls}
-              placeholder="APIUSER"
-              autoComplete="off"
-            />
-            <p className={helperTextCls}>Bankaya göre opsiyonel olabilir.</p>
-          </div>
-          <div>
-            <label className={labelCls}>API Şifresi</label>
-            <input
-              name="apiPassword"
-              type="password"
-              className={inputCls}
-              placeholder="••••••••"
-              autoComplete="new-password"
-            />
-            <p className={helperTextCls}>Bankaya göre opsiyonel olabilir.</p>
-          </div>
-
-          <div className="lg:col-span-2">
-            <AppButton type="submit">Ekle</AppButton>
-          </div>
-        </form>
-      </section>
-
-      <section className="rounded-[1.75rem] border border-[#17201c]/10 bg-white p-4 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h3 className="text-lg font-bold">Son POS İşlem Kayıtları</h3>
-            <p className="mt-1 text-sm text-[#68746e]">
-              POS ekleme, güncelleme, aktif etme ve silme işlemlerinin son
-              kayıtları.
-            </p>
-          </div>
-          <span className="w-fit rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
-            Hassas değerler kaydedilmez
-          </span>
-        </div>
-
-        {auditLogs.length === 0 ? (
-          <div className="mt-4 rounded-[1.5rem] border border-dashed border-[#17201c]/20 bg-[#fcfbf8] p-8 text-sm text-[#68746e]">
-            Henüz POS işlem kaydı bulunmuyor.
-          </div>
-        ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full divide-y divide-[#17201c]/10 text-sm">
-              <thead>
-                <tr className="text-left text-xs font-bold uppercase tracking-[0.12em] text-[#89938e]">
-                  <th className="px-3 py-3">Tarih</th>
-                  <th className="px-3 py-3">İşlem</th>
-                  <th className="px-3 py-3">POS</th>
-                  <th className="px-3 py-3">Admin</th>
-                  <th className="px-3 py-3">IP</th>
-                  <th className="px-3 py-3">Detay</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#17201c]/10">
-                {auditLogs.map((log) => (
-                  <tr key={log.id} className="align-top">
-                    <td className="whitespace-nowrap px-3 py-4 text-[#68746e]">
-                      {formatDate(log.createdAt)}
-                    </td>
-                    <td className="px-3 py-4 font-semibold text-[#17201c]">
-                      {actionLabels[log.action] ?? log.action}
-                    </td>
-                    <td className="px-3 py-4 text-[#17201c]">
-                      {log.entityName ?? `#${log.entityId ?? log.id}`}
-                    </td>
-                    <td className="px-3 py-4 text-[#68746e]">
-                      {log.actor
-                        ? `${log.actor.name} (${log.actor.username})`
-                        : "Bilinmiyor"}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-4 text-[#68746e]">
-                      {log.ipAddress ?? "-"}
-                    </td>
-                    <td className="min-w-64 px-3 py-4 text-[#68746e]">
-                      {formatAuditDetails(log.details)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      <ProviderCreate />
+      <ProviderAuditLog auditLogs={auditLogs} />
     </div>
   );
 }

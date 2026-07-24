@@ -1,6 +1,6 @@
 import Link from "next/link";
+import { PaymentFilters } from "@/components/payment/payment-filters";
 import {
-  adminPaymentPageSizeOptions,
   buildAdminPaymentsQueryString,
   parseAdminPaymentFilters,
 } from "@/lib/adminPaymentFilters";
@@ -19,15 +19,6 @@ const pendingExpirationHours = 1;
 type AdminPaymentsPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
-
-const statusOptions = [
-  { value: "", label: "Tüm Durumlar" },
-  { value: "Paid", label: "Başarılı" },
-  { value: "Failed", label: "Başarısız" },
-  { value: "Pending", label: "Bekliyor" },
-  { value: "Expired", label: "Süresi Doldu" },
-  { value: "Cancelled", label: "İptal Edildi" },
-];
 
 export default async function PaymentsPage({
   searchParams,
@@ -126,144 +117,16 @@ export default async function PaymentsPage({
         </div>
       </section>
 
-      <section className="rounded-[1.75rem] border border-[#17201c]/10 bg-white p-5 shadow-sm">
-        <div>
-          <h2 className="text-base font-bold text-[#17201c]">Ödeme filtreleri</h2>
-          <p className="mt-1 text-sm text-[#68746e]">
-            Önce temel aramayı yapın; tarih ve liste ayarlarını gerektiğinde kullanın.
-          </p>
-        </div>
-
-        <form className="mt-5 space-y-4">
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_minmax(11rem,0.65fr)_minmax(14rem,1fr)]">
-          <label>
-            <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-[#7a867f]">
-              Ara
-            </span>
-            <input
-              type="search"
-              name="q"
-              defaultValue={filters.query}
-              placeholder="Firma/cari, kart sahibi, açıklama veya sipariş no"
-              className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm outline-none transition focus:border-[#173f32]/40 focus:bg-white"
-            />
-          </label>
-
-          <label>
-            <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-[#7a867f]">
-              Durum
-            </span>
-            <select
-              name="status"
-              defaultValue={filters.status}
-              className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#173f32]/40 focus:bg-white"
-            >
-              {statusOptions.map((option) => (
-                <option key={option.value || "all"} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-[#7a867f]">
-              Temsilci
-            </span>
-            <select
-              name="agentId"
-              defaultValue={filters.selectedAgentId || ""}
-              className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#173f32]/40 focus:bg-white"
-            >
-              <option value="">Tüm Temsilciler</option>
-              {agents.map((agent) => (
-                <option key={agent.id} value={agent.id}>
-                  {agent.name} (@{agent.username})
-                </option>
-              ))}
-            </select>
-          </label>
-
-          </div>
-
-          <div className="grid gap-3 border-t border-[#17201c]/8 pt-4 sm:grid-cols-2 xl:grid-cols-[170px_170px_150px_minmax(1rem,1fr)_auto_auto]">
-
-          <label>
-            <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-[#7a867f]">
-              Başlangıç
-            </span>
-            <input
-              type="date"
-              name="from"
-              defaultValue={filters.from}
-              className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#173f32]/40 focus:bg-white"
-            />
-          </label>
-
-          <label>
-            <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-[#7a867f]">
-              Bitiş
-            </span>
-            <input
-              type="date"
-              name="to"
-              defaultValue={filters.to}
-              className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#173f32]/40 focus:bg-white"
-            />
-          </label>
-
-          <label>
-            <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-[#7a867f]">
-              Sayfa
-            </span>
-            <select
-              name="pageSize"
-              defaultValue={filters.pageSize}
-              className="w-full rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#173f32]/40 focus:bg-white"
-            >
-              {adminPaymentPageSizeOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option} kayıt
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="hidden xl:block" aria-hidden="true" />
-
-          <div className="flex items-end">
-            <AppButton type="submit" size="lg" className="w-full">
-              Filtrele
-            </AppButton>
-          </div>
-
-          <div className="flex items-end">
-            <AppButton
-              href="/admin/payments"
-              variant="outline"
-              size="lg"
-              className="w-full"
-            >
-              Temizle
-            </AppButton>
-          </div>
-          </div>
-        </form>
-
-        <div className="mt-4 flex flex-col gap-2 border-t border-[#17201c]/8 pt-4 text-sm text-[#68746e] sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            {formatNumber(totalCount)} kayıt içinden bu sayfada{" "}
-            {formatNumber(payments.length)} kayıt gösteriliyor.
-          </p>
-          <AppButton
-            href={`/api/admin/payments/export${exportQuery ? `?${exportQuery}` : ""}`}
-            variant="secondary"
-            size="sm"
-          >
-            CSV İndir
-          </AppButton>
-        </div>
-      </section>
+      <PaymentFilters
+        filters={filters}
+        clearHref="/admin/payments"
+        title="Ödeme filtreleri"
+        description="Önce temel aramayı yapın; tarih ve liste ayarlarını gerektiğinde kullanın."
+        totalCount={totalCount}
+        visibleCount={payments.length}
+        agents={agents}
+        exportHref={`/api/admin/payments/export${exportQuery ? `?${exportQuery}` : ""}`}
+      />
 
       <section className="overflow-hidden rounded-[1.75rem] border border-[#17201c]/10 bg-white shadow-sm">
         <div className="overflow-x-auto">
