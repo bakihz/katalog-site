@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyNestpayResponseHash } from "@/lib/nestpay";
 import {
+  getPaymentFailureDetails,
+  parsePaymentCallbackFormData,
+} from "@/lib/paymentFailure";
+import {
   getPaymentProviderConfigByName,
   ZIRAAT_PROVIDER_NAME,
 } from "@/lib/paymentProviders";
@@ -19,9 +23,13 @@ export async function POST(req: NextRequest) {
   const baseUrl = getBaseUrl(req);
 
   try {
+    const decodedRequest = req.clone();
     const formData = await req.formData();
+    const decodedFormData =
+      await parsePaymentCallbackFormData(decodedRequest);
     const orderId = formData.get("oid") as string;
-    const errMsg = formData.get("ErrMsg") as string;
+    const { errorMessage: errMsg } =
+      getPaymentFailureDetails(decodedFormData);
     const response = formData.get("Response") as string;
     const procReturnCode = formData.get("ProcReturnCode") as string;
     const mdStatus = formData.get("mdStatus") as string;

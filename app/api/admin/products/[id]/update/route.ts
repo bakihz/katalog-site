@@ -5,6 +5,10 @@ import {
   ensureUniqueProductSlug,
   slugifyProductText,
 } from "@/lib/adminProductText";
+import {
+  getCatalogReadiness,
+  getEffectivePublicationStatus,
+} from "@/lib/productCatalogReadiness";
 
 function getBaseUrl(req: NextRequest): string {
   const host =
@@ -91,6 +95,27 @@ export async function POST(
     );
   }
 
+  const currentPublicationStatus = getEffectivePublicationStatus(product);
+  const nextReadiness = getCatalogReadiness({
+    ...product,
+    name,
+    slug,
+    shortDescription: shortDescription || null,
+    description: description || null,
+    imageUrl: imageUrl || null,
+    features: features || null,
+    brand: brand || null,
+    catalogCategoryId: category?.id ?? null,
+    catalogSubcategoryId: subcategory?.id ?? null,
+    catalogCategory: category ? { isActive: category.isActive } : null,
+    catalogSubcategory: subcategory
+      ? { isActive: subcategory.isActive }
+      : null,
+    categoryReviewStatus: category ? "assigned" : "unassigned",
+  });
+  const remainsPublished =
+    currentPublicationStatus === "published" && nextReadiness.isReady;
+
   try {
     await prisma.product.update({
       where: { id: productId },
@@ -114,8 +139,13 @@ export async function POST(
         brand: brand || null,
         webStockStatus: webStockStatus || null,
         sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
-        showOnWebsite: product.logoIsActive && formData.get("showOnWebsite") === "on",
-        isFeatured: product.logoIsActive && formData.get("isFeatured") === "on",
+        publicationStatus:
+          currentPublicationStatus === "published" && !remainsPublished
+            ? "draft"
+            : currentPublicationStatus,
+        showOnWebsite: remainsPublished,
+        isFeatured:
+          remainsPublished && formData.get("isFeatured") === "on",
       } satisfies Prisma.ProductUpdateInput,
     });
   } catch (error) {

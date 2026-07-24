@@ -3,6 +3,7 @@ export const defaultAdminProductPageSize = 25;
 
 export type AdminProductFilterParams = {
   q?: string;
+  publicationStatus?: string;
   visibility?: string;
   logoStatus?: string;
   quality?: string;
@@ -12,13 +13,19 @@ export type AdminProductFilterParams = {
 
 export type AdminProductFilters = {
   q: string;
-  visibility: "all" | "visible" | "hidden";
+  publicationStatus:
+    | "all"
+    | "draft"
+    | "review"
+    | "published"
+    | "archived";
   logoStatus: "active" | "inactive" | "all";
   quality:
     | "all"
     | "missing-image"
     | "missing-category"
     | "missing-name"
+    | "missing-slug"
     | "missing-description"
     | "category-review"
     | "suggestion-pending"
@@ -44,7 +51,13 @@ export function parseAdminProductFilters(
   const requestedPageSize = Number(
     getValue("pageSize") ?? defaultAdminProductPageSize,
   );
-  const visibility = getValue("visibility");
+  const publicationStatus =
+    getValue("publicationStatus") ??
+    (getValue("visibility") === "visible"
+      ? "published"
+      : getValue("visibility") === "hidden"
+        ? "draft"
+        : undefined);
   const logoStatus = getValue("logoStatus");
   const quality = getValue("quality");
 
@@ -56,14 +69,20 @@ export function parseAdminProductFilters(
 
   return {
     q: (getValue("q") ?? "").trim(),
-    visibility:
-      visibility === "visible" || visibility === "hidden" ? visibility : "all",
+    publicationStatus:
+      publicationStatus === "draft" ||
+      publicationStatus === "review" ||
+      publicationStatus === "published" ||
+      publicationStatus === "archived"
+        ? publicationStatus
+        : "all",
     logoStatus:
       logoStatus === "inactive" || logoStatus === "all" ? logoStatus : "active",
     quality:
       quality === "missing-image" ||
       quality === "missing-category" ||
       quality === "missing-name" ||
+      quality === "missing-slug" ||
       quality === "missing-description" ||
       quality === "category-review" ||
       quality === "suggestion-pending" ||
@@ -83,7 +102,7 @@ export function buildAdminProductsQueryString(
   const params = new URLSearchParams();
   const values: AdminProductFilterParams = {
     q: filters.q,
-    visibility: filters.visibility,
+    publicationStatus: filters.publicationStatus,
     logoStatus: filters.logoStatus,
     quality: filters.quality,
     page: String(filters.page),

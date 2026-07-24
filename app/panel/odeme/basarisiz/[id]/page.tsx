@@ -7,6 +7,7 @@ import { getPaymentCardMasked } from "@/lib/paymentCard";
 import { getPaymentStatusLabel } from "@/lib/paymentStatus";
 import { prisma } from "@/lib/prisma";
 import { canViewAllPayments } from "@/lib/userRole";
+import { normalizePaymentFailureMessage } from "@/lib/paymentFailure";
 import { AppButton, PaymentStatusBadge } from "@/components/ui";
 
 type FailedPaymentPageProps = {
@@ -43,10 +44,10 @@ export default async function FailedPaymentPage({
     errorCode?: string | null;
     errorMessage?: string | null;
   };
-  const errorMessage =
+  const errorMessage = normalizePaymentFailureMessage(
     getFirstParam(queryParams.err) ??
-    paymentWithFailure.errorMessage ??
-    undefined;
+      paymentWithFailure.errorMessage,
+  );
   const errorCode =
     getFirstParam(queryParams.code) ?? paymentWithFailure.errorCode ?? undefined;
 

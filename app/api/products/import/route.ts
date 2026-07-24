@@ -184,6 +184,11 @@ async function importLogoProducts(rows: CsvRow[]) {
     const logoUnitName = await resolveLogoUnitName(item.logoUnitSetRef);
 
     if (existing) {
+      const shouldBeVisible =
+        item.logoIsActive &&
+        (existing.showOnWebsite ||
+          existing.publicationStatus === "published");
+
       await prisma.product.update({
         where: { id: existing.id },
         data: {
@@ -200,7 +205,7 @@ async function importLogoProducts(rows: CsvRow[]) {
           logoBrandName,
           logoUnitName,
           logoIsActive: item.logoIsActive,
-          showOnWebsite: item.logoIsActive ? undefined : false,
+          showOnWebsite: shouldBeVisible,
           isFeatured: item.logoIsActive ? undefined : false,
           stockStatus: item.logoIsActive ? "Logo aktif" : "Logo pasif",
           vatRate: item.vatRate,
@@ -237,6 +242,7 @@ async function importLogoProducts(rows: CsvRow[]) {
           brand: logoBrandName,
           unit: logoUnitName,
           showOnWebsite: false,
+          publicationStatus: "draft",
           isFeatured: false,
           stockStatus: item.logoIsActive ? "Logo aktif" : "Logo pasif",
           webStockStatus: "Sorunuz",

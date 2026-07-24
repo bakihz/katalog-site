@@ -129,11 +129,24 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "publish") {
-      const result = await prisma.product.updateMany({
+      const publishWhere = {
+        AND: [{ id: { in: productIds } }, readyToPublishProductWhere],
+      };
+      const publishedAt = new Date();
+
+      await prisma.product.updateMany({
         where: {
-          AND: [{ id: { in: productIds } }, readyToPublishProductWhere],
+          AND: [publishWhere, { publishedAt: null }],
         },
-        data: { showOnWebsite: true },
+        data: { publishedAt },
+      });
+
+      const result = await prisma.product.updateMany({
+        where: publishWhere,
+        data: {
+          publicationStatus: "published",
+          showOnWebsite: true,
+        },
       });
 
       await writeAdminAuditLog(req, {
@@ -152,7 +165,11 @@ export async function POST(req: NextRequest) {
     if (action === "hide") {
       const result = await prisma.product.updateMany({
         where: { id: { in: productIds } },
-        data: { showOnWebsite: false, isFeatured: false },
+        data: {
+          publicationStatus: "archived",
+          showOnWebsite: false,
+          isFeatured: false,
+        },
       });
 
       await writeAdminAuditLog(req, {

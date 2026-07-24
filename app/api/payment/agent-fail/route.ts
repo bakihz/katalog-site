@@ -8,6 +8,7 @@ import { logPaymentDebug } from "@/lib/paymentDebug";
 import {
   getFailureRedirectUrl,
   getPaymentFailureDetails,
+  parsePaymentCallbackFormData,
 } from "@/lib/paymentFailure";
 import {
   getPaymentProviderConfigByName,
@@ -55,7 +56,10 @@ export async function POST(req: NextRequest) {
   const baseUrl = getBaseUrl(req);
 
   try {
+    const decodedRequest = req.clone();
     const formData = await req.formData();
+    const decodedFormData =
+      await parsePaymentCallbackFormData(decodedRequest);
     const orderId = formData.get("oid") as string;
     const payment = await prisma.payment.findFirst({ where: { orderId } });
     const providerConfig = await getPaymentProviderConfigByName(
@@ -74,7 +78,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (hashCheck.ok) {
-      const failureDetails = getPaymentFailureDetails(formData);
+      const failureDetails = getPaymentFailureDetails(decodedFormData);
 
       if (!payment) {
         return NextResponse.redirect(`${baseUrl}/panel/odeme?error=1`, {
@@ -110,7 +114,7 @@ export async function POST(req: NextRequest) {
         getFailureRedirectUrl({
           baseUrl,
           paymentId: updatedPayment.id,
-          formData,
+          formData: decodedFormData,
         }),
         updatedPayment.agentId,
       );

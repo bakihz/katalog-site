@@ -7,6 +7,8 @@ import {
 import {
   categoryReviewWhere,
   getCatalogReadiness,
+  getEffectivePublicationStatus,
+  getPublicationStatusLabel,
   incompleteCatalogProductWhere,
   productQualityWhere,
   readyToPublishProductWhere,
@@ -39,7 +41,7 @@ function getBulkAlert(params: Record<string, string | string[] | undefined>) {
   if (error) return { type: "error", message: "Toplu ürün işlemi tamamlanamadı." };
   if (success === "category") return { type: "success", message: `${updated} ürüne kategori uygulandı.${suffix}` };
   if (success === "published") return { type: "success", message: `${updated} hazır ürün yayınlandı.${suffix}` };
-  if (success === "hidden") return { type: "success", message: `${updated} ürün katalogdan gizlendi.${suffix}` };
+  if (success === "hidden") return { type: "success", message: `${updated} ürün arşivlenerek katalogdan kaldırıldı.${suffix}` };
   return null;
 }
 
@@ -68,12 +70,15 @@ function buildWhere(filters: ReturnType<typeof parseAdminProductFilters>) {
     });
   }
 
-  if (filters.visibility === "visible") {
-    and.push({ showOnWebsite: true });
-  }
-
-  if (filters.visibility === "hidden") {
-    and.push({ showOnWebsite: false });
+  if (filters.publicationStatus === "published") {
+    and.push({
+      OR: [{ publicationStatus: "published" }, { showOnWebsite: true }],
+    });
+  } else if (filters.publicationStatus !== "all") {
+    and.push({
+      publicationStatus: filters.publicationStatus,
+      showOnWebsite: false,
+    });
   }
 
   if (filters.logoStatus === "active") {
@@ -117,7 +122,11 @@ export default async function AdminProductsPage({
         take: filters.pageSize,
       }),
       prisma.product.count({ where }),
-      prisma.product.count({ where: { showOnWebsite: true } }),
+      prisma.product.count({
+        where: {
+          OR: [{ publicationStatus: "published" }, { showOnWebsite: true }],
+        },
+      }),
       prisma.product.count({ where: categoryReviewWhere }),
       prisma.product.count({ where: incompleteCatalogProductWhere }),
       prisma.product.count({ where: readyToPublishProductWhere }),
@@ -246,13 +255,15 @@ export default async function AdminProductsPage({
             className="rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm outline-none transition focus:border-[#173f32]/40 focus:bg-white"
           />
           <select
-            name="visibility"
-            defaultValue={filters.visibility}
+            name="publicationStatus"
+            defaultValue={filters.publicationStatus}
             className="rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1] px-4 py-3 text-sm outline-none transition focus:border-[#173f32]/40 focus:bg-white"
           >
-            <option value="all">Tüm ürünler</option>
-            <option value="visible">Yayında</option>
-            <option value="hidden">Gizli</option>
+            <option value="all">Tüm yayın durumları</option>
+            <option value="draft">Taslak</option>
+            <option value="review">İncelemede</option>
+            <option value="published">Yayında</option>
+            <option value="archived">Arşivlenmiş</option>
           </select>
           <select
             name="logoStatus"
@@ -272,6 +283,7 @@ export default async function AdminProductsPage({
             <option value="missing-image">Görsel yok</option>
             <option value="missing-category">Kategori yok</option>
             <option value="missing-name">İsim eksik</option>
+            <option value="missing-slug">Bağlantı eksik</option>
             <option value="missing-description">Açıklama eksik</option>
             <option value="category-review">Kategori incelemesi</option>
             <option value="suggestion-pending">AI önerisi oluşturulmamış</option>
@@ -315,6 +327,8 @@ export default async function AdminProductsPage({
                   const displayName = getDisplayName(product);
                   const readiness = getCatalogReadiness(product);
                   const missingBadges = readiness.issues;
+                  const publicationStatus =
+                    getEffectivePublicationStatus(product);
 
                   return (
                     <tr key={product.id} className="align-top">
@@ -360,17 +374,20 @@ export default async function AdminProductsPage({
                         </div>
                       </td>
                       <td className="px-3 py-4">
-                        {product.logoIsActive ? (
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-bold ${
-                              product.showOnWebsite
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-slate-100 text-slate-700"
-                            }`}
-                          >
-                            {product.showOnWebsite ? "Yayında" : "Gizli"}
-                          </span>
-                        ) : (
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-bold ${
+                            publicationStatus === "published"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : publicationStatus === "review"
+                                ? "bg-sky-100 text-sky-700"
+                                : publicationStatus === "archived"
+                                  ? "bg-slate-200 text-slate-700"
+                                  : "bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          {getPublicationStatusLabel(publicationStatus)}
+                        </span>
+                        {!product.logoIsActive && (
                           <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-bold text-rose-700">
                             Logo pasif
                           </span>
@@ -406,7 +423,11 @@ export default async function AdminProductsPage({
           <div className="flex flex-wrap items-center gap-2">
             <form>
               <input type="hidden" name="q" value={filters.q} />
-              <input type="hidden" name="visibility" value={filters.visibility} />
+              <input
+                type="hidden"
+                name="publicationStatus"
+                value={filters.publicationStatus}
+              />
               <input type="hidden" name="logoStatus" value={filters.logoStatus} />
               <input type="hidden" name="quality" value={filters.quality} />
               <select

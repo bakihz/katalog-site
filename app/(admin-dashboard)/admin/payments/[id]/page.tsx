@@ -6,6 +6,7 @@ import { getPaymentStatusLabel } from "@/lib/paymentStatus";
 import { prisma } from "@/lib/prisma";
 import { AppButton, PageHeader, PaymentStatusBadge } from "@/components/ui";
 import { ReceiptPrintButton } from "@/app/panel/dekont/[id]/ReceiptPrintButton";
+import { normalizePaymentFailureMessage } from "@/lib/paymentFailure";
 
 type AdminPaymentDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -85,7 +86,7 @@ export default async function AdminPaymentDetailPage({
             Banka işlemi onaylamadı
           </h2>
           <p className="mt-2 text-sm leading-6">
-            {paymentWithFailure.errorMessage ||
+            {normalizePaymentFailureMessage(paymentWithFailure.errorMessage) ||
               "Banka tarafından açıklama iletilmedi."}
             {paymentWithFailure.errorCode
               ? ` (${paymentWithFailure.errorCode})`
@@ -133,7 +134,9 @@ export default async function AdminPaymentDetailPage({
           {paymentWithFailure.errorMessage && (
             <SummaryRow
               label="Hata Mesajı"
-              value={paymentWithFailure.errorMessage}
+              value={normalizePaymentFailureMessage(
+                paymentWithFailure.errorMessage,
+              )}
             />
           )}
         </dl>

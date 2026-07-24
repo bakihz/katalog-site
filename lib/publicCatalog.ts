@@ -90,6 +90,29 @@ export const getPublicCategoryBySlug = cache(function getPublicCategoryBySlug(
   });
 });
 
+export const getHomepageProductShowcase = cache(
+  function getHomepageProductShowcase() {
+    return prisma.product.findMany({
+      where: publicProductBaseWhere,
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        brand: true,
+        imageUrl: true,
+        shortDescription: true,
+        catalogCategory: { select: { name: true } },
+      },
+      orderBy: [
+        { isFeatured: "desc" },
+        { publishedAt: "desc" },
+        { createdAt: "desc" },
+      ],
+      take: 4,
+    });
+  },
+);
+
 export type PublicCatalogCategorySummary = Awaited<
   ReturnType<typeof getPublicCategorySummaries>
 >[number];

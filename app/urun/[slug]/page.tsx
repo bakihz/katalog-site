@@ -7,6 +7,8 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { verifyAgentCookie } from "@/lib/agentAuth";
 import { prisma } from "@/lib/prisma";
+import { CatalogHeader } from "@/components/catalog/catalog-header";
+import { getSiteSettings } from "@/lib/siteSettings";
 
 type ProductPageProps = {
   params: Promise<{ slug: string }>;
@@ -79,9 +81,10 @@ export async function generateMetadata({
 
 export default async function ProductDetailPage({ params }: ProductPageProps) {
   const { slug } = await params;
-  const [product, cookieStore] = await Promise.all([
+  const [product, cookieStore, siteSettings] = await Promise.all([
     getPublishedProduct(slug),
     cookies(),
+    getSiteSettings(),
   ]);
 
   if (!product?.catalogCategory) {
@@ -98,7 +101,6 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
       })
     : null;
   const isAgentLoggedIn = Boolean(agent?.isActive);
-  const agentLoginHref = isAgentLoggedIn ? "/panel" : "/giris";
   const featureList = getFeatureList(product.features);
   const detailItems = [
     { label: "Kategori", value: product.catalogCategory.name },
@@ -108,53 +110,15 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
   const displayDescription = product.description ?? product.shortDescription;
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#f4f1ea] text-[#17201c]">
+    <div className="min-h-screen overflow-x-clip bg-[#f4f1ea] text-[#17201c]">
       <div className="pointer-events-none fixed inset-0 opacity-30 [background-image:radial-gradient(#809087_0.7px,transparent_0.7px)] [background-size:18px_18px]" />
 
-      <header className="sticky top-0 z-40 border-b border-[#17201c]/10 bg-[#f4f1ea]/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:px-10 lg:px-16">
-          <Link href="/home" className="flex min-w-0 items-center gap-3">
-            <div className="relative size-11 shrink-0 overflow-hidden rounded-xl shadow-md">
-              <Image
-                src="/logo.svg"
-                alt="Lale EDT logo"
-                fill
-                priority
-                sizes="44px"
-                className="object-contain"
-              />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold leading-tight tracking-tight sm:text-base">
-                Lale EDT Gıda A.Ş.
-              </p>
-              <p className="hidden text-[11px] uppercase tracking-[0.22em] text-[#63736b] sm:block">
-                Ürün kataloğu
-              </p>
-            </div>
-          </Link>
-
-          <Link
-            href={agentLoginHref}
-            className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-[#173f32] px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white shadow-lg shadow-[#173f32]/15 transition hover:bg-[#10231d] sm:px-4 sm:tracking-[0.14em]"
-          >
-            {isAgentLoggedIn ? (
-              <>
-                <span className="hidden max-w-36 truncate normal-case tracking-normal sm:inline">
-                  {agent?.name}
-                </span>
-                <span className="hidden opacity-60 sm:inline">•</span>
-                <span>Panele Git</span>
-              </>
-            ) : (
-              <>
-                <span className="sm:hidden">Giriş</span>
-                <span className="hidden sm:inline">Temsilci Girişi</span>
-              </>
-            )}
-          </Link>
-        </div>
-      </header>
+      <CatalogHeader
+        companyName={siteSettings.companyName}
+        email={siteSettings.email}
+        showAgentLogin={siteSettings.showAgentLogin}
+        agentName={isAgentLoggedIn ? agent?.name : null}
+      />
 
       <main className="relative mx-auto max-w-7xl px-4 py-8 sm:px-10 sm:py-12 lg:px-16">
         <Link
@@ -291,7 +255,10 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
         )}
       </main>
 
-      <footer className="relative mt-8 border-t border-[#17201c]/10 bg-[#f4f1ea]/80">
+      <footer
+        id="iletisim"
+        className="relative mt-8 border-t border-[#17201c]/10 bg-[#f4f1ea]/80"
+      >
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-10 lg:px-16">
           <div className="flex items-center gap-3">
             <div className="relative size-8 shrink-0 overflow-hidden rounded-lg">

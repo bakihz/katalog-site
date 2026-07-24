@@ -5,6 +5,11 @@ import { isBraveWebResearchEnabled } from "@/lib/webResearch";
 import { ProductImageUpload } from "@/components/admin/product-image-upload";
 import { ProductCategoryFields } from "@/components/admin/product-category-fields";
 import { AppButton, PageHeader } from "@/components/ui";
+import {
+  getCatalogReadiness,
+  getEffectivePublicationStatus,
+  getPublicationStatusLabel,
+} from "@/lib/productCatalogReadiness";
 
 type AdminProductDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -43,9 +48,15 @@ function getAlertMessage(success?: string, error?: string) {
   if (error === "no-suggestion") return "Uygulanacak öneri bulunamadı.";
   if (error === "apply-suggestion") return "Ürün önerisi uygulanırken hata oluştu.";
   if (error === "category") return "Seçilen kategori veya alt kategori artık aktif değil. Lütfen yeniden seçin.";
+  if (error === "publication-blocked") return "Ürün, yayın koşullarını karşılamadığı için yayına alınamadı. Yayın kontrolündeki zorunlu eksikleri tamamlayın.";
+  if (error === "publication-status") return "Geçersiz yayın durumu seçildi.";
   if (error) return "Ürün işlemi sırasında hata oluştu.";
   if (success === "suggestion-created") return "Ürün önerisi oluşturuldu.";
   if (success === "suggestion-applied") return "Ürün önerisi katalog bilgilerine uygulandı.";
+  if (success === "publication-draft") return "Ürün taslağa alındı.";
+  if (success === "publication-review") return "Ürün incelemeye gönderildi.";
+  if (success === "publication-published") return "Ürün katalogda yayınlandı.";
+  if (success === "publication-archived") return "Ürün arşivlendi ve katalogdan kaldırıldı.";
   if (success) return "Ürün bilgileri güncellendi.";
   return "";
 }
@@ -94,7 +105,13 @@ export default async function AdminProductDetailPage({
   }
 
   const [product, categories] = await Promise.all([
-    prisma.product.findUnique({ where: { id: productId } }),
+    prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        catalogCategory: { select: { isActive: true } },
+        catalogSubcategory: { select: { isActive: true } },
+      },
+    }),
     prisma.catalogCategory.findMany({
       where: { isActive: true },
       select: {
@@ -122,6 +139,8 @@ export default async function AdminProductDetailPage({
   const hasSuggestion = Boolean(product.suggestedName);
   const isOllamaEnabled = isOllamaProductSuggestionEnabled();
   const isBraveWebResearchAvailable = isBraveWebResearchEnabled();
+  const readiness = getCatalogReadiness(product);
+  const publicationStatus = getEffectivePublicationStatus(product);
   const taxonomy = product as typeof product & {
     googleTaxonomyId?: string | null;
     googleTaxonomyPath?: string | null;
@@ -152,6 +171,112 @@ export default async function AdminProductDetailPage({
           {alertMessage}
         </div>
       )}
+
+      <section className="rounded-[1.75rem] border border-[#17201c]/10 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#89938e]">
+              Yayın Kontrolü
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <h2 className="text-xl font-black text-[#17201c]">
+                {getPublicationStatusLabel(publicationStatus)}
+              </h2>
+              {!product.logoIsActive && (
+                <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-bold text-rose-700">
+                  Logo pasif — sitede görünmez
+                </span>
+              )}
+              {publicationStatus === "published" && product.logoIsActive && (
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                  Müşteriye açık
+                </span>
+              )}
+            </div>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#68746e]">
+              Zorunlu koşullar tamamlanmadan ürün yayınlanamaz. Uyarılar yayını
+              engellemez ancak içerik kalitesini geliştirmek için dikkate alınmalıdır.
+            </p>
+            {product.publishedAt && (
+              <p className="mt-2 text-xs font-semibold text-[#89938e]">
+                İlk yayın: {formatDate(product.publishedAt)}
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {publicationStatus !== "draft" && (
+              <form action={`/api/admin/products/${product.id}/publication`} method="POST">
+                <input type="hidden" name="status" value="draft" />
+                <AppButton type="submit" variant="outline" size="sm">
+                  Taslağa Al
+                </AppButton>
+              </form>
+            )}
+            {publicationStatus !== "review" && (
+              <form action={`/api/admin/products/${product.id}/publication`} method="POST">
+                <input type="hidden" name="status" value="review" />
+                <AppButton type="submit" variant="outline" size="sm">
+                  İncelemeye Gönder
+                </AppButton>
+              </form>
+            )}
+            {publicationStatus !== "published" && (
+              <form action={`/api/admin/products/${product.id}/publication`} method="POST">
+                <input type="hidden" name="status" value="published" />
+                <AppButton type="submit" size="sm" disabled={!readiness.isReady}>
+                  Yayına Al
+                </AppButton>
+              </form>
+            )}
+            {publicationStatus !== "archived" && (
+              <form action={`/api/admin/products/${product.id}/publication`} method="POST">
+                <input type="hidden" name="status" value="archived" />
+                <AppButton type="submit" variant="secondary" size="sm">
+                  Arşivle
+                </AppButton>
+              </form>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 border-t border-[#17201c]/10 pt-5 lg:grid-cols-2">
+          <div className="rounded-2xl bg-[#f8f6f1] p-4">
+            <p className="text-sm font-bold text-[#17201c]">
+              Zorunlu kontroller
+            </p>
+            {readiness.blockers.length === 0 ? (
+              <p className="mt-3 text-sm font-semibold text-emerald-700">
+                ✓ Ürün yayına hazır.
+              </p>
+            ) : (
+              <ul className="mt-3 grid gap-2 text-sm text-rose-700 sm:grid-cols-2">
+                {readiness.blockers.map((blocker) => (
+                  <li key={blocker} className="font-semibold">
+                    ✕ {blocker}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="rounded-2xl bg-amber-50 p-4">
+            <p className="text-sm font-bold text-[#17201c]">
+              Kalite önerileri
+            </p>
+            {readiness.warnings.length === 0 ? (
+              <p className="mt-3 text-sm font-semibold text-emerald-700">
+                ✓ Ek kalite uyarısı bulunmuyor.
+              </p>
+            ) : (
+              <ul className="mt-3 grid gap-2 text-sm text-amber-800 sm:grid-cols-2">
+                {readiness.warnings.map((warning) => (
+                  <li key={warning}>• {warning}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </section>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_0.75fr]">
         <section className="rounded-[1.75rem] border border-[#17201c]/10 bg-white p-6 shadow-sm">
@@ -281,16 +406,6 @@ export default async function AdminProductDetailPage({
                   Bu ürün Logo’da pasif. Tekrar aktif edilene kadar katalogda gösterilemez.
                 </p>
               )}
-              <label className="flex items-center gap-3 rounded-2xl bg-[#f8f6f1] px-4 py-3 text-sm font-semibold text-[#17201c]">
-                <input
-                  name="showOnWebsite"
-                  type="checkbox"
-                  defaultChecked={product.logoIsActive && product.showOnWebsite}
-                  disabled={!product.logoIsActive}
-                  className="h-4 w-4 accent-[#173f32]"
-                />
-                Katalogda göster
-              </label>
               <label className="flex items-center gap-3 rounded-2xl bg-[#f8f6f1] px-4 py-3 text-sm font-semibold text-[#17201c]">
                 <input
                   name="isFeatured"

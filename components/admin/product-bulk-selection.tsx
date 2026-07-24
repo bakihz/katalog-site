@@ -71,7 +71,7 @@ export function ProductBulkSelection({
       event.preventDefault();
     }
 
-    if (action === "hide" && !window.confirm("Seçili ürünler katalogdan gizlensin mi?")) {
+    if (action === "hide" && !window.confirm("Seçili ürünler arşivlenip katalogdan kaldırılsın mı?")) {
       event.preventDefault();
     }
   }
@@ -163,7 +163,7 @@ export function ProductBulkSelection({
               variant="outline"
               disabled={selectedIds.size === 0}
             >
-              Katalogdan Gizle
+              Arşivle
             </AppButton>
           </div>
         </div>
