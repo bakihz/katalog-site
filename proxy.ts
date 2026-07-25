@@ -28,10 +28,6 @@ function shouldRefreshAdminSession(request: NextRequest) {
 }
 
 async function canAccessHomepagePreview(request: NextRequest) {
-  if (process.env.NODE_ENV !== "production") {
-    return true;
-  }
-
   const adminSession = request.cookies.get("admin_session")?.value;
   return adminSession ? verifyAdminSessionToken(adminSession) : false;
 }

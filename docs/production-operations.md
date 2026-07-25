@@ -157,8 +157,8 @@ Ana sayfa yayın kontrolü:
 - `PUBLIC_HOMEPAGE_ENABLED=true`: Yeni ana sayfayı herkese açar.
 - Değişken tanımlı değilse veya `false` ise `/home`, normal ziyaretçileri
   `/gecici` sayfasına yönlendirir.
-- Yerel geliştirme ortamı ve geçerli admin oturumu yeni ana sayfayı
-  önizlemeye devam edebilir.
+- Yerel veya canlı ortam fark etmeksizin yalnızca geçerli admin oturumu yeni
+  ana sayfayı önizleyebilir.
 
 Opsiyonel / fallback değişkenleri:
 
