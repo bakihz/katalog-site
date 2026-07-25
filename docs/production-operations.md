@@ -152,6 +152,13 @@ Zorunlu saklanması gerekenler:
 - `DATABASE_URL`
 - `SESSION_SECRET`
 
+Ana sayfa yayın kontrolü:
+
+- `PUBLIC_HOMEPAGE_ENABLED=true`: Yeni ana sayfayı herkese açar.
+- Değişken tanımlı değilse veya `false` ise `/home`, normal ziyaretçileri
+  `/gecici` sayfasına yönlendirir.
+- Localhost ve geçerli admin oturumu yeni ana sayfayı önizlemeye devam edebilir.
+
 Opsiyonel / fallback değişkenleri:
 
 - `ADMIN_USERNAME`

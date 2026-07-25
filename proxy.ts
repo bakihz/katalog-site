@@ -27,12 +27,36 @@ function shouldRefreshAdminSession(request: NextRequest) {
   );
 }
 
+function isLocalHostname(hostname: string) {
+  return hostname === "localhost" || hostname === "127.0.0.1";
+}
+
+async function canPreviewUnpublishedHomepage(request: NextRequest) {
+  if (isLocalHostname(request.nextUrl.hostname)) {
+    return true;
+  }
+
+  const adminSession = request.cookies.get("admin_session")?.value;
+  return adminSession ? verifyAdminSessionToken(adminSession) : false;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (request.method === "POST" && request.headers.has("next-action")) {
     const url = request.nextUrl.clone();
     return NextResponse.redirect(url, { status: 303 });
+  }
+
+  if (
+    pathname === "/home" &&
+    process.env.PUBLIC_HOMEPAGE_ENABLED !== "true" &&
+    !(await canPreviewUnpublishedHomepage(request))
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/gecici";
+    url.search = "";
+    return NextResponse.redirect(url);
   }
 
   const requestHeaders = new Headers(request.headers);
