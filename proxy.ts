@@ -27,6 +27,15 @@ function shouldRefreshAdminSession(request: NextRequest) {
   );
 }
 
+async function canAccessHomepagePreview(request: NextRequest) {
+  if (process.env.NODE_ENV !== "production") {
+    return true;
+  }
+
+  const adminSession = request.cookies.get("admin_session")?.value;
+  return adminSession ? verifyAdminSessionToken(adminSession) : false;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -37,8 +46,8 @@ export async function proxy(request: NextRequest) {
 
   if (
     pathname === "/home" &&
-    process.env.NODE_ENV === "production" &&
-    process.env.PUBLIC_HOMEPAGE_ENABLED !== "true"
+    process.env.PUBLIC_HOMEPAGE_ENABLED !== "true" &&
+    !(await canAccessHomepagePreview(request))
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/gecici";
