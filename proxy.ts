@@ -27,19 +27,6 @@ function shouldRefreshAdminSession(request: NextRequest) {
   );
 }
 
-function isLocalHostname(hostname: string) {
-  return hostname === "localhost" || hostname === "127.0.0.1";
-}
-
-async function canPreviewUnpublishedHomepage(request: NextRequest) {
-  if (isLocalHostname(request.nextUrl.hostname)) {
-    return true;
-  }
-
-  const adminSession = request.cookies.get("admin_session")?.value;
-  return adminSession ? verifyAdminSessionToken(adminSession) : false;
-}
-
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -50,8 +37,8 @@ export async function proxy(request: NextRequest) {
 
   if (
     pathname === "/home" &&
-    process.env.PUBLIC_HOMEPAGE_ENABLED !== "true" &&
-    !(await canPreviewUnpublishedHomepage(request))
+    process.env.NODE_ENV === "production" &&
+    process.env.PUBLIC_HOMEPAGE_ENABLED !== "true"
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/gecici";
