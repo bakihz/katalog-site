@@ -5,13 +5,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { HomepageHeroSlideView } from "@/lib/homepageHeroSlides";
 
 type HomepagePromoHeroProps = {
-  companyName: string;
   slides: HomepageHeroSlideView[];
   autoplayMs?: number;
 };
 
 export function HomepagePromoHero({
-  companyName,
   slides,
   autoplayMs = 7000,
 }: HomepagePromoHeroProps) {
@@ -55,6 +53,19 @@ export function HomepagePromoHero({
           setIsPaused(false);
         }
       }}
+      onClick={(event) => {
+        if (!hasMultipleSlides) return;
+        if ((event.target as HTMLElement).closest("a, button")) return;
+
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const clickPosition = event.clientX - bounds.left;
+
+        if (clickPosition < bounds.width / 3) {
+          showSlide(activeIndex - 1);
+        } else if (clickPosition > (bounds.width * 2) / 3) {
+          showSlide(activeIndex + 1);
+        }
+      }}
       onTouchStart={(event) => {
         touchStartX.current = event.touches[0]?.clientX ?? null;
       }}
@@ -73,7 +84,7 @@ export function HomepagePromoHero({
         const fallbackImageUrl = slide.imageUrl || slide.mobileImageUrl;
         const isActive = index === activeIndex;
         const titleClassName =
-          "mt-4 max-w-3xl text-4xl font-semibold leading-[0.98] tracking-[-0.05em] text-balance [overflow-wrap:anywhere] sm:text-6xl lg:text-7xl";
+          "max-w-[42rem] whitespace-pre-line text-4xl font-semibold leading-[0.98] tracking-[-0.05em] text-balance [overflow-wrap:anywhere] [text-shadow:0_2px_12px_rgba(0,0,0,0.28)] sm:text-6xl lg:text-7xl";
 
         return (
           <article
@@ -81,10 +92,10 @@ export function HomepagePromoHero({
             aria-hidden={!isActive}
             aria-roledescription="slide"
             aria-label={`${index + 1} / ${slides.length}`}
-            className={`absolute inset-0 flex transition-[opacity,transform] duration-700 ease-out motion-reduce:transition-none ${
+            className={`absolute inset-0 flex transition-[opacity,transform] duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
               isActive
-                ? "z-10 translate-x-0 opacity-100"
-                : "pointer-events-none z-0 translate-x-[2%] opacity-0"
+                ? "z-10 translate-x-0 scale-100 opacity-100"
+                : "pointer-events-none z-0 translate-x-[1.5%] scale-[1.025] opacity-0"
             }`}
           >
             {fallbackImageUrl ? (
@@ -105,18 +116,17 @@ export function HomepagePromoHero({
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_28%,rgba(239,180,79,0.5),transparent_27%),linear-gradient(135deg,#10231d_0%,#1d4d3d_54%,#c2853e_135%)]" />
             )}
 
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-[50%] bg-gradient-to-r from-[#f20d24]/70 via-[#f20d24]/25 to-transparent" />
+
             <div className="relative mx-auto flex w-full max-w-[94rem] items-end px-5 pb-20 pt-32 sm:px-8 sm:pb-20 sm:pt-40 lg:px-12 lg:pb-24">
-              <div className="max-w-3xl">
-                <p className="text-xs font-black uppercase tracking-[0.26em] text-[#f3c98f] sm:text-sm">
-                  {companyName}
-                </p>
+              <div className="max-w-[42rem]">
                 {index === 0 ? (
                   <h1 className={titleClassName}>{slide.title}</h1>
                 ) : (
                   <h2 className={titleClassName}>{slide.title}</h2>
                 )}
                 {slide.description && (
-                  <p className="mt-5 max-w-2xl text-sm leading-6 text-white/80 sm:text-lg sm:leading-8">
+                  <p className="mt-5 max-w-[38rem] text-sm leading-6 text-white/80 [text-shadow:0_2px_8px_rgba(0,0,0,0.24)] sm:text-lg sm:leading-8">
                     {slide.description}
                   </p>
                 )}
@@ -137,8 +147,8 @@ export function HomepagePromoHero({
       })}
 
       {hasMultipleSlides && (
-        <div className="absolute inset-x-0 bottom-7 z-20 mx-auto flex w-full max-w-[94rem] items-center justify-between gap-4 px-5 sm:bottom-9 sm:px-8 lg:px-12">
-          <div className="flex items-center gap-2">
+        <div className="contents">
+          <div className="absolute inset-x-0 bottom-7 z-20 mx-auto flex w-fit items-center gap-2 rounded-full bg-[#10231d]/20 px-3 py-2 backdrop-blur-sm sm:bottom-9">
             {slides.map((slide, index) => (
               <button
                 key={slide.id ?? `dot-${index}`}
@@ -154,12 +164,12 @@ export function HomepagePromoHero({
               />
             ))}
           </div>
-          <div className="flex gap-2">
+          <div className="contents">
             <button
               type="button"
               aria-label="Önceki tanıtım"
               onClick={() => showSlide(activeIndex - 1)}
-              className="grid size-11 place-items-center rounded-full border border-white/35 bg-[#10231d]/35 text-xl font-semibold text-white backdrop-blur-md transition hover:bg-white hover:text-[#173f32]"
+              className="absolute left-3 top-1/2 z-20 grid size-11 -translate-y-1/2 place-items-center rounded-full border border-white/50 bg-white/70 text-xl font-semibold text-[#173f32] backdrop-blur-md transition duration-300 hover:scale-105 hover:bg-white sm:left-6 lg:left-8"
             >
               ←
             </button>
@@ -167,7 +177,7 @@ export function HomepagePromoHero({
               type="button"
               aria-label="Sonraki tanıtım"
               onClick={() => showSlide(activeIndex + 1)}
-              className="grid size-11 place-items-center rounded-full border border-white/35 bg-[#10231d]/35 text-xl font-semibold text-white backdrop-blur-md transition hover:bg-white hover:text-[#173f32]"
+              className="absolute right-3 top-1/2 z-20 grid size-11 -translate-y-1/2 place-items-center rounded-full border border-white/50 bg-white/70 text-xl font-semibold text-[#173f32] backdrop-blur-md transition duration-300 hover:scale-105 hover:bg-white sm:right-6 lg:right-8"
             >
               →
             </button>

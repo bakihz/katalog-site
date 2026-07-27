@@ -136,10 +136,7 @@ export default async function HomePage({
       }
     >
       {promoHeroSection?.isVisible !== false && heroSlides.length > 0 && (
-        <HomepagePromoHero
-          companyName={siteSettings.companyName}
-          slides={heroSlides}
-        />
+        <HomepagePromoHero slides={heroSlides} />
       )}
 
       <div className="relative mx-auto max-w-[94rem] space-y-24 px-4 py-12 sm:space-y-32 sm:px-8 sm:py-16 lg:px-12">

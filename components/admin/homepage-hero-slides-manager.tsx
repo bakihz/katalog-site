@@ -371,12 +371,14 @@ function HeroSlideEditor({
           <span className="mb-1 block text-xs font-semibold text-[#68746e]">
             Tanıtım başlığı
           </span>
-          <input
+          <textarea
             required
             maxLength={200}
+            rows={3}
             value={slide.title}
             onChange={(event) => onChange({ title: event.target.value })}
-            className={inputClassName}
+            placeholder={"Profesyonel mutfakların\ngüvenilir tedarikçisi."}
+            className={`${inputClassName} resize-y`}
           />
         </label>
         <label className="lg:col-span-2">
