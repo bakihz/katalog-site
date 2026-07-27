@@ -2,12 +2,30 @@ import { prisma } from "@/lib/prisma";
 
 export const homepageSectionDefinitions = [
   {
+    key: "promoHero",
+    label: "Tanıtım Görseli",
+    description:
+      "Sayfanın en üstünde, menünün arkasında görünen büyük tanıtım alanı.",
+    defaultSortOrder: 5,
+    defaultContentTitle: "Profesyonel mutfakların güvenilir tedarikçisi.",
+    defaultContentDescription:
+      "Gıda, pastacılık ve endüstriyel mutfak ihtiyaçlarınız için ürün gruplarımızı keşfedin.",
+    defaultImageUrl: null,
+    defaultMobileImageUrl: null,
+    defaultButtonLabel: "Ürünleri Keşfet",
+    defaultButtonUrl: "/katalog",
+  },
+  {
     key: "hero",
     label: "Karşılama Alanı",
     description: "Ana başlık, vurgulu metin ve katalog tanıtım açıklaması.",
     defaultSortOrder: 10,
     defaultContentTitle: null,
     defaultContentDescription: null,
+    defaultImageUrl: null,
+    defaultMobileImageUrl: null,
+    defaultButtonLabel: null,
+    defaultButtonUrl: null,
   },
   {
     key: "categoryShowcase",
@@ -17,6 +35,10 @@ export const homepageSectionDefinitions = [
     defaultContentTitle: "Kategorileri Keşfedin",
     defaultContentDescription:
       "İhtiyacınıza uygun ürün gruplarını inceleyerek aradığınız ürünlere daha hızlı ulaşın.",
+    defaultImageUrl: null,
+    defaultMobileImageUrl: null,
+    defaultButtonLabel: null,
+    defaultButtonUrl: null,
   },
   {
     key: "catalog",
@@ -25,6 +47,10 @@ export const homepageSectionDefinitions = [
     defaultSortOrder: 30,
     defaultContentTitle: null,
     defaultContentDescription: null,
+    defaultImageUrl: null,
+    defaultMobileImageUrl: null,
+    defaultButtonLabel: null,
+    defaultButtonUrl: null,
   },
 ] as const;
 
@@ -39,6 +65,10 @@ export type HomepageSectionView = {
   sortOrder: number;
   contentTitle: string | null;
   contentDescription: string | null;
+  imageUrl: string | null;
+  mobileImageUrl: string | null;
+  buttonLabel: string | null;
+  buttonUrl: string | null;
 };
 
 export async function getHomepageSections(): Promise<HomepageSectionView[]> {
@@ -65,6 +95,11 @@ export async function getHomepageSections(): Promise<HomepageSectionView[]> {
           stored?.contentTitle ?? definition.defaultContentTitle,
         contentDescription:
           stored?.contentDescription ?? definition.defaultContentDescription,
+        imageUrl: stored?.imageUrl ?? definition.defaultImageUrl,
+        mobileImageUrl:
+          stored?.mobileImageUrl ?? definition.defaultMobileImageUrl,
+        buttonLabel: stored?.buttonLabel ?? definition.defaultButtonLabel,
+        buttonUrl: stored?.buttonUrl ?? definition.defaultButtonUrl,
       };
     })
     .sort((left, right) => left.sortOrder - right.sortOrder);

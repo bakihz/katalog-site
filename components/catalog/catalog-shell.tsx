@@ -5,7 +5,13 @@ import { getSiteSettings } from "@/lib/siteSettings";
 import { CatalogHeader } from "@/components/catalog/catalog-header";
 import { CatalogFooter } from "@/components/catalog/catalog-footer";
 
-export async function CatalogShell({ children }: { children: React.ReactNode }) {
+export async function CatalogShell({
+  children,
+  immersive = false,
+}: {
+  children: React.ReactNode;
+  immersive?: boolean;
+}) {
   const [cookieStore, siteSettings] = await Promise.all([
     cookies(),
     getSiteSettings(),
@@ -32,7 +38,13 @@ export async function CatalogShell({ children }: { children: React.ReactNode }) 
         agentName={isAgentLoggedIn ? agent?.name : null}
       />
 
-      <main className="relative mx-auto max-w-[94rem] px-4 py-8 sm:px-8 lg:px-12">
+      <main
+        className={
+          immersive
+            ? "relative -mt-[5.25rem] sm:-mt-[6.25rem]"
+            : "relative mx-auto max-w-[94rem] px-4 py-8 sm:px-8 lg:px-12"
+        }
+      >
         {children}
       </main>
 

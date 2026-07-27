@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CategoryShowcaseItem } from "@/components/admin/category-showcase-item";
+import { HomepagePromoEditor } from "@/components/admin/homepage-promo-editor";
 import { PageHeader } from "@/components/ui";
 import { getHomepageSections } from "@/lib/homepageSections";
 import { prisma } from "@/lib/prisma";
@@ -119,6 +120,16 @@ export default async function HomepageAdminPage({
               <p className="mt-3 text-sm leading-6 text-[#68746e]">
                 {section.description}
               </p>
+              {section.key === "promoHero" && (
+                <HomepagePromoEditor
+                  title={section.contentTitle}
+                  description={section.contentDescription}
+                  imageUrl={section.imageUrl}
+                  mobileImageUrl={section.mobileImageUrl}
+                  buttonLabel={section.buttonLabel}
+                  buttonUrl={section.buttonUrl}
+                />
+              )}
               {section.key === "categoryShowcase" && (
                 <div className="mt-4 grid gap-3 lg:grid-cols-2">
                   <label>

@@ -246,6 +246,10 @@ model HomepageSection {
   label              String   @db.NVarChar(120)
   contentTitle       String?  @db.NVarChar(200)
   contentDescription String?  @db.NVarChar(600)
+  imageUrl           String?  @db.NVarChar(1000)
+  mobileImageUrl     String?  @db.NVarChar(1000)
+  buttonLabel        String?  @db.NVarChar(120)
+  buttonUrl          String?  @db.NVarChar(1000)
   isVisible          Boolean  @default(true)
   sortOrder          Int      @default(0)
   updatedAt          DateTime @updatedAt

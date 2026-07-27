@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { CatalogShell } from "@/components/catalog/catalog-shell";
+import { HomepagePromoHero } from "@/components/catalog/homepage-promo-hero";
 import { ScrollReveal } from "@/components/catalog/scroll-reveal";
 import { getHomepageSections } from "@/lib/homepageSections";
 import {
@@ -88,6 +89,7 @@ export default async function HomePage({
     homepageSections.map((section) => [section.key, section]),
   );
   const heroSection = sectionMap.get("hero");
+  const promoHeroSection = sectionMap.get("promoHero");
   const categorySection = sectionMap.get("categoryShowcase");
   const catalogSection = sectionMap.get("catalog");
   const configuredCategories = categories
@@ -105,8 +107,23 @@ export default async function HomePage({
   const featureProduct = showcaseProducts[0];
 
   return (
-    <CatalogShell>
-      <div className="space-y-24 pb-6 sm:space-y-32">
+    <CatalogShell immersive={promoHeroSection?.isVisible !== false}>
+      {promoHeroSection?.isVisible !== false && (
+        <HomepagePromoHero
+          companyName={siteSettings.companyName}
+          title={
+            promoHeroSection?.contentTitle ??
+            "Profesyonel mutfakların güvenilir tedarikçisi."
+          }
+          description={promoHeroSection?.contentDescription}
+          imageUrl={promoHeroSection?.imageUrl}
+          mobileImageUrl={promoHeroSection?.mobileImageUrl}
+          buttonLabel={promoHeroSection?.buttonLabel}
+          buttonUrl={promoHeroSection?.buttonUrl}
+        />
+      )}
+
+      <div className="relative mx-auto max-w-[94rem] space-y-24 px-4 py-12 sm:space-y-32 sm:px-8 sm:py-16 lg:px-12">
         {categorySection?.isVisible !== false && (
           <section>
             <ScrollReveal>

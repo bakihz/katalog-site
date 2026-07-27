@@ -15,6 +15,19 @@ function readOptionalText(formData: FormData, name: string, maxLength: number) {
 function isSafeImageUrl(value: string | null) {
   if (!value) return true;
   if (value.startsWith("/uploads/categories/")) return true;
+  if (value.startsWith("/uploads/homepage/")) return true;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+function isSafeLinkUrl(value: string | null) {
+  if (!value) return true;
+  if (value.startsWith("/") && !value.startsWith("//")) return true;
 
   try {
     const url = new URL(value);
@@ -30,19 +43,45 @@ export async function POST(req: NextRequest) {
   const requestedSections = homepageSectionDefinitions.map((definition) => {
     const requestedOrder = Number(formData.get(`${definition.key}Order`));
 
+    const isPromoHero = definition.key === "promoHero";
+    const imageUrl = isPromoHero
+      ? readOptionalText(formData, "promoHeroImageUrl", 1000)
+      : null;
+    const mobileImageUrl = isPromoHero
+      ? readOptionalText(formData, "promoHeroMobileImageUrl", 1000)
+      : null;
+    const buttonUrl = isPromoHero
+      ? readOptionalText(formData, "promoHeroButtonUrl", 1000)
+      : null;
+
     return {
       ...definition,
       requestedOrder: Number.isInteger(requestedOrder) ? requestedOrder : 999,
       isVisible: formData.get(`${definition.key}Visible`) === "on",
       contentTitle:
-        definition.key === "categoryShowcase"
+        isPromoHero
+          ? readText(formData, "promoHeroTitle", 200) ||
+            definition.defaultContentTitle
+          : definition.key === "categoryShowcase"
           ? readText(formData, "categoryShowcaseTitle", 200) ||
             definition.defaultContentTitle
           : null,
       contentDescription:
-        definition.key === "categoryShowcase"
+        isPromoHero
+          ? readOptionalText(formData, "promoHeroDescription", 600)
+          : definition.key === "categoryShowcase"
           ? readOptionalText(formData, "categoryShowcaseDescription", 600)
           : null,
+      imageUrl,
+      mobileImageUrl,
+      buttonLabel: isPromoHero
+        ? readOptionalText(formData, "promoHeroButtonLabel", 120)
+        : null,
+      buttonUrl,
+      hasInvalidUrl:
+        !isSafeImageUrl(imageUrl) ||
+        !isSafeImageUrl(mobileImageUrl) ||
+        !isSafeLinkUrl(buttonUrl),
     };
   });
   requestedSections.sort(
@@ -50,6 +89,12 @@ export async function POST(req: NextRequest) {
       left.requestedOrder - right.requestedOrder ||
       left.defaultSortOrder - right.defaultSortOrder,
   );
+
+  if (requestedSections.some((section) => section.hasInvalidUrl)) {
+    return NextResponse.redirect(`${baseUrl}/admin/homepage?error=image-url`, {
+      status: 303,
+    });
+  }
 
   const eligibleCategories = await prisma.catalogCategory.findMany({
     where: {
@@ -122,6 +167,10 @@ export async function POST(req: NextRequest) {
           label: section.label,
           contentTitle: section.contentTitle,
           contentDescription: section.contentDescription,
+          imageUrl: section.imageUrl,
+          mobileImageUrl: section.mobileImageUrl,
+          buttonLabel: section.buttonLabel,
+          buttonUrl: section.buttonUrl,
           isVisible: section.isVisible,
           sortOrder: (index + 1) * 10,
         },
@@ -129,6 +178,10 @@ export async function POST(req: NextRequest) {
           label: section.label,
           contentTitle: section.contentTitle,
           contentDescription: section.contentDescription,
+          imageUrl: section.imageUrl,
+          mobileImageUrl: section.mobileImageUrl,
+          buttonLabel: section.buttonLabel,
+          buttonUrl: section.buttonUrl,
           isVisible: section.isVisible,
           sortOrder: (index + 1) * 10,
         },

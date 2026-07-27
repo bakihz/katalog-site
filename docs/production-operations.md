@@ -112,36 +112,30 @@ pm2 save
 
 `git reset --hard` canlıda son çare olarak düşünülmelidir; önce `revert` daha güvenlidir.
 
-## Veritabanı yedekleme
+## Yedekleme sistemi
 
-SQL Server container adı genelde `sqlserver`.
+Canlı sistemde katmanlı yedekleme aktiftir:
 
-Önce container adını kontrol et:
+- WebServer ve MailServer için günlük snapshot VM yedeği.
+- Her pazar stop mode VM yedeği.
+- `KatalogSite` için dört saatte bir doğrulanan SQL Server `.bak` yedeği.
+- Production'a özel kritik proje dosyalarının günlük arşivi.
+- Nginx Proxy Manager ve Portainer için haftalık yapılandırma yedeği.
+- Mailcow için uygulama seviyesinde bağımsız yedek.
 
-```bash
-sudo docker ps -a
-```
+SQL yedek scripti parola değerini komut satırına açıkça yazmadan container
+ortamından alır; `CHECKSUM`, `RESTORE VERIFYONLY` ve SHA-256 karşılaştırması
+yapar. Bu nedenle dokümana gerçek SA parolası içeren manuel backup komutları
+eklenmemelidir.
 
-Manuel backup örneği:
+Güncel kapsam, kontrol komutları, bilinen eksikler ve kurtarma sırası:
 
-```bash
-sudo docker exec -it sqlserver /opt/mssql-tools18/bin/sqlcmd \
-  -S localhost -U sa -P '<SA_PASSWORD>' -C \
-  -Q "BACKUP DATABASE [KatalogDb] TO DISK = N'/var/opt/mssql/backup/katalog-$(date +%F).bak' WITH INIT"
-```
+[`backup-and-recovery.md`](backup-and-recovery.md)
 
-Backup dosyasını container dışına almak için:
-
-```bash
-sudo docker cp sqlserver:/var/opt/mssql/backup/katalog-YYYY-MM-DD.bak ./katalog-YYYY-MM-DD.bak
-```
-
-Öneri:
-
-- Günlük otomatik DB backup kurulmalı.
-- Backup dosyaları aynı makinede tek başına bırakılmamalı.
-- Haftalık olarak harici disk/NAS/bulut gibi ikinci bir yere kopyalanmalı.
-- Ayda en az bir kez restore testi yapılmalı.
+> 27 Temmuz 2026 notu: Mailcow script adındaki `malcow` yazım hatası
+> düzeltilmiş, görev pazar günkü stop mode VM yedeğiyle çakışmaması için
+> 04:00'a taşınmış ve `flock` koruması eklenmiştir. Yaklaşık 15 GB manuel
+> doğrulama yedeği Proxmox'a başarıyla aktarılmıştır.
 
 ## `.env` yedekleme
 
@@ -210,7 +204,9 @@ df -h
 
 Aylık:
 
-- DB backup restore testi.
+- Son VM, Mailcow, SQL, proje ve Docker yedeklerinin tarih/boyut kontrolü.
+- Yedekleme loglarında hata kontrolü.
+- Periyodik restore testi.
 - Kullanıcı/temsilci listesi kontrolü.
 - Eski veya pasif temsilcilerin devre dışı bırakılması.
 - Admin şifresi ve erişim bilgilerinin gözden geçirilmesi.
