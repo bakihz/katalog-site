@@ -105,9 +105,6 @@ export function HomepagePromoHero({
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_28%,rgba(239,180,79,0.5),transparent_27%),linear-gradient(135deg,#10231d_0%,#1d4d3d_54%,#c2853e_135%)]" />
             )}
 
-            <div className="absolute inset-0 bg-gradient-to-t from-[#071913]/90 via-[#071913]/20 to-[#071913]/20 sm:bg-gradient-to-r sm:from-[#071913]/80 sm:via-[#071913]/25 sm:to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-b from-[#071913]/20 via-transparent to-[#071913]/35" />
-
             <div className="relative mx-auto flex w-full max-w-[94rem] items-end px-5 pb-20 pt-32 sm:px-8 sm:pb-20 sm:pt-40 lg:px-12 lg:pb-24">
               <div className="max-w-3xl">
                 <p className="text-xs font-black uppercase tracking-[0.26em] text-[#f3c98f] sm:text-sm">
@@ -127,7 +124,7 @@ export function HomepagePromoHero({
                   <Link
                     href={slide.buttonUrl}
                     tabIndex={isActive ? 0 : -1}
-                    className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#efb44f] px-6 py-3.5 text-sm font-black text-[#2a2114] shadow-[0_5px_16px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:bg-[#f5c466]"
+                    className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#efb44f] px-6 py-3.5 text-sm font-black text-[#2a2114] shadow-[0_5px_16px_rgba(0,0,0,0.12)] transition hover:-translate-y-0.5 hover:bg-[#f5c466]"
                   >
                     {slide.buttonLabel}
                     <span aria-hidden="true">→</span>
