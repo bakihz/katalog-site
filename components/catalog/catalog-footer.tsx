@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getTelephoneHref } from "@/lib/siteSettings";
 
 type CatalogFooterProps = {
+  logoUrl: string;
   companyName: string;
   primaryPhone: string;
   email: string;
@@ -11,6 +12,7 @@ type CatalogFooterProps = {
 };
 
 export function CatalogFooter({
+  logoUrl,
   companyName,
   primaryPhone,
   email,
@@ -25,7 +27,7 @@ export function CatalogFooter({
             <Link href="/home" className="inline-flex items-center gap-4">
               <span className="relative block size-14 shrink-0 overflow-hidden rounded-2xl shadow-sm">
                 <Image
-                  src="/logo.svg"
+                  src={logoUrl}
                   alt="Lale EDT logo"
                   fill
                   sizes="56px"

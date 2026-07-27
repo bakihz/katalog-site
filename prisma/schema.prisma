@@ -224,6 +224,7 @@ model AdminAuditLog {
 
 model SiteSettings {
   id              Int      @id
+  logoUrl         String   @default("/logo.svg") @db.NVarChar(1000)
   companyName     String   @default("Lale EDT Gıda A.Ş.") @db.NVarChar(200)
   primaryPhone    String   @default("0 (544) 303 33 66") @db.NVarChar(50)
   secondaryPhone  String?  @db.NVarChar(50)

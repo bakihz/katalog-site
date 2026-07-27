@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { PageHeader } from "@/components/ui";
 import { getSiteSettings } from "@/lib/siteSettings";
 import { getFirstSearchParam } from "@/lib/searchParams";
@@ -41,7 +42,49 @@ export default async function SiteSettingsPage({
         </div>
       )}
 
-      <form action="/api/admin/site-settings" method="POST" className="space-y-6">
+      <form
+        action="/api/admin/site-settings"
+        method="POST"
+        encType="multipart/form-data"
+        className="space-y-6"
+      >
+        <section className="rounded-[1.75rem] border border-[#17201c]/10 bg-white p-6 shadow-sm">
+          <div className="mb-5">
+            <h3 className="text-lg font-bold">Site Logosu</h3>
+            <p className="mt-1 text-sm leading-6 text-[#68746e]">
+              Public site başlığı ve alt bilgi alanında gösterilecek logoyu
+              buradan değiştirebilirsiniz.
+            </p>
+          </div>
+
+          <div className="grid items-center gap-5 sm:grid-cols-[7rem_1fr]">
+            <div className="relative size-28 overflow-hidden rounded-2xl border border-[#17201c]/10 bg-[#f8f6f1]">
+              <Image
+                src={settings.logoUrl}
+                alt="Mevcut site logosu"
+                fill
+                sizes="112px"
+                className="object-contain p-2"
+              />
+            </div>
+            <label>
+              <span className="mb-1.5 block text-sm font-semibold">
+                Yeni logo seç
+              </span>
+              <input
+                className={`${inputClassName} file:mr-4 file:rounded-full file:border-0 file:bg-[#173f32] file:px-4 file:py-2 file:text-xs file:font-bold file:text-white`}
+                type="file"
+                name="logo"
+                accept="image/jpeg,image/png,image/webp"
+              />
+              <span className="mt-2 block text-xs leading-5 text-[#68746e]">
+                JPG, PNG veya WebP; en fazla 5 MB. Şeffaf arka plan için PNG
+                veya WebP önerilir. Dosya seçmezseniz mevcut logo korunur.
+              </span>
+            </label>
+          </div>
+        </section>
+
         <section className="rounded-[1.75rem] border border-[#17201c]/10 bg-white p-6 shadow-sm">
           <div className="mb-5">
             <h3 className="text-lg font-bold">Şirket ve İletişim</h3>

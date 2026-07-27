@@ -91,7 +91,7 @@ export default async function TemporaryPage() {
           <div className="flex items-center gap-4">
             <div className="relative size-14 shrink-0 overflow-hidden rounded-xl shadow-lg shadow-[#173f32]/15 lg:size-16">
               <Image
-                src="/logo.svg"
+                src={siteSettings.logoUrl}
                 alt="Lale EDT logo"
                 fill
                 priority

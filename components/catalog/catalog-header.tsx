@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 type CatalogHeaderProps = {
+  logoUrl: string;
   companyName: string;
   email: string;
   showAgentLogin: boolean;
@@ -21,6 +22,7 @@ const navigationItems = [
 ] as const;
 
 export function CatalogHeader({
+  logoUrl,
   companyName,
   email,
   showAgentLogin,
@@ -56,7 +58,7 @@ export function CatalogHeader({
           >
             <span className="relative block size-12 overflow-hidden rounded-xl sm:size-14">
               <Image
-                src="/logo.svg"
+                src={logoUrl}
                 alt="Lale EDT logo"
                 fill
                 priority

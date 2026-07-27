@@ -32,6 +32,7 @@ export async function CatalogShell({
       <div className="pointer-events-none fixed inset-0 opacity-30 [background-image:radial-gradient(#809087_0.7px,transparent_0.7px)] [background-size:18px_18px]" />
 
       <CatalogHeader
+        logoUrl={siteSettings.logoUrl}
         companyName={siteSettings.companyName}
         email={siteSettings.email}
         showAgentLogin={siteSettings.showAgentLogin}
@@ -50,6 +51,7 @@ export async function CatalogShell({
       </main>
 
       <CatalogFooter
+        logoUrl={siteSettings.logoUrl}
         companyName={siteSettings.companyName}
         primaryPhone={siteSettings.primaryPhone}
         email={siteSettings.email}

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 export const defaultSiteSettings = {
   id: 1,
+  logoUrl: "/logo.svg",
   companyName: "Lale EDT Gıda A.Ş.",
   primaryPhone: "0 (544) 303 33 66",
   secondaryPhone: "0 (324) 234 10 17",
@@ -22,6 +23,7 @@ export const defaultSiteSettings = {
 
 export type PublicSiteSettings = {
   id: number;
+  logoUrl: string;
   companyName: string;
   primaryPhone: string;
   secondaryPhone: string | null;

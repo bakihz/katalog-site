@@ -5,7 +5,12 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const allowedDirectories = new Set(["categories", "homepage", "products"]);
+const allowedDirectories = new Set([
+  "categories",
+  "homepage",
+  "products",
+  "site",
+]);
 const contentTypes: Record<string, string> = {
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
