@@ -6,6 +6,10 @@ import { HomepagePromoHero } from "@/components/catalog/homepage-promo-hero";
 import { ScrollReveal } from "@/components/catalog/scroll-reveal";
 import { getHomepageSections } from "@/lib/homepageSections";
 import {
+  createLegacyHeroSlide,
+  getHomepageHeroSlides,
+} from "@/lib/homepageHeroSlides";
+import {
   getHomepageProductShowcase,
   getPublicCategorySummaries,
 } from "@/lib/publicCatalog";
@@ -78,10 +82,17 @@ export default async function HomePage({
     redirect(`/urunler?${params.toString()}`);
   }
 
-  const [siteSettings, homepageSections, categories, showcaseProducts] =
+  const [
+    siteSettings,
+    homepageSections,
+    storedHeroSlides,
+    categories,
+    showcaseProducts,
+  ] =
     await Promise.all([
       getSiteSettings(),
       getHomepageSections(),
+      getHomepageHeroSlides(),
       getPublicCategorySummaries(),
       getHomepageProductShowcase(),
     ]);
@@ -105,21 +116,29 @@ export default async function HomePage({
       : categories.slice(0, 8);
   const featureCategory = showcaseCategories[0];
   const featureProduct = showcaseProducts[0];
+  const activeHeroSlides = storedHeroSlides.filter((slide) => slide.isActive);
+  const heroSlides =
+    storedHeroSlides.length > 0
+      ? activeHeroSlides
+      : promoHeroSection
+        ? [
+            createLegacyHeroSlide(
+              promoHeroSection,
+              "Profesyonel mutfakların güvenilir tedarikçisi.",
+            ),
+          ]
+        : [];
 
   return (
-    <CatalogShell immersive={promoHeroSection?.isVisible !== false}>
-      {promoHeroSection?.isVisible !== false && (
+    <CatalogShell
+      immersive={
+        promoHeroSection?.isVisible !== false && heroSlides.length > 0
+      }
+    >
+      {promoHeroSection?.isVisible !== false && heroSlides.length > 0 && (
         <HomepagePromoHero
           companyName={siteSettings.companyName}
-          title={
-            promoHeroSection?.contentTitle ??
-            "Profesyonel mutfakların güvenilir tedarikçisi."
-          }
-          description={promoHeroSection?.contentDescription}
-          imageUrl={promoHeroSection?.imageUrl}
-          mobileImageUrl={promoHeroSection?.mobileImageUrl}
-          buttonLabel={promoHeroSection?.buttonLabel}
-          buttonUrl={promoHeroSection?.buttonUrl}
+          slides={heroSlides}
         />
       )}
 

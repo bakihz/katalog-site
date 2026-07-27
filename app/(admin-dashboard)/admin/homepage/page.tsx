@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { CategoryShowcaseItem } from "@/components/admin/category-showcase-item";
-import { HomepagePromoEditor } from "@/components/admin/homepage-promo-editor";
+import { HomepageHeroSlidesManager } from "@/components/admin/homepage-hero-slides-manager";
 import { PageHeader } from "@/components/ui";
+import {
+  createLegacyHeroSlide,
+  getHomepageHeroSlides,
+} from "@/lib/homepageHeroSlides";
 import { getHomepageSections } from "@/lib/homepageSections";
 import { prisma } from "@/lib/prisma";
 import { getFirstSearchParam } from "@/lib/searchParams";
@@ -13,8 +17,9 @@ type HomepageAdminPageProps = {
 export default async function HomepageAdminPage({
   searchParams,
 }: HomepageAdminPageProps) {
-  const [sections, categories, params] = await Promise.all([
+  const [sections, heroSlides, categories, params] = await Promise.all([
     getHomepageSections(),
+    getHomepageHeroSlides(),
     prisma.catalogCategory.findMany({
       where: {
         isActive: true,
@@ -63,6 +68,20 @@ export default async function HomepageAdminPage({
   ]);
   const success = getFirstSearchParam(params.success);
   const error = getFirstSearchParam(params.error);
+  const promoHeroSection = sections.find(
+    (section) => section.key === "promoHero",
+  );
+  const initialHeroSlides =
+    heroSlides.length > 0
+      ? heroSlides
+      : promoHeroSection
+        ? [
+            createLegacyHeroSlide(
+              promoHeroSection,
+              "Profesyonel mutfakların güvenilir tedarikçisi.",
+            ),
+          ]
+        : [];
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -121,14 +140,41 @@ export default async function HomepageAdminPage({
                 {section.description}
               </p>
               {section.key === "promoHero" && (
-                <HomepagePromoEditor
-                  title={section.contentTitle}
-                  description={section.contentDescription}
-                  imageUrl={section.imageUrl}
-                  mobileImageUrl={section.mobileImageUrl}
-                  buttonLabel={section.buttonLabel}
-                  buttonUrl={section.buttonUrl}
-                />
+                <>
+                  <input
+                    type="hidden"
+                    name="promoHeroTitle"
+                    value={section.contentTitle ?? ""}
+                  />
+                  <input
+                    type="hidden"
+                    name="promoHeroDescription"
+                    value={section.contentDescription ?? ""}
+                  />
+                  <input
+                    type="hidden"
+                    name="promoHeroImageUrl"
+                    value={section.imageUrl ?? ""}
+                  />
+                  <input
+                    type="hidden"
+                    name="promoHeroMobileImageUrl"
+                    value={section.mobileImageUrl ?? ""}
+                  />
+                  <input
+                    type="hidden"
+                    name="promoHeroButtonLabel"
+                    value={section.buttonLabel ?? ""}
+                  />
+                  <input
+                    type="hidden"
+                    name="promoHeroButtonUrl"
+                    value={section.buttonUrl ?? ""}
+                  />
+                  <HomepageHeroSlidesManager
+                    initialSlides={initialHeroSlides}
+                  />
+                </>
               )}
               {section.key === "categoryShowcase" && (
                 <div className="mt-4 grid gap-3 lg:grid-cols-2">
