@@ -10,6 +10,7 @@ type CatalogHeaderProps = {
   email: string;
   showAgentLogin: boolean;
   agentName?: string | null;
+  immersive?: boolean;
 };
 
 const navigationItems = [
@@ -24,6 +25,7 @@ export function CatalogHeader({
   email,
   showAgentLogin,
   agentName,
+  immersive = false,
 }: CatalogHeaderProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -39,8 +41,12 @@ export function CatalogHeader({
   }
 
   return (
-    <header className="sticky top-0 z-50 px-3 pt-3 sm:px-6 sm:pt-5 lg:px-8">
-      <div className="relative mx-auto max-w-[94rem] rounded-[1.4rem] border border-white/60 bg-[rgba(255,255,255,0.68)] shadow-[0_16px_50px_rgba(16,35,29,0.12)] backdrop-blur-[26px] backdrop-saturate-150">
+    <header
+      className={`top-0 z-50 w-full px-3 pt-3 sm:px-6 sm:pt-5 lg:px-8 ${
+        immersive ? "fixed inset-x-0" : "sticky"
+      }`}
+    >
+      <div className="relative mx-auto max-w-[94rem] rounded-[1.4rem] border border-white/70 bg-[rgba(255,255,255,0.68)] shadow-[0_8px_24px_rgba(16,35,29,0.06)] backdrop-blur-[26px] backdrop-saturate-150">
         <div className="flex h-[4.5rem] items-center gap-4 px-4 sm:h-[5rem] sm:px-5 lg:px-7">
           <Link
             href="/home"
@@ -144,7 +150,7 @@ export function CatalogHeader({
         </div>
 
         <div
-          className={`absolute left-0 right-0 top-[calc(100%+0.55rem)] origin-top overflow-hidden rounded-[1.4rem] border border-white/65 bg-[rgba(255,255,255,0.82)] shadow-[0_24px_60px_rgba(16,35,29,0.18)] backdrop-blur-[26px] backdrop-saturate-150 transition duration-300 md:hidden ${
+          className={`absolute left-0 right-0 top-[calc(100%+0.55rem)] origin-top overflow-hidden rounded-[1.4rem] border border-white/70 bg-[rgba(255,255,255,0.82)] shadow-[0_12px_32px_rgba(16,35,29,0.1)] backdrop-blur-[26px] backdrop-saturate-150 transition duration-300 md:hidden ${
             isMenuOpen
               ? "visible translate-y-0 scale-y-100 opacity-100"
               : "invisible -translate-y-2 scale-y-95 opacity-0"

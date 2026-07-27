@@ -130,7 +130,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
         </Link>
 
         <section className="grid gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start lg:gap-14">
-          <div className="overflow-hidden rounded-[2rem] border border-white/80 bg-white/70 shadow-xl shadow-[#173f32]/8">
+          <div className="overflow-hidden rounded-[2rem] border border-white/80 bg-white/70 shadow-[0_8px_24px_rgba(23,63,50,0.05)]">
             <div className="relative aspect-square overflow-hidden bg-[#e9eee9]">
               {product.imageUrl ? (
                 <img

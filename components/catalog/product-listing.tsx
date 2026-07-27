@@ -136,7 +136,7 @@ export async function ProductListing({
             <Link
               key={product.id}
               href={`/urun/${product.slug}`}
-              className="group flex flex-col overflow-hidden rounded-2xl border border-white/80 bg-white/75 shadow-sm transition hover:-translate-y-0.5 hover:border-[#173f32]/20 hover:shadow-md"
+              className="group flex flex-col overflow-hidden rounded-2xl border border-[#173f32]/8 bg-white/75 transition hover:-translate-y-0.5 hover:border-[#173f32]/20"
             >
               <div className="relative aspect-square overflow-hidden bg-[#edf1ec]">
                 {product.imageUrl ? (

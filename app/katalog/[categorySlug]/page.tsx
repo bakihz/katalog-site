@@ -31,7 +31,7 @@ export default async function CatalogSubcategoriesPage({
             Alt kategori seçin veya bu ana kategorideki bütün ürünleri görüntüleyin.
           </p>
         </div>
-        <Link href={`/urunler?kategori=${encodeURIComponent(category.slug)}`} className="inline-flex w-fit rounded-full bg-[#173f32] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-[#173f32]/15 transition hover:bg-[#10231d]">
+        <Link href={`/urunler?kategori=${encodeURIComponent(category.slug)}`} className="inline-flex w-fit rounded-full bg-[#173f32] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#10231d]">
           Bu Kategorideki Tüm Ürünler →
         </Link>
       </section>

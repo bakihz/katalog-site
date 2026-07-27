@@ -19,7 +19,7 @@ export function CatalogFooter({
 }: CatalogFooterProps) {
   return (
     <footer id="iletisim" className="relative mt-16 px-3 pb-4 sm:px-6 sm:pb-6 lg:px-8">
-      <div className="mx-auto max-w-[94rem] overflow-hidden rounded-[2rem] border border-white/60 bg-[rgba(255,255,255,0.68)] shadow-[0_18px_60px_rgba(16,35,29,0.1)] backdrop-blur-[26px] backdrop-saturate-150">
+      <div className="mx-auto max-w-[94rem] overflow-hidden rounded-[2rem] border border-white/70 bg-[rgba(255,255,255,0.68)] shadow-[0_8px_28px_rgba(16,35,29,0.05)] backdrop-blur-[26px] backdrop-saturate-150">
         <div className="grid gap-10 px-6 py-9 sm:px-9 sm:py-11 lg:grid-cols-[1.15fr_0.75fr_1fr] lg:gap-14 lg:px-12">
           <div>
             <Link href="/home" className="inline-flex items-center gap-4">

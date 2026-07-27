@@ -127,7 +127,7 @@ export function HomepagePromoHero({
                   <Link
                     href={slide.buttonUrl}
                     tabIndex={isActive ? 0 : -1}
-                    className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#efb44f] px-6 py-3.5 text-sm font-black text-[#2a2114] shadow-xl shadow-black/15 transition hover:-translate-y-0.5 hover:bg-[#f5c466]"
+                    className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#efb44f] px-6 py-3.5 text-sm font-black text-[#2a2114] shadow-[0_5px_16px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:bg-[#f5c466]"
                   >
                     {slide.buttonLabel}
                     <span aria-hidden="true">→</span>

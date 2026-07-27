@@ -20,7 +20,7 @@ export function CategoryCard({
   return (
     <Link
       href={href}
-      className="group relative min-h-64 overflow-hidden rounded-[1.75rem] bg-[#173f32] shadow-lg shadow-[#10231d]/10 transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+      className="group relative min-h-64 overflow-hidden rounded-[1.75rem] border border-[#173f32]/8 bg-[#173f32] shadow-[0_6px_18px_rgba(16,35,29,0.05)] transition duration-300 hover:-translate-y-0.5 hover:border-[#173f32]/15"
     >
       {imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element

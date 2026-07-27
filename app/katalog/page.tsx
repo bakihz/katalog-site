@@ -27,7 +27,7 @@ export default async function CatalogCategoriesPage() {
             Ürün gruplarından birini seçin veya kategori seçmeden tüm ürünlere geçin.
           </p>
         </div>
-        <Link href="/urunler" className="inline-flex w-fit rounded-full bg-[#173f32] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-[#173f32]/15 transition hover:bg-[#10231d]">
+        <Link href="/urunler" className="inline-flex w-fit rounded-full bg-[#173f32] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#10231d]">
           Tüm Ürünleri Gör →
         </Link>
       </section>

@@ -174,7 +174,7 @@ export default async function HomePage({
                   >
                     <Link
                       href={`/katalog/${category.slug}`}
-                      className="group relative flex h-full min-h-64 overflow-hidden rounded-[1.75rem] bg-[#173f32] shadow-lg shadow-[#10231d]/10 lg:min-h-0"
+                      className="group relative flex h-full min-h-64 overflow-hidden rounded-[1.75rem] border border-[#173f32]/8 bg-[#173f32] shadow-[0_6px_18px_rgba(16,35,29,0.05)] lg:min-h-0"
                     >
                       {category.homepageImageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -224,7 +224,7 @@ export default async function HomePage({
           <ScrollReveal>
             <section
               id="hakkimizda"
-              className="grid items-center gap-10 overflow-hidden rounded-[2.5rem] bg-white/55 px-6 py-10 shadow-xl shadow-[#10231d]/5 sm:px-10 sm:py-14 lg:grid-cols-[1fr_0.95fr] lg:gap-16 lg:px-16"
+              className="grid items-center gap-10 overflow-hidden rounded-[2.5rem] border border-white/70 bg-white/55 px-6 py-10 sm:px-10 sm:py-14 lg:grid-cols-[1fr_0.95fr] lg:gap-16 lg:px-16"
             >
               <div className="relative z-10 max-w-2xl py-4">
                 <p className="text-xs font-black uppercase tracking-[0.24em] text-[#c2853e]">
@@ -242,7 +242,7 @@ export default async function HomePage({
                 <div className="mt-8 flex flex-wrap gap-3">
                   <Link
                     href="/katalog"
-                    className="rounded-full bg-[#173f32] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#173f32]/15"
+                    className="rounded-full bg-[#173f32] px-6 py-3 text-sm font-bold text-white"
                   >
                     Kategorileri incele
                   </Link>
@@ -272,7 +272,7 @@ export default async function HomePage({
                     </div>
                   )}
                 </div>
-                <div className="absolute left-0 top-1/2 flex aspect-square w-[58%] -translate-y-1/2 items-center justify-center overflow-hidden rounded-full border-[0.8rem] border-[#f5f1e8] bg-[#c2853e] shadow-2xl shadow-[#10231d]/20">
+                <div className="absolute left-0 top-1/2 flex aspect-square w-[58%] -translate-y-1/2 items-center justify-center overflow-hidden rounded-full border-[0.8rem] border-[#f5f1e8] bg-[#c2853e] shadow-[0_12px_32px_rgba(16,35,29,0.1)]">
                   {featureProduct?.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -325,7 +325,7 @@ export default async function HomePage({
                       href={`/urun/${product.slug}`}
                       className="group block h-full"
                     >
-                      <div className="relative aspect-[4/5] overflow-hidden rounded-[1.75rem] bg-[#e8ede8] shadow-sm">
+                      <div className="relative aspect-[4/5] overflow-hidden rounded-[1.75rem] border border-[#173f32]/8 bg-[#e8ede8]">
                         {product.imageUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img

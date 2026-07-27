@@ -36,12 +36,13 @@ export async function CatalogShell({
         email={siteSettings.email}
         showAgentLogin={siteSettings.showAgentLogin}
         agentName={isAgentLoggedIn ? agent?.name : null}
+        immersive={immersive}
       />
 
       <main
         className={
           immersive
-            ? "relative -mt-[5.25rem] sm:-mt-[6.25rem]"
+            ? "relative"
             : "relative mx-auto max-w-[94rem] px-4 py-8 sm:px-8 lg:px-12"
         }
       >
