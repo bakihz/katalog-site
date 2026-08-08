@@ -220,9 +220,19 @@ export default async function TemporaryPage() {
           </aside>
         </section>
 
-        <footer className="flex flex-col gap-2 border-t border-[#17201c]/10 pt-6 text-xs text-[#718078] sm:flex-row sm:items-center sm:justify-between lg:pt-4">
-          <p>© 2026 {siteSettings.companyName} Tüm hakları saklıdır.</p>
-          <p>Yeni web sitemiz için geri sayım başladı.</p>
+        <footer className="flex flex-col gap-3 border-t border-[#17201c]/10 pt-6 text-xs text-[#718078] lg:pt-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p>© 2026 {siteSettings.companyName} Tüm hakları saklıdır.</p>
+            <p>Yeni web sitemiz için geri sayım başladı.</p>
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            <Link href="/gizlilik-ve-guvenlik" className="hover:text-[#17201c] transition underline underline-offset-2">
+              Gizlilik ve Güvenlik Politikası
+            </Link>
+            <Link href="/iptal-ve-iade" className="hover:text-[#17201c] transition underline underline-offset-2">
+              İptal ve İade Şartları
+            </Link>
+          </div>
         </footer>
       </div>
     </main>

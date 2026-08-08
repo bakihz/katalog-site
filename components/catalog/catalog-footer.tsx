@@ -122,9 +122,16 @@ export function CatalogFooter({
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 border-t border-[#173f32]/10 px-6 py-5 text-xs text-[#7e8a84] sm:flex-row sm:items-center sm:justify-between sm:px-9 lg:px-12">
-          <span>© {new Date().getFullYear()} {companyName}</span>
-          <span>Tüm hakları saklıdır.</span>
+        <div className="flex flex-col gap-3 border-t border-[#173f32]/10 px-6 py-5 text-xs text-[#7e8a84] sm:flex-row sm:items-center sm:justify-between sm:px-9 lg:px-12">
+          <span>© {new Date().getFullYear()} {companyName} · Tüm hakları saklıdır.</span>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            <Link href="/gizlilik-ve-guvenlik" className="hover:text-[#173f32] transition underline underline-offset-2">
+              Gizlilik ve Güvenlik
+            </Link>
+            <Link href="/iptal-ve-iade" className="hover:text-[#173f32] transition underline underline-offset-2">
+              İptal ve İade
+            </Link>
+          </div>
         </div>
       </div>
     </footer>
