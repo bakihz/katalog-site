@@ -217,6 +217,14 @@ export default async function IptalVeIadePage() {
           <Link href="/iptal-ve-iade" className="font-medium text-[#17201c]">
             İptal ve İade Şartları
           </Link>
+          <span aria-hidden="true">·</span>
+          <Link href="/mesafeli-satis-sozlesmesi" className="hover:text-[#17201c] transition">
+            Mesafeli Satış Sözleşmesi
+          </Link>
+          <span aria-hidden="true">·</span>
+          <Link href="/hizmet-sozlesmesi" className="hover:text-[#17201c] transition">
+            Hizmet Sözleşmesi
+          </Link>
         </nav>
       </div>
     </main>

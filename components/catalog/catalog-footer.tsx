@@ -131,6 +131,12 @@ export function CatalogFooter({
             <Link href="/iptal-ve-iade" className="hover:text-[#173f32] transition underline underline-offset-2">
               İptal ve İade
             </Link>
+            <Link href="/mesafeli-satis-sozlesmesi" className="hover:text-[#173f32] transition underline underline-offset-2">
+              Mesafeli Satış Sözleşmesi
+            </Link>
+            <Link href="/hizmet-sozlesmesi" className="hover:text-[#173f32] transition underline underline-offset-2">
+              Hizmet Sözleşmesi
+            </Link>
           </div>
         </div>
       </div>

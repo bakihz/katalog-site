@@ -232,6 +232,12 @@ export default async function TemporaryPage() {
             <Link href="/iptal-ve-iade" className="hover:text-[#17201c] transition underline underline-offset-2">
               İptal ve İade Şartları
             </Link>
+            <Link href="/mesafeli-satis-sozlesmesi" className="hover:text-[#17201c] transition underline underline-offset-2">
+              Mesafeli Satış Sözleşmesi
+            </Link>
+            <Link href="/hizmet-sozlesmesi" className="hover:text-[#17201c] transition underline underline-offset-2">
+              Hizmet Sözleşmesi
+            </Link>
           </div>
         </footer>
       </div>
