@@ -140,7 +140,7 @@ export async function POST(req: Request) {
     // Build form fields first (without hash), then compute hash from them
     const formFields: Record<string, string> = {
       clientid: providerConfig.clientId,
-      storetype: "3d_pay",
+      storetype: "3d",
       hashAlgorithm: "ver3",
       trantype: "Auth",
       islemtipi: "Auth",
